@@ -171,7 +171,10 @@ default TTL applied before policy is non-conformant. On an idempotent re-file (s
 ### GT-5 — The risk function and its thresholds are host-supplied; the core owns only the comparison *(skeleton)*
 **MUST.** A core package ships no scoring formula and no floor. A Standing Order that declares no threshold fires on match; one
 that declares a threshold requires a host-supplied scorer and fires iff `score <= threshold`; a declared threshold with no
-scorer is a configuration error raised at wire-up (CV-1), never a silent non-fire. *Why:* the shipped .NET default scorer never
+scorer is a configuration error raised at wire-up (CV-1), never a silent non-fire. **A Standing Order is never honoured while a
+proposed field marked mandatory reads `Empty`**: the verdict degrades to `ReviewerConfirmation`, the degrade is observable
+(TL-1), and a person may still approve; an optional field left `Empty` does not block a Standing Order by rule — a host policy
+predicates on `populatedConfidence` / `emptyFieldCount` for that (AF-2). *(added 2026-09-04)* *Why:* the shipped .NET default scorer never
 returns `Low` while the default threshold is `Low` (`src/Affiant.Policies/Services/RiskScoreCalculatorBase.cs:24-32`,
 `src/Affiant.Policies/StandingOrders/StandingOrderBase.cs:27`), so a by-the-book Standing Order can never fire; the parity
 manifest names it until a .NET release moves the risk function to the host. *Fixtures:* v0.1.
@@ -404,3 +407,5 @@ surfaces a pending entry as a task) for a pending entry surfaced over MCP; OpenT
 ## Changelog
 
 - 2026-09-04 — skeleton opened: every decided clause as a one-liner with a permanent id; GT-2, DK-1, SR-1, SR-2 written in full.
+- 2026-09-04 — GT-5 gains the mandatory-`Empty` clause (a Standing Order never fires over a required field with unknown
+  provenance), found necessary by the TypeScript core's Sequence A fixtures.
