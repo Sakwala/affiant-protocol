@@ -1,8 +1,9 @@
 {
   "protocolVersion": "0.0.1-seed",
-  "capturedFrom": {
-    "framework": "Sakwala/affiant v1.0.0-beta.1 (b37e139)",
-    "hosts": "Meridian and HR Portal, Sakwala/affiant-host-apps 966d6df",
+  "$note": "The wire fixtures are hand-authored examples, not captures. Their key sets are asserted against the shipped .NET serializer by the hosts' wire-shape tests; their values are illustrative.",
+  "derivedFrom": {
+    "framework": "Sakwala/affiant v1.0.0-beta.1 (b37e139) — the framework commit whose models and serializer settings the shapes were asserted against",
+    "hosts": "Sakwala/affiant-host-apps 966d6df — Meridian and HR Portal, whose WireShapeTests compare these key sets against the real serializer",
     "date": "2026-09-04"
   },
   "fixtures": [
@@ -44,7 +45,7 @@
       "kind": "host-hub-payload",
       "schema": null,
       "schemaRelevant": false,
-      "notes": "A host payload, not protocol core: how one host tells its own client what became of a review it was showing. Captured as a reference shape because its outcome field is one of the closed sets in enum-values.json. No schema in this seed."
+      "notes": "A host payload, not protocol core: how one host tells its own client what became of a review it was showing. Included as a reference shape because its outcome field is one of the closed sets in enum-values.json. No schema in this seed."
     },
     {
       "id": "wire/session-rehydrated",
@@ -52,7 +53,7 @@
       "kind": "host-hub-payload",
       "schema": null,
       "schemaRelevant": false,
-      "notes": "A host payload, not protocol core: how one host tells a reconnecting client how many reviews are still waiting. Captured as a reference shape. No schema in this seed."
+      "notes": "A host payload, not protocol core: how one host tells a reconnecting client how many reviews are still waiting. Included as a reference shape. No schema in this seed."
     },
     {
       "id": "wire/guide-ui",
@@ -60,7 +61,7 @@
       "kind": "transport-ui",
       "schema": null,
       "schemaRelevant": false,
-      "notes": "A transport payload for a UI walkthrough: a route to navigate to and an ordered list of steps, each naming an element by its registered semantic id rather than a selector. Its meaning stays with the host surface that renders it; captured here as a reference shape. No schema in this seed."
+      "notes": "A transport payload for a UI walkthrough: a route to navigate to and an ordered list of steps, each naming an element by its registered semantic id rather than a selector. Its meaning stays with the host surface that renders it; included here as a reference shape. No schema in this seed."
     },
     {
       "id": "wire/system-notification",
@@ -68,7 +69,7 @@
       "kind": "transport-ui",
       "schema": null,
       "schemaRelevant": false,
-      "notes": "A transport payload for a transient message to a UI. Captured as a reference shape because its level field is one of the closed sets in enum-values.json. No schema in this seed."
+      "notes": "A transport payload for a transient message to a UI. Included as a reference shape because its level field is one of the closed sets in enum-values.json. No schema in this seed."
     }
   ],
   "enums": {

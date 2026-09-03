@@ -20,9 +20,11 @@ framework: each numbered rule is a statement both must satisfy, checked by the f
 conformance fixture ids arrive with v0.1). *Why:* one line where the reason is not obvious. *Source:* where the rule was
 decided or where the shipped behaviour it corrects lives, for a reader who wants to check.
 
-**The `wire/*` fixtures are captures of a shipped implementation, not conformance oracles.** They pin the shapes the seed
-schemas describe; where a rule below *corrects* the shipped behaviour, the capture still shows the old behaviour
-(`wire/evidence-card-request` reports `aggregateConfidence` 0.95, the mean, where AF-2 requires the minimum, 0.9). A `wire/`
+**The `wire/*` fixtures are hand-authored examples, not captures and not conformance oracles.** Their key sets are asserted
+against the shipped .NET serializer by the demo hosts' wire-shape tests; their *values* are illustrative (the entity `Widget`,
+the sequential ids, `conversationTurn: 3` are examples, not output). They pin shapes the seed schemas describe; where a rule
+below *corrects* the shipped behaviour, the example still shows the old behaviour (`wire/evidence-card-request` reports
+`aggregateConfidence` 0.95, the mean, where AF-2 requires the minimum, 0.9). A `wire/`
 citation means "this rule constrains this shape"; only a `conformance/` fixture id, from v0.1, means "this rule is checked
 here". A fixture is accepted into `conformance/` only through the **negative oracle**: it must *fail* against a release known
 to violate its rule before it is accepted — a fixture a broken implementation passes is not a test.
@@ -97,7 +99,9 @@ recorded in the schema changelog). A consumer switches on the discriminator, nev
 ### PV-1 — The seven-source ladder, the chain, and the confidence-first / determinism-second merge *(skeleton)*
 **MUST.** Sources, most to least deterministic: `UserStated`, `External`, `Computed`, `Conversation`, `Inferred`, `Default`,
 `Empty`. A field's `ProvenanceChain` is the ordered history of its tags; on merge the winning tag is the higher confidence,
-ties broken toward the more deterministic source, and the losing tag is preserved in the chain. *Fixtures:*
+ties broken toward the more deterministic source, and the losing tag is preserved in the chain. A tag's `confidence` is a
+number in [0, 1]; an implementation clamps a model-reported confidence into that range before minting the tag (the shipped
+.NET inference step floors at 0 but does not cap — the parity manifest names it until fixed). *Fixtures:*
 `wire/evidence-card-request` (chain shape); v0.1 (merge cases). *Source:* the specification's seven-source list and its merge
 rule (`docs/affiant-framework-specification.md:57-60`, `:100`).
 

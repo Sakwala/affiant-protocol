@@ -1,7 +1,12 @@
 // Validates every schema-relevant conformance fixture against the schema the manifest
-// assigns it. The fixtures are the truth: they are byte-for-byte captures of payloads
-// a shipped implementation really sends, so a failure here means the schema is wrong,
-// not the fixture.
+// assigns it. The fixtures are hand-authored examples, not captures: their key sets are
+// asserted against the shipped .NET serializer by the hosts' wire-shape tests, but their
+// values are illustrative. So a failure here means the schema and the example disagree;
+// decide which is right against the .NET serializer.
+//
+// It also checks that the manifest names every wire fixture file exactly once, that no
+// manifest id or file is duplicated, and that every enum set the manifest maps to a schema
+// matches that schema's `enum` exactly, in order.
 //
 // Run: node conformance/lint/lint.mjs   (from the repository root, or anywhere)
 
@@ -45,10 +50,35 @@ const compile = (schemaRelPath) => {
 };
 
 console.log(`affiant-protocol fixture lint — protocolVersion ${manifest.protocolVersion}`);
-console.log(`captured from ${manifest.capturedFrom.framework}, hosts ${manifest.capturedFrom.hosts}, ${manifest.capturedFrom.date}`);
+const derivedFrom = manifest.derivedFrom ?? {};
+console.log('the wire fixtures are hand-authored examples; their shapes were asserted against:');
+console.log(`  framework  ${derivedFrom.framework}`);
+console.log(`  hosts      ${derivedFrom.hosts}`);
+console.log(`  date       ${derivedFrom.date}`);
 console.log('');
 
 let checked = 0;
+
+// (b) No manifest entry may repeat an id or a file — a duplicate would otherwise be
+// validated twice and silently inflate the count.
+const seenIds = new Set();
+const seenFiles = new Set();
+let duplicates = 0;
+for (const entry of manifest.fixtures) {
+  if (seenIds.has(entry.id)) {
+    fail(`manifest: duplicate fixture id — ${entry.id}`);
+    duplicates += 1;
+  }
+  seenIds.add(entry.id);
+  if (seenFiles.has(entry.file)) {
+    fail(`manifest: duplicate fixture file — ${entry.file}`);
+    duplicates += 1;
+  }
+  seenFiles.add(entry.file);
+}
+if (duplicates === 0) {
+  console.log(`OK    manifest: ${manifest.fixtures.length} entries, no duplicate id or file`);
+}
 
 for (const entry of manifest.fixtures) {
   const fixturePath = join(fixturesDir, entry.file);
@@ -89,7 +119,23 @@ for (const entry of manifest.fixtures) {
   }
 }
 
-// The enum sets the manifest lists must exist in the enum fixture.
+// (a) Every wire fixture file on disk must be claimed by the manifest — an unlisted file is
+// never validated, so it must not exist unnoticed.
+const wireDir = join(fixturesDir, 'wire');
+const onDisk = existsSync(wireDir)
+  ? readdirSync(wireDir).filter((n) => n.endsWith('.json')).sort()
+  : [];
+const unlisted = onDisk.filter((n) => !seenFiles.has(`wire/${n}`));
+for (const name of unlisted) {
+  fail(`wire/${name}: fixture file is not listed in MANIFEST.json`);
+}
+if (unlisted.length === 0) {
+  console.log(`OK    manifest covers all ${onDisk.length} file(s) in conformance/fixtures/wire/`);
+}
+
+// The enum sets the manifest lists must exist in the enum fixture, and (c) where the manifest
+// maps a set to a schema, the set and that schema's `enum` must be identical, in order — the
+// order of provenanceSource is normative (it is the determinism ladder).
 const enumsFile = join(fixturesDir, manifest.enums.file);
 if (!existsSync(enumsFile)) {
   fail(`enums: manifest names a file that does not exist — ${manifest.enums.file}`);
@@ -97,11 +143,29 @@ if (!existsSync(enumsFile)) {
   const enums = readJson(enumsFile);
   for (const set of manifest.enums.sets) {
     const key = set.id.replace(/^enum\//, '');
-    if (!Array.isArray(enums[key])) {
+    const values = enums[key];
+    if (!Array.isArray(values)) {
       fail(`${set.id}: not an array in ${manifest.enums.file}`);
+      continue;
     }
-    if (set.schema && !existsSync(join(repoRoot, set.schema))) {
+    if (!set.schema) continue;
+    const schemaPath = join(repoRoot, set.schema);
+    if (!existsSync(schemaPath)) {
       fail(`${set.id}: manifest names a schema that does not exist — ${set.schema}`);
+      continue;
+    }
+    const schemaEnum = readJson(schemaPath).enum;
+    if (!Array.isArray(schemaEnum)) {
+      fail(`${set.id}: ${set.schema} has no top-level enum to compare against`);
+      continue;
+    }
+    if (JSON.stringify(schemaEnum) !== JSON.stringify(values)) {
+      fail(`${set.id}: differs from ${set.schema} enum`);
+      console.log(`FAIL  ${set.id}  ==  ${set.schema}`);
+      console.log(`        ${manifest.enums.file}: ${JSON.stringify(values)}`);
+      console.log(`        ${set.schema}: ${JSON.stringify(schemaEnum)}`);
+    } else {
+      console.log(`OK    ${set.id}  ==  ${set.schema}`);
     }
   }
 }

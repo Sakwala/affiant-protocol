@@ -24,7 +24,7 @@ Versions are git tags. Each implementation pins a tag and bumps it in its own pu
 ## Status
 
 - 2026-09-04 — opened, empty by design.
-- 2026-09-04 — seed fixtures and seed schemas captured from the shipped .NET wire, tagged `v0.0.1-seed`; the fixture lint runs in CI.
+- 2026-09-04 — seed fixtures and seed schemas derived from the shipped .NET wire, tagged `v0.0.1-seed`; the fixture lint runs in CI. The wire fixtures are hand-authored examples whose key sets are asserted against the shipped serializer, not captures.
 - 2026-09-04 — [`INVARIANTS.md`](INVARIANTS.md) **skeleton**: every decided rule with a permanent id, four rules written in full (the conversation-scope contract, the review-outcome state machine, canonical serialization, money on the wire); the rest are one-liners until the TypeScript core runs against them.
 
 Next: the TypeScript core, then the full `INVARIANTS.md` v0.1, the v0.1 schemas and the conformance suite written to describe working code. Follow progress in [Discussions](https://github.com/Sakwala/affiant-protocol/discussions) and the [Affiant roadmap](https://github.com/Sakwala/affiant/blob/main/ROADMAP.md).
