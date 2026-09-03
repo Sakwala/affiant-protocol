@@ -28,4 +28,4 @@ The current tag is `v0.0.1-seed`: a description of the shapes one shipped implem
 
 - **The runner specification** — how a conformance run is invoked, what it reports, and what counts as a pass. In progress.
 - **The driver contract** — the interface an implementation exposes so the runner can drive it without knowing its language. In progress.
-- **`INVARIANTS.md`** — the numbered, testable rules an implementation must enforce, which the fixtures will cite. In progress.
+- **[`INVARIANTS.md`](../INVARIANTS.md)** — the numbered, testable rules an implementation must enforce, which the fixtures cite. On `main` as a skeleton since 2026-09-04: every rule has its permanent id; the full text follows the working TypeScript core.
