@@ -31,10 +31,11 @@ Each of these is a real gap in the seed, named here so nobody has to guess what 
 
 - **A `protocolVersion` field on every envelope**, so a consumer can tell which version of the format it received instead of inferring it from the shape.
 - **A `binding` on the provenance tag**, naming the specific external record or computation a value came from, so `External` and `Computed` stop being bare labels.
-- **The attestation record**, the signed statement that a named party approved a specific affidavit at a specific time — today the approval is an event, not a durable artifact on the wire.
-- **`blocked` on a field**, so an implementation can say a value must not be written and why, which today can only be expressed as a warning string.
-- **`compositeRef` on a field**, so a field that refers to another entity carries that reference explicitly rather than burying an identifier in a value.
-- **Three separate confidence numbers** — extraction, mapping and aggregate — replacing today's single `confidence`, which conflates how well a value was read with how well it was matched to a target field.
+- **The attestation record on the Docket entry** — who or what approved a specific Affidavit, and when: a person, a person acting through a trusted relay, or a Standing Order by policy id and version. Today the approval is a status change on the row, not an attribution (INVARIANTS.md AZ-1).
+- **`blocked` on a Docket entry**, so an implementation can record that it received a requirement level or a tool category it does not implement, refuse every decision on the entry, and say why (INVARIANTS.md AZ-4).
+- **`compositeRef` on a Docket entry**, so an entry that is one of N approvals for a single composite authorisation names that composite (INVARIANTS.md AZ-4).
+- **Two companion confidence numbers beside the aggregate** — `populatedConfidence` (the minimum over the non-`Empty` proposed fields) and `emptyFieldCount` — so a mostly-empty Affidavit cannot report high confidence; `aggregateConfidence` itself becomes the minimum over all proposed fields with `Empty` counting as 0.0 (INVARIANTS.md AF-2).
+- **A `status` + `execution` pair on the Docket entry**, so an approved-but-failed write is distinguishable from an approved-and-committed one (INVARIANTS.md DK-1).
 
 ## Using them
 
