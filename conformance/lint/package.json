@@ -1,0 +1,15 @@
+{
+  "name": "affiant-protocol-fixture-lint",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Validates the conformance fixtures against the seed schemas.",
+  "license": "Apache-2.0",
+  "scripts": {
+    "lint": "node lint.mjs"
+  },
+  "devDependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1"
+  }
+}
