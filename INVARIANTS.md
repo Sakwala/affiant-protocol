@@ -33,15 +33,18 @@ where a rule below *corrects* the shipped behaviour, the example still shows the
 (`wire/evidence-card-request` reports `aggregateConfidence` 0.95, the mean, where AF-2 requires the minimum, 0.9). A `wire/`
 citation means "this rule constrains this shape"; only a conformance fixture id means "this rule is checked here". A fixture
 whose rule a known defective release violates is accepted into `conformance/` only through the **negative oracle**: it must
-*fail* against that release (for v0.1, `Sakwala/affiant` `1.0.0-beta.1`, whose defects are listed in `conformance/ORACLE.md`)
+*fail* against that release (for v0.1, `Sakwala/affiant` `1.0.0-beta.1`; the fixtures that must fail on it, and the
+shipped defect each refutes, are listed in `conformance/ORACLE.md`)
 before it is accepted — a fixture a broken implementation passes is not a test. A fixture no known release violates (the
 canonical vectors, the relay sequences) is accepted on review and named as such in the manifest.
 
 **Coverage lint (runs both ways, from v0.1):** a rule with zero conformance fixtures fails the lint; a fixture citing a rule
 id that does not exist fails the lint. A `suite:` / `lint:` / `guard:` entry does **not** satisfy the lint — it is a
-supplement. A rule may be exempt only by name in the lint's exemption file with a version and a reason: SR-5 (exempt by
-construction), and CV-2, CV-3, CV-5 (text complete at v0.1; their fixtures arrive with the first adapter at v0.2). Nothing
-else is exempt.
+supplement. A rule may be exempt only by name in the lint's exemption file (`conformance/lint/coverage-exemptions.json`)
+with a version and a reason. The v0.1 exemptions: SR-5 (exempt by construction); CV-2, CV-3, CV-5 (text complete at v0.1;
+their fixtures arrive with the first adapter at v0.2); AF-5, SR-3 (schema-level rules — checked by the schema lint over the
+fixtures, not by a declarative gate fixture); RT-1, RT-2, RT-3 (runtime rules — checked by the CI matrix, a budget suite and a
+source lint); TL-1, TL-2 (registry rules — checked by the registry suites). Nothing else is exempt.
 
 **Areas.** `AF` Affidavit shape · `PV` provenance and bindings · `GT` the gate pipeline · `DK` the Docket, states and expiry ·
 `AZ` authorization, attestation and requirement levels · `SR` serialization and the wire · `RT` runtime neutrality and the
@@ -108,7 +111,7 @@ every proposed field, holding the entity's stored value before the write, or `nu
 host's projection port supplies those values and is consulted for updates only. A create-shaped Affidavit has `entityId` null
 and `previousValue` null on every field. "Create-only" is therefore a predicate a policy can test.
 *Why:* the shipped .NET projection hard-codes `EntityId` and every field's `previousValue` to null
-(`SchemaDrivenAffidavitProjection.cs:129,142`), so every Affidavit it builds is create-shaped and the README's promise that a
+(`src/Affiant.Core/Services/SchemaDrivenAffidavitProjection.cs:129,142`), so every Affidavit it builds is create-shaped and the README's promise that a
 field's `PreviousValue` shows "exactly what is changing" cannot be met by the built-in projection; a host supplies its own
 projection until the conformance release. *Checked by:* `gate/update-previous-values`, `gate/create-null-previous-values`.
 *Constrains:* `wire/evidence-card-request`. *Source:* `SchemaDrivenAffidavitProjection` in `Affiant.Core`.
@@ -336,8 +339,8 @@ must redact does so before filing and the tag records it.
 **MUST.** A session store rehydrates `pending` entries first, then `approved` + `unexecuted` entries, each in filing order and
 paged, so a reconnecting client sees what still needs a decision before what still needs execution. An entry that reads
 `expired` (DK-1) is never rehydrated as `pending`, swept or not. *Checked by:* `sequence-a/rehydration-order`;
-`suite: docket/memory rehydrate paging`. (`wire/session-rehydrated` is a host payload carrying only a count; it constrains
-nothing here.)
+`suite: docket/memory rehydrate paging`.
+*Note:* the seed's `session-rehydrated` example is a host payload carrying only a count; it constrains nothing here.
 
 ---
 
@@ -392,7 +395,7 @@ confirmation is being awaited. `MultiParty` semantics are protocol v0.2; until t
 each constituent card stating on its face that it is one of N approvals for a named composite, and no constituent's approval
 alone reaches the executor.
 *Why:* the shipped .NET gate routes `MultiParty` to the single-card branch — a joint requirement silently gets one approval
-(`ReviewGate.cs:387`). *Checked by:* `gate/multiparty-blocked`, `gate/referral-blocked`, `gate/coverage-refused-declared`,
+(`src/Affiant.Core/Services/ReviewGate.cs:387`). *Checked by:* `gate/multiparty-blocked`, `gate/referral-blocked`, `gate/coverage-refused-declared`,
 `decide/blocked-refused`.
 
 ### AZ-5 — The Docket is the sole record of approval authority *(v0.1)*
@@ -483,8 +486,7 @@ runtimes it supports and passes the store-semantics fixtures on each.
 ### RT-2 — The serverless-isolate resource envelope *(v0.1)*
 **MUST, for an implementation that claims a serverless-isolate runtime** (RT-1). A per-request gate path fits an isolate with
 no persistent process, no filesystem between requests and no raw inbound TCP: no process-lifetime cache the core cannot
-rebuild from the store; every bulk operation paged or streamed (DK-3); each per-request path inside a CPU and memory budget a
-**CPU budget this rule pins: file-plus-decide on a ten-field Affidavit averages under 100 ms**, asserted by a suite on the
+rebuild from the store; every bulk operation paged or streamed (DK-3); each per-request path inside the **CPU budget this rule pins: file-plus-decide on a ten-field Affidavit averages under 100 ms**, asserted by a suite on the
 implementation's own CI (memory is a stated target — the Cloudflare Workers ceiling of 128 MB and 30 s CPU per request — not
 yet asserted; the TypeScript reference implementation's tripwire is set at 20 ms and measures about 0.3 ms). An
 implementation that claims no such runtime states so in its parity manifest. *Checked by:* `suite: gate budget (a
@@ -523,8 +525,8 @@ exposes no ambient accessor.
 **MAY / MUST NOT.** An implementation may delegate turn durability and transport rendezvous to a host framework; it never
 delegates entry identity, the guarded compare-and-set (DK-1), expiry-as-queryable-state, or resubmission lineage. A framework
 checkpoint may carry an `entryId` and nothing else; the Affidavit is never read back out of a checkpoint; the Docket row is
-the source of truth. *Checked by:* exempt by name until v0.2 (adapter fixtures, with the first adapter);
-`sequence-a/rehydration-order` shows rehydration reads the store.
+the source of truth. *Checked by:* exempt by name until v0.2 (adapter fixtures, with the first adapter). *Note:* DK-5's
+fixture shows rehydration reads the store, not a checkpoint.
 
 ### CV-4 — Coverage refusal *(v0.1)*
 **MUST.** An adapter binds where the runtime lets it intercept (for a tool-object runtime: the tool's `execute`, where one
