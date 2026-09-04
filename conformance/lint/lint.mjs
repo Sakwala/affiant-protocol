@@ -438,6 +438,138 @@ if (!conformance || !Array.isArray(conformance.fixtures)) {
   checkOracle(conformance);
   checkRuleCoverage(conformance);
   checkMatcherShapes(conformance);
+  checkPublished(conformance);
+}
+
+/**
+ * (e) Every published parity manifest and every published run, against their own schemas.
+ *
+ * A parity manifest is the one document a reader deciding whether to adopt an implementation is
+ * asked to trust, and a run is the evidence under it. Both are published in this repository, so
+ * both are checked here rather than only in the repository that produced them: `parity/*.json`
+ * against `parity/MANIFEST.schema.json`, `results/<implementation>-<version>/results.json` against
+ * `results.schema.json`.
+ *
+ * Beyond the schemas, three things no schema can state:
+ *   - every fixture id either document names is one the conformance index lists, so a rename or a
+ *     typo cannot leave a published claim pointing at nothing;
+ *   - a published run directory carries a README, because a run with no provenance — which driver,
+ *     which release, which protocol ref, when — is not evidence a reader can use;
+ *   - where a run and a manifest are about the same implementation and version, the run's
+ *     fail-or-error set equals the manifest's `failing[]` EXACTLY, which is the rule PARITY.md
+ *     states and the implementation's own CI asserts. Checking it here too means the published pair
+ *     cannot drift apart in this repository.
+ */
+function checkPublished(section) {
+  const parityDir = join(repoRoot, 'conformance', 'parity');
+  const resultsDir = join(repoRoot, 'conformance', 'results');
+  const fixtureIds = new Set(section.fixtures.map((f) => f.id));
+
+  // Its own Ajv. The parity schema states its conditional requirements as `if`/`then` subschemas
+  // (`disposition: "planned"` -> `plannedFor` is required, and not legal on `fixed` or `ignored`),
+  // and Ajv's strictRequired refuses a `required` in a subschema that does not restate the property
+  // beside it. Restating them would say the same thing twice in the published schema for the
+  // benefit of one linter, so the linter relaxes that one rule instead. Everything else stays
+  // strict, and the implementations validate these documents with their own JSON Schema libraries.
+  const documents = new Ajv2020({ allErrors: true, strict: true, strictRequired: false });
+  addFormats(documents);
+  const compileDocument = (relative) => {
+    const schema = readJson(join(repoRoot, relative));
+    return documents.getSchema(schema.$id) ?? documents.compile(schema);
+  };
+
+  const manifests = [];
+  const manifestFiles = existsSync(parityDir)
+    ? readdirSync(parityDir).filter((n) => n.endsWith('.json') && n !== 'MANIFEST.schema.json').sort()
+    : [];
+
+  if (manifestFiles.length > 0) {
+    const validate = compileDocument('conformance/parity/MANIFEST.schema.json');
+    for (const name of manifestFiles) {
+      const document = readJson(join(parityDir, name));
+      if (!validate(document)) {
+        for (const error of validate.errors ?? []) {
+          fail(`parity/${name}${error.instancePath}: ${error.message}`);
+        }
+        continue;
+      }
+      for (const row of document.failing ?? []) {
+        if (!fixtureIds.has(row.id)) {
+          fail(`parity/${name}: declares a failing fixture the index does not list — ${row.id}`);
+        }
+      }
+      manifests.push({ name, document });
+    }
+    const rows = manifests.reduce((n, m) => n + (m.document.failing?.length ?? 0), 0);
+    console.log(
+      `OK    parity: ${manifests.length} manifest(s) validate, ${rows} declared failing row(s), ` +
+        'every id one the index lists',
+    );
+  }
+
+  const runDirectories = existsSync(resultsDir)
+    ? readdirSync(resultsDir).filter((n) => statSync(join(resultsDir, n)).isDirectory()).sort()
+    : [];
+
+  if (runDirectories.length === 0) return;
+
+  const validate = compileDocument('conformance/results.schema.json');
+  let checked = 0;
+  for (const directory of runDirectories) {
+    const where = `results/${directory}`;
+    const runPath = join(resultsDir, directory, 'results.json');
+    if (!existsSync(runPath)) {
+      fail(`${where}: a published run directory carries results.json — the run this is evidence of`);
+      continue;
+    }
+    if (!existsSync(join(resultsDir, directory, 'README.md'))) {
+      fail(`${where}: no README.md — a published run states its provenance, or it is not evidence`);
+    }
+
+    const run = readJson(runPath);
+    if (!validate(run)) {
+      for (const error of validate.errors ?? []) {
+        fail(`${where}/results.json${error.instancePath}: ${error.message}`);
+      }
+      continue;
+    }
+    checked += 1;
+
+    for (const result of run.results) {
+      if (!fixtureIds.has(result.id)) {
+        fail(`${where}/results.json: reports a fixture the index does not list — ${result.id}`);
+      }
+    }
+
+    const about = manifests.filter(
+      (m) =>
+        m.document.implementation === run.implementation.name &&
+        m.document.version === run.implementation.version,
+    );
+    if (about.length !== 1) continue;
+
+    const { name, document } = about[0];
+    const observed = new Set(
+      run.results.filter((r) => r.outcome === 'fail' || r.outcome === 'error').map((r) => r.id),
+    );
+    const declared = new Set(document.failing.map((row) => row.id));
+    for (const id of observed) {
+      if (!declared.has(id)) fail(`${where}: fails ${id}, which parity/${name} does not declare`);
+    }
+    for (const id of declared) {
+      if (!observed.has(id)) fail(`parity/${name}: declares ${id}, which ${where} does not fail`);
+    }
+    const skipped = run.results.filter((r) => r.outcome === 'skipped').map((r) => r.id);
+    for (const id of skipped) {
+      fail(`${where}: skipped ${id}; a skip is legitimate only where the manifest declares one`);
+    }
+    console.log(
+      `OK    ${where}: ${String(run.summary.passed)} passed, ${String(run.summary.failed)} failed, ` +
+        `${String(run.summary.errored)} errored, ${String(run.summary.skipped)} skipped of ` +
+        `${String(run.summary.total)} — the failing set is exactly parity/${name}`,
+    );
+  }
+  console.log(`OK    results: ${String(checked)} published run(s) validate against results.schema.json`);
 }
 
 /** The promoted fixture document a manifest row names, or null when it is missing. */

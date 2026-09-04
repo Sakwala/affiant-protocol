@@ -93,10 +93,14 @@ anything down.
 
 Write a manifest to [`conformance/parity/<name>-v0.1.json`](conformance/parity/) following
 [`conformance/PARITY.md`](conformance/PARITY.md): one row per failing fixture, carrying its id, the rules it checks, and
-a `disposition` — `fixed` (a later release corrects it, named in `fixedIn`), `fenced` (a specific host-side workaround
-contains it, named in `fence`), or `ignored` (nothing is being done, with a `detail` a reader can disagree with). Then
-wire your CI to assert that the set of fixture ids your run reports as `fail` or `error` equals `failing[].id` exactly,
-in both directions — a fixture that starts failing without being added, and a fixture that starts passing without being
+a `disposition` — `fixed` (a release that has shipped corrects it, named in `fixedIn`), `planned` (scheduled for the
+release `plannedFor` names), `fenced` (a specific host-side workaround contains it, named in `fence`, optionally with a
+`plannedFor` as well), or `ignored` (nothing is being done and nothing is scheduled, with a `detail` a reader can
+disagree with). Publish the run itself beside it, in
+[`conformance/results/<name>-<version>/`](conformance/results/) — `results.json`, and a `README.md` naming your driver,
+the release, the protocol ref and the date — so a reader can check the claim rather than take it. Then wire your CI to
+assert that the set of fixture ids your run reports as `fail` or `error` equals `failing[].id` exactly, in both
+directions — a fixture that starts failing without being added, and a fixture that starts passing without being
 removed, must each fail your build. A manifest nothing enforces is a claim, not a fact.
 
 *First action:* for every fixture your step-5 run failed, write its row by hand — the failing set comes from the run,
