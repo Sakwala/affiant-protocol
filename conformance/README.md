@@ -23,7 +23,8 @@ The numbered rules an implementation must enforce are [`../INVARIANTS.md`](../IN
 | [`fixtures/MANIFEST.json`](fixtures/MANIFEST.json) | **The index**, in three sections: the seed wire examples, the v0.1 schema fixtures, and `"conformance"` — every promoted document with its `id`, `file`, `rules[]`, `set` and `oracle`. A driver runs what this lists. |
 | [`fixture.schema.json`](fixture.schema.json) · [`canonical-vector.schema.json`](canonical-vector.schema.json) | The two document formats as JSON Schema, with the same closed key sets the reference runner enforces. |
 | [`results.schema.json`](results.schema.json) | What a run emits: per fixture an `id`, an `outcome` (`pass` \| `fail` \| `error` \| `skipped`), a `diff` and a duration, plus a summary and the implementation and tag under test. |
-| [`parity/`](parity/) | One parity manifest per implementation, and [`parity/MANIFEST.schema.json`](parity/MANIFEST.schema.json). |
+| [`parity/`](parity/) | One parity manifest per implementation, and [`parity/MANIFEST.schema.json`](parity/MANIFEST.schema.json). **The first .NET parity manifest is published: [`parity/dotnet-v0.1.json`](parity/dotnet-v0.1.json)** — 60 failing rows of 63 fixtures run against the shipped packages at `1.0.0-beta.1`, 49 `planned`, 10 `fenced`, 1 `fixed`. |
+| [`results/`](results/) | The runs those manifests are claims about, one directory per implementation and version: [`results/dotnet-1.0.0-beta.1/`](results/dotnet-1.0.0-beta.1/) holds the machine-readable run, the oracle reading of it, and its provenance. |
 | [`lint/`](lint/) | The lint that runs over all of it in CI. |
 | `fixtures/wire/` · `fixtures/v0.1/` · `fixtures/enum-values.json` | The two **shape** sets that came before the suite. `wire/` are hand-authored examples of the wire one shipped implementation sends today, whose key sets are asserted against that implementation's own serializer; `v0.1/` is at least one positive and at least one negative per v0.1 schema, derived from the reference implementation's output; `enum-values.json` pins the closed string sets as data. They pin shapes, not behaviour. |
 
@@ -49,6 +50,12 @@ carried as data on each fixture's manifest row (`oracle: { mustFailOn, defect }`
 agree. A listed fixture that *passes* on that release is not good news: it means the fixture is mis-authored or the
 recorded defect is not what it was said to be, and it is investigated and the list or the fixture corrected before the
 `v0.1.0` tag.
+
+**It has been run.** All 19 listed fixtures failed against `1.0.0-beta.1`; the log is
+[`results/dotnet-1.0.0-beta.1/ORACLE-RUN.md`](results/dotnet-1.0.0-beta.1/ORACLE-RUN.md). Three of the oracle's rows
+were corrected by what the run showed — two fixtures were listed against a defect they do not exercise, and one recorded
+defect was replaced by a truer statement about the release. Nothing was tuned to make a fixture fail; the run was
+published as it stood and the list was corrected to match it (`ORACLE.md`, *Corrected by the run*).
 
 Fixtures not on the list claim nothing about that release; what each implementation actually does with them is what its
 parity manifest records. The canonical vectors and the fixtures no known release violates are marked
@@ -80,6 +87,11 @@ It runs in CI on every push and pull request, over everything in this directory:
   be excused only by name in [`lint/coverage-exemptions.json`](lint/coverage-exemptions.json), with a version and a
   reason; a `suite:` / `lint:` / `guard:` citation is a supplement and never a substitute. The lint prints the full
   rule-by-rule report, so what is covered and what is merely claimed is visible in every CI log;
+- **every published parity manifest and every published run is validated** — `parity/*.json` against
+  [`parity/MANIFEST.schema.json`](parity/MANIFEST.schema.json), `results/*/results.json` against
+  [`results.schema.json`](results.schema.json) — every fixture id either one names is checked to be one the index lists,
+  and where a run and a manifest are about the same implementation and version the run's fail-or-error set must equal
+  the manifest's `failing[]` exactly, which is the rule [`PARITY.md`](PARITY.md) states;
 - **the matchers inside the fixtures are checked against the v0.1 wire schemas as partials** — only the keys a matcher
   states, each against that key's own subschema, with requirements relaxed. Most of what this reports is not a defect (a
   matcher key may be a projection, or a reviewer-facing fact the wire does not carry), so those are printed as findings;
@@ -96,5 +108,7 @@ build. A parity manifest names the tag it was produced against; a manifest produ
 another.
 
 `v0.0.1-seed` is the frozen description of the shipped .NET wire. The **v0.1 schemas, `INVARIANTS.md` and this suite are
-on `main`**; [`v0.1.0`](../schemas/0.1.0/README.md) is cut once the negative oracle has been enforced by a real run —
-the first .NET driver run, which is what turns `ORACLE.md` from a claim into a checked fact.
+on `main`**; [`v0.1.0`](../schemas/0.1.0/README.md) is cut once the negative oracle has been enforced by a real run.
+The first .NET driver run has now done that — [`results/dotnet-1.0.0-beta.1/`](results/dotnet-1.0.0-beta.1/) — and
+`ORACLE.md` is a checked fact rather than a claim. What remains before the tag is the TypeScript run, which is expected
+to publish an empty `failing[]`.

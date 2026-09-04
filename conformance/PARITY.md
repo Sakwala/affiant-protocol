@@ -29,8 +29,8 @@ that they find out by running the suite themselves, or by an outage.
     {
       "id": "gate/update-previous-values",
       "rules": ["AF-3", "AF-1", "AF-2"],
-      "disposition": "fixed",
-      "fixedIn": "1.0.0-beta.3",
+      "disposition": "planned",
+      "plannedFor": "1.0.0-beta.3",
       "detail": "The built-in projection returns a create-shaped Affidavit for an update: the entity id and every previous value are null, so a card cannot show what is changing.",
       "issue": "https://github.com/Sakwala/affiant/issues/…",
       "oracle": true
@@ -68,15 +68,30 @@ somebody deciding whether to adopt it — not a stack trace. `oracle` is `true` 
 list ([`ORACLE.md`](ORACLE.md)) for this release: its failing is expected, and is the evidence the fixture is a real test
 rather than a formality.
 
-`disposition` is the row's whole reason for being readable, and there are three values and no fourth:
+`disposition` is the row's whole reason for being readable, and there are four values and no fifth:
 
 | `disposition` | Means | Also requires |
 |---|---|---|
-| `fixed` | Corrected in a named later release. This row exists because the version under test still fails it. | `fixedIn` — the release that corrects it. |
-| `fenced` | The implementation does not do this, and a specific host-side workaround makes it safe in the meantime. | `fence` — the workaround, named specifically enough to be applied. |
-| `ignored` | Nothing is being done. | Nothing beyond a `detail` that says why, in a sentence a reader can disagree with. |
+| `fixed` | Corrected in a release that has **shipped**. This row exists because the version under test still fails it. | `fixedIn` — the shipped release that corrects it. |
+| `planned` | Scheduled for a named release that has not shipped yet. | `plannedFor` — that release, as a version string. |
+| `fenced` | The implementation does not do this, and a specific host-side workaround makes it safe in the meantime. | `fence` — the workaround, named specifically enough to be applied. May **also** carry `plannedFor`. |
+| `ignored` | Nothing is being done, and nothing is scheduled. | Nothing beyond a `detail` that says why, in a sentence a reader can disagree with. |
 
-A failure with no disposition is a failure nobody has looked at, which is why the format has no way to express one.
+`fixedIn` and `plannedFor` are the same claim at two different stages and the format keeps them apart on
+purpose: `fixedIn` names a version a reader can install today, `plannedFor` names one they cannot. Neither
+is legal on `ignored`, and `fixedIn` is legal only on `fixed` — a row cannot say a release corrected it and
+that the correction is still to come.
+
+**A fence and a plan are not alternatives.** `fenced` says what a host can do about the gap *now*; it says
+nothing about whether the gap is on anybody's schedule. A fenced row that also carries `plannedFor` is
+making both statements, which is usually the honest pair: here is the workaround, and here is the release
+that removes the need for it. A fence with no `plannedFor` says the workaround is the answer for the
+foreseeable future, and a reader should read it that way.
+
+A failure with no disposition is a failure nobody has looked at, which is why the format has no way to
+express one. `planned` exists so that "measured, written down, and on the schedule" does not have to be
+filed under `ignored` — which would say the opposite of what is true, in the one document a reader is
+supposed to be able to trust about an implementation's gaps.
 
 ## The rule CI asserts
 
@@ -97,20 +112,27 @@ about an implementation, and belongs in a pull request a person read.
 ## How it is published
 
 The file itself, in this repository, under [`parity/`](parity/) — not a badge, not a page, not a paragraph in a README
-that drifts. Beside it, the run log the driver emitted (`results.schema.json`), so a reader can check the claim rather
-than take it.
+that drifts. Beside it, under [`results/`](results/), the run the driver emitted (`results.schema.json`) and the log
+read against the negative oracle, in a directory named for the implementation and version:
+`results/<implementation>-<version>/`. The manifest is the claim and the run beside it is the evidence, so a reader can
+check the claim rather than take it.
 
 Until an implementation's manifest is empty, that implementation is described as **conformant to the subset it passes**,
 naming the manifest — never as "conformant". `parity/README.md` lists the manifests that exist and links each to the
 implementation it is about.
 
-## Expected shape at v0.1
+## Shape at v0.1
 
 The .NET implementation at `1.0.0-beta.1` has known defects that the negative oracle turns into a requirement: every
 fixture [`ORACLE.md`](ORACLE.md) lists **must** appear in `parity/dotnet-v0.1.json` with `oracle: true`. A listed fixture
 that *passes* is not good news — it means the fixture is mis-authored or the recorded defect is not what it was said to
 be, and it is investigated and the list or the fixture corrected before the `v0.1.0` tag. That is the entire point of
 the oracle.
+
+That manifest is now published: [`parity/dotnet-v0.1.json`](parity/dotnet-v0.1.json), 60 failing rows of 63 fixtures
+run, with the run beside it at [`results/dotnet-1.0.0-beta.1/`](results/dotnet-1.0.0-beta.1/). All 19 oracle fixtures
+failed, and three of the oracle's rows were corrected by what the run showed rather than the run being tuned to match
+them — the corrections are in [`ORACLE.md`](ORACLE.md).
 
 The TypeScript implementation is the one the fixtures were promoted from, so `parity/typescript-v0.1.json` is expected to
 carry an empty `failing[]` — and its driver is **merge-blocking** in that repository, so a red run cannot merge.
