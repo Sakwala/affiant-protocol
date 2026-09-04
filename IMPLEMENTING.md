@@ -18,7 +18,7 @@ below.
 
 ### 1. Pin a version
 
-Versions of this repository are git tags. The current one is `v0.1.1`; pin that, not a branch. (A commit is a
+Versions of this repository are git tags. The current one is `v0.1.2`; pin that, not a branch. (A commit is a
 legitimate pin too, and is what you use while a version's text is on `main` and its tag has not been cut — a commit is
 as immutable as a tag and, unlike a tag, cannot be moved under a running build.) Either fetch the ref at build time and
 verify a checksum recorded beside the pin, or vendor
