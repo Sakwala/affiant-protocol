@@ -12,7 +12,7 @@ This repository holds no runtime code. It holds:
 - `INVARIANTS.md` — the numbered, testable rules an implementation must enforce
 - `conformance/` — the fixtures, the runner specification, the driver contract and the parity-manifest format
 
-`schemas/`, `INVARIANTS.md` and the whole of `conformance/` — the fixtures, the runner specification, the driver contract and the parity-manifest format — are tagged `v0.1.1`, and **both** drivers have run against it: the .NET implementation's parity manifest and run log are published here, with every fixture the negative oracle lists failing against the release it was meant to fail against, and the TypeScript reference implementation's beside them, with an empty failing set.
+`schemas/`, `INVARIANTS.md` and the whole of `conformance/` — the fixtures, the runner specification, the driver contract and the parity-manifest format — are tagged `v0.1.2`, and both drivers have published a parity manifest and a run log here: the TypeScript reference implementation's is read at `v0.1.2`, with an empty failing set, and the .NET implementation's is read at `v0.1.1`, with every fixture the negative oracle lists failing against the release it was meant to fail against. Two of the 56 declarative fixtures were re-promoted at `v0.1.2` with a corrected `canonicalHash`, so the .NET reading moves to the new tag when that implementation re-pins it.
 
 Versions are git tags. Each implementation pins a tag and bumps it in its own pull request; a parity manifest records, per implementation, which fixtures it does not yet pass — in public, checked in CI.
 
@@ -24,6 +24,8 @@ Versions are git tags. Each implementation pins a tag and bumps it in its own pu
 | TypeScript | [Sakwala/affiant-ts](https://github.com/Sakwala/affiant-ts) | building in public — the reference implementation. Conformant: 63 of 63 fixtures on Node, Bun and workerd, with an empty failing set in [`conformance/parity/typescript-v0.1.json`](conformance/parity/typescript-v0.1.json) |
 
 ## Status
+
+- 2026-09-04 — **the TypeScript run is republished at `v0.1.2`** ([`conformance/parity/typescript-v0.1.json`](conformance/parity/typescript-v0.1.json), [`conformance/results/typescript-0.1.0-alpha.0/`](conformance/results/typescript-0.1.0-alpha.0/)). `@affiant/core` at `0.1.0-alpha.0`, against the vendored `v0.1.2` suite: **63 of 63**, empty failing set, asserted identical on Node, Bun and workerd (RT-1). The set of ids and the failing set are unchanged from `v0.1.1`; what changed is the two documents' pinned `canonicalHash` and the implementation's runtime canonical form, which now includes `protocolVersion` and so produces the same bytes for a record as its own wire writer does. The .NET manifest and run still read at `v0.1.1` and move when that implementation re-pins.
 
 - 2026-09-04 — **`v0.1.2` is tagged: SR-1 states what the canonical form is taken over, and two pinned hashes move.** The
   form is over the **Affidavit as [`schemas/0.1.0/affidavit.schema.json`](schemas/0.1.0/affidavit.schema.json) defines
