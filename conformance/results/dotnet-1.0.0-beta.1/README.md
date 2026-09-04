@@ -62,10 +62,16 @@ pre-correction reading, which is why it still says "suggested correction".
 
 ## What the manifest says about the gaps
 
-Sixty rows: **50 `planned`** — 49 for `1.0.0-beta.3` and one (`gate/standing-order-by-the-book`) for `1.0.0-beta.1.1`
-— **10 `fenced`** with a named host-side workaround and the `1.0.0-beta.3` release, and **0 `fixed`**. The disposition
-values and what each obliges a row to carry are [`../../PARITY.md`](../../PARITY.md). Nothing is `fixed` here on
-purpose: that value names a release a reader can **install**, and the risk-floor correction that closes
-`gate/standing-order-by-the-book` is written and green on branch `build/risk-floor`
-([`Sakwala/affiant#53`](https://github.com/Sakwala/affiant/pull/53)) but ships as `1.0.0-beta.1.1`, which is not
-released. A correction still to come is `plannedFor`.
+Sixty rows: **50 `planned`**, every one for `1.0.0-beta.3` — **10 `fenced`** with a named host-side workaround and the
+`1.0.0-beta.3` release, and **0 `fixed`**. The disposition values and what each obliges a row to carry are
+[`../../PARITY.md`](../../PARITY.md). Nothing is `fixed` here on purpose: that value names a release a reader can
+**install**. The risk-floor defect that `gate/standing-order-by-the-book` was once read against is corrected in
+`1.0.0-beta.1.1` ([`Sakwala/affiant#53`](https://github.com/Sakwala/affiant/pull/53)), which has shipped — but the row
+itself still fails, because the fixture also asserts an execution state and an attestation record on the row that
+neither release carries before `1.0.0-beta.3`.
+
+No separate `dotnet-1.0.0-beta.1.1/` results directory is published for that point release: a results directory is
+published when an implementation's failing set or its protocol pin changes, and `1.0.0-beta.1.1` changes neither —
+the same 63 fixtures fail, still at protocol `v0.1.1`. [`Sakwala/affiant`'s `main` conformance CI
+job](https://github.com/Sakwala/affiant/actions/runs/33840752236/job/100922379447), run at a commit that contains
+`#53`, is the evidence: it passed its equality check with this manifest still listing the row as failing.
