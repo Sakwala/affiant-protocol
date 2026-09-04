@@ -6,11 +6,11 @@ Affiant turns every database write an LLM agent proposes into an **Affidavit**: 
 
 This repository holds no runtime code. It holds:
 
-- `schemas/` — JSON Schema for the wire format (Affidavit, Field, ProvenanceTag, DocketEntry, the envelopes, the registries)
+- `schemas/` — JSON Schema for the wire format: the designed protocol in [`schemas/0.1.0/`](schemas/0.1.0/) (the Affidavit, the field, provenance and bindings, the Docket entry, the attestation, the envelopes, the registries), and the frozen `0.0.1-seed` description of the shipped .NET wire beside it
 - `INVARIANTS.md` — the numbered, testable rules an implementation must enforce
 - `conformance/` — the fixtures, the runner specification, the driver contract and the parity-manifest format
 
-`schemas/` and `conformance/fixtures/` exist as of the `v0.0.1-seed` tag; `INVARIANTS.md`, the runner specification, the driver contract and the parity-manifest format do not yet.
+`schemas/`, `conformance/fixtures/` and `INVARIANTS.md` are on `main`; the runner specification, the driver contract and the parity-manifest format are not yet.
 
 Versions are git tags. Each implementation pins a tag and bumps it in its own pull request; a parity manifest records, per implementation, which fixtures it does not yet pass — in public, checked in CI.
 
@@ -23,12 +23,13 @@ Versions are git tags. Each implementation pins a tag and bumps it in its own pu
 
 ## Status
 
-- 2026-09-04 — opened, empty by design.
+- 2026-09-04 — **schemas v0.1** ([`schemas/0.1.0/`](schemas/0.1.0/), validated fixtures, lint): twenty-one schemas written to `INVARIANTS.md`, at least one fixture per schema derived from the TypeScript reference implementation's own output, one negative per schema the schema must refuse, and a lint that checks both directions in CI — tagged `v0.1.0` with the conformance suite once it lands.
+- 2026-09-04 — [`INVARIANTS.md`](INVARIANTS.md) **v0.1 text**: every rule written in full against the TypeScript reference implementation, with the fixture, suite or lint that checks it.
+- 2026-09-04 — `INVARIANTS.md` skeleton: every decided rule with a permanent id, four rules written in full (the conversation-scope contract, the review-outcome state machine, canonical serialization, money on the wire).
 - 2026-09-04 — seed fixtures and seed schemas derived from the shipped .NET wire, tagged `v0.0.1-seed`; the fixture lint runs in CI. The wire fixtures are hand-authored examples whose key sets are asserted against the shipped serializer, not captures.
-- 2026-09-04 — [`INVARIANTS.md`](INVARIANTS.md) **v0.1 text**: every rule written in full against the TypeScript reference implementation, with the fixture, suite or lint that checks it (the v0.1 schemas and the conformance suite follow; the three are tagged `v0.1.0` together).
-- 2026-09-04 — `INVARIANTS.md` skeleton: every decided rule with a permanent id, four rules written in full (the conversation-scope contract, the review-outcome state machine, canonical serialization, money on the wire); the rest are one-liners until the TypeScript core runs against them.
+- 2026-09-04 — opened, empty by design.
 
-Next: the TypeScript core, then the full `INVARIANTS.md` v0.1, the v0.1 schemas and the conformance suite written to describe working code. Follow progress in [Discussions](https://github.com/Sakwala/affiant-protocol/discussions) and the [Affiant roadmap](https://github.com/Sakwala/affiant/blob/main/ROADMAP.md).
+Next: the conformance suite — the reference implementation's declarative fixtures promoted unchanged, the driver contract, and a published parity manifest per implementation. Follow progress in [Discussions](https://github.com/Sakwala/affiant-protocol/discussions) and the [Affiant roadmap](https://github.com/Sakwala/affiant/blob/main/ROADMAP.md).
 
 ## Licence
 
