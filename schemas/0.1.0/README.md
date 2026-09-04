@@ -44,9 +44,11 @@ the network.
   provenance sources are PascalCase, states and outcomes are lowercase.
 - **Absent means `null`.** Every property a core object names is `required`, and an optional value is an explicit
   `null` rather than a missing key. The exceptions are the arms of a discriminated union, where a property is
-  meaningful only inside its own arm (`blocked`'s per-code context, a binding's per-kind `ref`), and the three
+  meaningful only inside its own arm (`blocked`'s per-code context, a binding's per-kind `ref`), the three
   properties on an `external-ref` binding that a source either supports or does not (`fetchedAt`, `contentHash`,
-  `relay`). Those are optional rather than nullable, and the object is still closed.
+  `relay`), and the card envelope's two presentation slots (`presentation`, `warnings`), which are absent rather
+  than `null` because nothing swears to them and a producer that has nothing to say says nothing. Those are
+  optional rather than nullable, and the object is still closed.
 - **Shared definitions live in [`common.schema.json`](common.schema.json)** and are reached by `$ref`:
   `isoInstant`, `uuid`, `identifier`, `protocolVersion`, `jsonValue`, `nonNegativeInteger`, `unitInterval`. It
   carries definitions and no payload of its own, so it is the one schema with no fixture.
@@ -70,14 +72,14 @@ the network.
 | `blocked.schema.json` | why an entry sitting in `pending` will accept no decision | AZ-4, CV-4 |
 | `docket-entry.schema.json` | the row every proposed write becomes | DK-1…DK-5, AZ-1, AZ-4 |
 | `amendments.schema.json` | a reviewer's corrections: `null` clears, absent leaves untouched | DK-2 |
-| `evidence-card-request.schema.json` | the envelope that carries an Affidavit to a reviewer | AF-2, AZ-4, SR-4 |
+| `evidence-card-request.schema.json` | the envelope that carries an Affidavit to a reviewer, and the presentation nobody swears to | AF-2, AZ-4, SR-1, SR-4 |
 | `decision-result.schema.json` | what became of a review, reported back | DK-1, AZ-1 |
 | `notification.schema.json` | `docket-expiring`, `docket-expired`, `docket-transition` | DK-1, DK-3 |
 | `operation.schema.json` | the operation-shape registry: `create`, `update` | AF-3 |
 | `error-code.schema.json` | the refusal-code registry: ten names, three provisional | CV-1, AZ-4 |
 | `telemetry-key.schema.json` | the telemetry-key registry: nine keys with their attribute lists | TL-1 |
 
-## The three renames and two moves
+## The three renames and three moves
 
 **`$type` → `kind`.** A tool's result is one discriminated union of three kinds carried on a single discriminator
 property (AF-5). The shipped .NET envelope and the seed spell that discriminator `$type`; from v0.1 it is `kind`,
@@ -105,6 +107,10 @@ property of the evidence, and the core swears to what a value is and where it ca
 presented. It is `false` on a blocked entry: a card carrying a marker that says no decision will be accepted must
 not also offer a reviewer surface an approve button that cannot work.
 
+**The per-field constraints and the warnings moved onto the card envelope too.** Same reason, and it is the
+ruling that closes the two open questions v0.1 opened with:
+[Presentation lives on the card envelope](#presentation-lives-on-the-card-envelope).
+
 ## What changed from the seed
 
 | Seed (`../`) | v0.1 (here) | Change |
@@ -112,27 +118,51 @@ not also offer a reviewer surface an approve button that cannot work.
 | `provenance-source` | `provenance-source` | unchanged: the same seven names in the same ladder order |
 | `provenance-tag` | `provenance-tag` | `evidence` → `note`; **gains** `at` (when the tag was minted) and `binding` (nullable, PV-2) |
 | `provenance-chain` | `provenance-chain` | unchanged: `current` + `prior` |
-| `affidavit-field` | `affidavit-field` | **loses** `allowedValues` and `pattern` — see the open question below |
-| `affidavit` | `affidavit` | `operationType` becomes the two-value **shape** (`create` \| `update`) instead of the host's own verb; **gains** `populatedConfidence`, `emptyFieldCount`, `conversationTurn`, `createdAt`, `protocolVersion`; **loses** `warnings` and `requiresConfirmation`; `aggregateConfidence` is defined as the **minimum**, where the shipped .NET projection computes a mean over non-`Empty` fields |
-| `evidence-card-request` | `evidence-card-request` | **gains** `protocolVersion`, `populatedConfidence`, `emptyFieldCount`, `blocked`, `requiresConfirmation` |
+| `affidavit-field` | `affidavit-field` | **loses** `allowedValues` and `pattern`; they are presentation and move to the card envelope's `presentation` — see [Presentation lives on the card envelope](#presentation-lives-on-the-card-envelope) |
+| `affidavit` | `affidavit` | `operationType` becomes the two-value **shape** (`create` \| `update`) instead of the host's own verb; **gains** `populatedConfidence`, `emptyFieldCount`, `conversationTurn`, `createdAt`, `protocolVersion`; **loses** `warnings` and `requiresConfirmation`, both of which move to the card envelope; `aggregateConfidence` is defined as the **minimum**, where the shipped .NET projection computes a mean over non-`Empty` fields |
+| `evidence-card-request` | `evidence-card-request` | **gains** `protocolVersion`, `populatedConfidence`, `emptyFieldCount`, `blocked`, `requiresConfirmation`, and the two presentation slots the Affidavit gave up: `presentation` (the per-field `kind`, `allowedValues` and `pattern` the seed carried on each field) and `warnings` (the seed carried them on the Affidavit). Both are optional as a whole |
 | `docket-expiring`, `docket-expired` | `notification` | one union discriminated on `kind`, **gaining** `docket-transition` and `protocolVersion`. The seed's two payloads were told apart by which properties they carried, which is exactly the presence-sniffing AF-5 forbids |
 | — | `binding`, `money`, `tool-result`, `entity-ref`, `attestation`, `outside-gate`, `blocked`, `docket-entry`, `amendments`, `decision-result`, `operation`, `error-code`, `telemetry-key`, `common` | new in v0.1. The Docket row, the attestation record, the refusal registry and the telemetry registry had no schema at all in the seed — the seed described only what one transport happened to send |
 
-## Open questions this version does not settle
+## Presentation lives on the card envelope
 
-Two properties the seed carried are **not** in v0.1. Both are presentation rather than sworn substance, which is
-why they came off the record; both are nonetheless carried by the reference implementation today, so an
-implementer needs to know where that leaves them. They are recorded here rather than invented into the wire.
+Two properties the seed carried on the sworn record are **not** on it in v0.1: per-field `allowedValues` and
+`pattern`, and `warnings`. They are not gone. They are on the **Evidence Card envelope**
+(`evidence-card-request.schema.json`), as `presentation` and `warnings`, and both are optional — a card with no
+hints and no warnings omits them and is valid.
 
-- **Per-field `allowedValues` and `pattern`.** The closed set an amendment input offers, and the regular
-  expression it is constrained by. The gate carries them onto the card and validates nothing against them.
-  Without them a reviewer surface renders four text boxes where the host declared an enum, a number and a date.
-- **`warnings`.** The reason a policy gave, and the sentence a blocked entry's card shows. The machine-readable
-  half of the second is now the envelope's `blocked` marker, so a surface can render the state rather than parse
-  a string; the policy's reason has nowhere to go in v0.1.
+**Why they moved.** The canonical form of a filed proposal is a statement about **evidence**: what each value is,
+where it came from, and what it replaces. `INVARIANTS.md` SR-1 defines that form over the Affidavit and its
+accepted amendments and nothing else, and a host's execution grant binds to its hash. A closed value set, a
+regular expression an input box is masked with, and a sentence a reviewer should read are none of those things —
+they are how a surface should *show* the record, decided by the host, changing when the host changes its mind,
+and identical in meaning whether they are present or absent. Swearing to them would put a rendering decision
+inside a hash that a grant is checked against, so that restyling an input invalidates a grant minted over
+evidence that did not change. It would also invite the misreading that the gate enforces them: **it does not.**
+The gate carries a hint and validates nothing against it — a proposed or amended value outside `allowedValues`,
+or not matching `pattern`, is still recorded, and a host that wants such a value refused enforces that in its own
+policy. `requiresConfirmation` moved onto the envelope in the same version for the same reason, and this ruling
+completes that move.
 
-Both want a decision before the `v0.1.0` tag: either a presentation slot on the card envelope, or a statement that
-presentation is host-owned and travels beside the protocol. They are named here so nobody has to guess which.
+| On the envelope | What it is | What it is not |
+|---|---|---|
+| `presentation` | an array of `{ name, kind?, allowedValues?, pattern? }`, one entry per field the host has a hint for, naming a field the card's Affidavit carries | not validation; not a constraint on the record; not part of the canonical form (SR-1) |
+| `warnings` | an array of strings: the reason a policy gave, and the sentence a blocked entry shows | not the machine-readable form of anything. A surface renders the `blocked` marker and switches on its `code`, never on the text of a warning |
+
+**The one rule a schema cannot check.** A `presentation` entry's `name` must be a field name present in
+`affidavit.fields` on the same card — a hint for a field the record does not carry renders a control over
+nothing. That is a relation between two objects inside one document, and JSON Schema has no way to say it:
+`presentation[].name` is only a non-empty string as far as the schema is concerned. The **fixture lint** checks it
+instead ([`../../conformance/lint/lint.mjs`](../../conformance/lint/lint.mjs)), over every positive fixture and
+over the negative that breaks it on purpose,
+[`v0.1/evidence-card-request/93-presentation-names-unknown-field`](../../conformance/fixtures/v0.1/evidence-card-request/93-presentation-names-unknown-field.json),
+whose manifest row is marked `"check": "cross-object"` because the schema accepts that document and the lint
+refuses it. An implementation that consumes cards should make the same check.
+
+**What an implementer does with this.** A producer that has per-field constraints puts them in `presentation`
+rather than on the field, and its policy reasons in `warnings`. A producer with neither omits both. A consumer
+reads `presentation` to choose a control and `warnings` to show a sentence, treats an absent entry as "no hint,
+render from the field's `kind`", and never rejects a value because it is outside a hint.
 
 ## Using them
 
