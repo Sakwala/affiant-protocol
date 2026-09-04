@@ -397,9 +397,11 @@ const DERIVED_MATCHER_KEYS = new Set([
  * A matcher is written against what a reviewer or an auditor sees, and the wire puts
  * some of that in a different place: the row's `attestation` matcher is the attestation
  * record's attestor; a card's three confidence numbers live on its Affidavit; a field's
- * grade and confidence are the provenance tag in force; and the reviewer-facing shape of
- * a card field (its kind, its closed value set, the pattern an input is held to) is the
- * card's `presentation` hints, which are supplied by the host and sworn to by nobody.
+ * grade and confidence are the provenance tag in force; and a card field's `kind` is
+ * repeated on the card's `presentation` hints, which are supplied by the host and sworn
+ * to by nobody. The closed value set and the input mask are stated on `expect.card.
+ * presentation` from v0.1 and need no override: they are checked against the envelope's
+ * own `presentation` subschema, where they live.
  */
 const MATCHER_OVERRIDES = {
   'entry.attestation': ['attestation', '/properties/by'],
@@ -408,11 +410,6 @@ const MATCHER_OVERRIDES = {
   'affidavit.field.confidence': ['provenance-tag', '/properties/confidence'],
   'affidavit.field.bindingKind': ['binding', '/properties/kind'],
   'card.field.kind': ['evidence-card-request', '/properties/presentation/items/properties/kind'],
-  'card.field.allowedValues': [
-    'evidence-card-request',
-    '/properties/presentation/items/properties/allowedValues',
-  ],
-  'card.field.pattern': ['evidence-card-request', '/properties/presentation/items/properties/pattern'],
 };
 
 /** An Ajv holding a relaxed copy of every v0.1 schema, for the partial matcher check. */

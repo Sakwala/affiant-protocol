@@ -48,6 +48,10 @@ pre-correction reading, which is why it still says "suggested correction".
 
 ## What the manifest says about the gaps
 
-Sixty rows: **49 `planned`** for `1.0.0-beta.3`, **10 `fenced`** with a named host-side workaround and the same release,
-and **1 `fixed`** in `1.0.0-beta.1.1`. The disposition values and what each obliges a row to carry are
-[`../../PARITY.md`](../../PARITY.md).
+Sixty rows: **50 `planned`** — 49 for `1.0.0-beta.3` and one (`gate/standing-order-by-the-book`) for `1.0.0-beta.1.1`
+— **10 `fenced`** with a named host-side workaround and the `1.0.0-beta.3` release, and **0 `fixed`**. The disposition
+values and what each obliges a row to carry are [`../../PARITY.md`](../../PARITY.md). Nothing is `fixed` here on
+purpose: that value names a release a reader can **install**, and the risk-floor correction that closes
+`gate/standing-order-by-the-book` is written and green on branch `build/risk-floor`
+([`Sakwala/affiant#53`](https://github.com/Sakwala/affiant/pull/53)) but ships as `1.0.0-beta.1.1`, which is not
+released. A correction still to come is `plannedFor`.

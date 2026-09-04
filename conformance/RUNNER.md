@@ -184,9 +184,19 @@ first** — nothing is ever dropped from a chain.
 ### 4.2 `expect.card`
 
 `requiresConfirmation`, `warningsContain`, `priorAmendments`, `blocked`, `protocolVersion`, `aggregateConfidence`,
-`populatedConfidence`, `emptyFieldCount`, `fields`. `warningsContain` is a list of **substrings** each of which must
-appear somewhere in the card's warnings. `fields` matches the reviewer-facing shape of each field, in order: `{ name,
-kind?, value?, allowedValues?, pattern?, isMandatory? }`.
+`populatedConfidence`, `emptyFieldCount`, `fields`, `presentation`. `warningsContain` is a list of **substrings** each of
+which must appear somewhere in the card's warnings. `fields` matches the reviewer-facing shape of each **sworn** field,
+in order: `{ name, kind?, value?, isMandatory? }`.
+
+`presentation` matches the card envelope's rendering hints: `{ name, kind?, allowedValues?, pattern? }` per entry, in
+the order the card carries them. A closed value set and an input mask are **presentation, not substance** — the gate
+carries them and validates nothing against either, and neither is part of the canonical form, which is defined over the
+Affidavit and its accepted amendments alone (SR-1). That is why they are on the envelope and not on the field, and why a
+fixture states them here. A fixture that states `presentation` states the **whole** array and not a subset: a card
+carrying a hint nobody asked for renders a control a reviewer did not expect, and a matcher that ignored the extra
+entries could not say so. A field the host declared no hint for gets **no entry at all** — absence is how the wire
+spells "render this field from its own kind" — so a card with no hints anywhere omits the property and a fixture
+asserting that states `"presentation": []`.
 
 **Some card facts are checked on every filing, stated or not**, because they hold for every card the gate ever produces
 and repeating them in fifty files would stop each file being about its own rule:

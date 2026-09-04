@@ -46,8 +46,8 @@ the network.
   `null` rather than a missing key. The exceptions are the arms of a discriminated union, where a property is
   meaningful only inside its own arm (`blocked`'s per-code context, a binding's per-kind `ref`), the three
   properties on an `external-ref` binding that a source either supports or does not (`fetchedAt`, `contentHash`,
-  `relay`), and the card envelope's two presentation slots (`presentation`, `warnings`), which are absent rather
-  than `null` because nothing swears to them and a producer that has nothing to say says nothing. Those are
+  `relay`), and the card envelope's three presentation slots (`presentation`, `warnings`, `hostOperation`), which
+  are absent rather than `null` because nothing swears to them and a producer that has nothing to say says nothing. Those are
   optional rather than nullable, and the object is still closed.
 - **Shared definitions live in [`common.schema.json`](common.schema.json)** and are reached by `$ref`:
   `isoInstant`, `uuid`, `identifier`, `protocolVersion`, `jsonValue`, `nonNegativeInteger`, `unitInterval`. It
@@ -119,17 +119,17 @@ ruling that closes the two open questions v0.1 opened with:
 | `provenance-tag` | `provenance-tag` | `evidence` → `note`; **gains** `at` (when the tag was minted) and `binding` (nullable, PV-2) |
 | `provenance-chain` | `provenance-chain` | unchanged: `current` + `prior` |
 | `affidavit-field` | `affidavit-field` | **loses** `allowedValues` and `pattern`; they are presentation and move to the card envelope's `presentation` — see [Presentation lives on the card envelope](#presentation-lives-on-the-card-envelope) |
-| `affidavit` | `affidavit` | `operationType` becomes the two-value **shape** (`create` \| `update`) instead of the host's own verb; **gains** `populatedConfidence`, `emptyFieldCount`, `conversationTurn`, `createdAt`, `protocolVersion`; **loses** `warnings` and `requiresConfirmation`, both of which move to the card envelope; `aggregateConfidence` is defined as the **minimum**, where the shipped .NET projection computes a mean over non-`Empty` fields |
-| `evidence-card-request` | `evidence-card-request` | **gains** `protocolVersion`, `populatedConfidence`, `emptyFieldCount`, `blocked`, `requiresConfirmation`, and the two presentation slots the Affidavit gave up: `presentation` (the per-field `kind`, `allowedValues` and `pattern` the seed carried on each field) and `warnings` (the seed carried them on the Affidavit). Both are optional as a whole |
+| `affidavit` | `affidavit` | `operationType` becomes the two-value **shape** (`create` \| `update`) instead of the host's own verb, which travels beside it on the card envelope as `hostOperation`; **gains** `populatedConfidence`, `emptyFieldCount`, `conversationTurn`, `createdAt`, `protocolVersion`; **loses** `warnings` and `requiresConfirmation`, both of which move to the card envelope; `aggregateConfidence` is defined as the **minimum**, where the shipped .NET projection computes a mean over non-`Empty` fields |
+| `evidence-card-request` | `evidence-card-request` | **gains** `protocolVersion`, `populatedConfidence`, `emptyFieldCount`, `blocked`, `requiresConfirmation`, and the three presentation slots the Affidavit gave up: `presentation` (the per-field `kind`, `allowedValues` and `pattern` the seed carried on each field), `warnings` (the seed carried them on the Affidavit) and `hostOperation` (the host's own verb, which the seed put in `affidavit.operationType`). All three are optional as a whole |
 | `docket-expiring`, `docket-expired` | `notification` | one union discriminated on `kind`, **gaining** `docket-transition` and `protocolVersion`. The seed's two payloads were told apart by which properties they carried, which is exactly the presence-sniffing AF-5 forbids |
 | — | `binding`, `money`, `tool-result`, `entity-ref`, `attestation`, `outside-gate`, `blocked`, `docket-entry`, `amendments`, `decision-result`, `operation`, `error-code`, `telemetry-key`, `common` | new in v0.1. The Docket row, the attestation record, the refusal registry and the telemetry registry had no schema at all in the seed — the seed described only what one transport happened to send |
 
 ## Presentation lives on the card envelope
 
-Two properties the seed carried on the sworn record are **not** on it in v0.1: per-field `allowedValues` and
-`pattern`, and `warnings`. They are not gone. They are on the **Evidence Card envelope**
-(`evidence-card-request.schema.json`), as `presentation` and `warnings`, and both are optional — a card with no
-hints and no warnings omits them and is valid.
+Three things the seed carried on the sworn record are **not** on it in v0.1: per-field `allowedValues` and
+`pattern`, `warnings`, and the host's own verb for the operation. None of them is gone. They are on the **Evidence
+Card envelope** (`evidence-card-request.schema.json`), as `presentation`, `warnings` and `hostOperation`, and all
+three are optional — a card with no hints, no warnings and no host verb omits them and is valid.
 
 **Why they moved.** The canonical form of a filed proposal is a statement about **evidence**: what each value is,
 where it came from, and what it replaces. `INVARIANTS.md` SR-1 defines that form over the Affidavit and its
@@ -148,6 +148,7 @@ completes that move.
 |---|---|---|
 | `presentation` | an array of `{ name, kind?, allowedValues?, pattern? }`, one entry per field the host has a hint for, naming a field the card's Affidavit carries | not validation; not a constraint on the record; not part of the canonical form (SR-1) |
 | `warnings` | an array of strings: the reason a policy gave, and the sentence a blocked entry shows | not the machine-readable form of anything. A surface renders the `blocked` marker and switches on its `code`, never on the text of a warning |
+| `hostOperation` | the host's own verb for the operation — `"WriteUpdate"`, `"Reprice"`, `"Onboard"` — so a reviewer surface can head the card with the word a person recognises | not the shape a policy tests. `affidavit.operationType` is that, and it stays two-valued precisely so a rule about shape needs no host's vocabulary; this travels beside it, never instead of it |
 
 **The one rule a schema cannot check.** A `presentation` entry's `name` must be a field name present in
 `affidavit.fields` on the same card — a hint for a field the record does not carry renders a control over
@@ -160,7 +161,8 @@ whose manifest row is marked `"check": "cross-object"` because the schema accept
 refuses it. An implementation that consumes cards should make the same check.
 
 **What an implementer does with this.** A producer that has per-field constraints puts them in `presentation`
-rather than on the field, and its policy reasons in `warnings`. A producer with neither omits both. A consumer
+rather than on the field, its policy reasons in `warnings`, and its own name for the operation in `hostOperation`
+rather than in `operationType`. A producer with none of the three omits all three. A consumer
 reads `presentation` to choose a control and `warnings` to show a sentence, treats an absent entry as "no hint,
 render from the field's `kind`", and never rejects a value because it is outside a hint.
 
