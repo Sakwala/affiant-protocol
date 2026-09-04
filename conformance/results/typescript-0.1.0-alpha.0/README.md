@@ -17,7 +17,7 @@ equally loud.
 | Implementation | [`Sakwala/affiant-ts`](https://github.com/Sakwala/affiant-ts) — `@affiant/core` at **`0.1.0-alpha.0`**, the reference implementation these fixtures were promoted from |
 | Runtimes | `node` (the run below), and the same suite under `bun` and inside `workerd` in that repository's CI, where the failing set must be identical on each (RT-1) |
 | Driver | that repository's `packages/conformance-driver`, published as `@affiant/conformance-driver` |
-| Protocol ref the fixtures came from | **`v0.1.0`** — the tag, which that repository pins in `packages/contract/protocol/PIN` and vendors byte for byte, checksummed on every run |
+| Protocol ref the fixtures came from | **`v0.1.1`** — the tag, which that repository pins in `packages/contract/protocol/PIN` and vendors byte for byte, checksummed on every run. The run published here before this one was against `v0.1.0`, whose seven canonical byte vectors described a seed-shaped record `schemas/0.1.0/affidavit.schema.json` refuses; they were regenerated for `v0.1.1` and every byte and digest moved. The set of ids, and the failing set, are unchanged. |
 | Run produced | 2026-09-04 |
 
 ## Totals
