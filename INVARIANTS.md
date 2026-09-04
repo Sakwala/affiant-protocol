@@ -249,6 +249,19 @@ entry's card with its **existing** `expiresAt`, never a fresh one (the reference
 card on every replay; a terminal entry's card is informational). Entry ids are therefore derived deterministically from the tenant, the
 conversation, the tool and the canonical form of the operation and its arguments, so a retry replays and a genuinely new
 proposal files.
+
+**Derivation.** The material is the canonical JSON (SR-1's rules: keys sorted by Unicode code point, no insignificant
+whitespace, numbers in shortest positional form, `null` written, absent omitted) of an object carrying `tenantId`,
+`conversationId`, `toolName`, `operation`, `args` (the proposal's arguments as given, or `null` when there are none) and
+`supersedes` — present only when the proposal supersedes an earlier entry, i.e. a resubmission, so a first filing's id is
+unaffected by whether a resubmission of it ever exists. The digest is SHA-256 over the UTF-8 bytes of that material. The id
+is the digest's first 128 bits laid out as a UUID: the version nibble (hex index 12) set to `8`, the variant nibble (hex
+index 16) set to one of `8`, `9`, `a`, `b` chosen by that nibble's original value modulo 4, formatted `8-4-4-4-12` lowercase
+(RFC 9562 UUIDv8) — the reference implementation's `deriveEntryId` (`Sakwala/affiant-ts` `packages/core/src/gate/pipeline.ts`).
+Two implementations must derive the same id for the same proposal, because a Docket row's identity is both what a retry
+replays to and what a resubmission's `supersedes` points at. The Affidavit's own canonical form (SR-1) is deliberately not
+the material: it is produced after inference runs, inference is not deterministic, and the id must be fixed before
+inference runs, so a retry can be recognised before its Affidavit even exists.
 *Checked by:* `gate/ttl-from-verdict`, `gate/ttl-from-policy-default`, `gate/ttl-from-gate-default`,
 `sequence-a/replay-keeps-the-deadline`, `sequence-a/expiry-then-resubmit`; `suite: policy ttl validation`.
 *Source:* `src/Affiant.Core/Services/ReviewGate.cs` `FileForReviewCoreAsync` (time-to-live stamped before policy; fresh

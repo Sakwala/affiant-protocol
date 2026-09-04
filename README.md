@@ -25,6 +25,19 @@ Versions are git tags. Each implementation pins a tag and bumps it in its own pu
 
 ## Status
 
+- 2026-09-04 — **`INVARIANTS.md` text amendment: GT-4 states the entry-id derivation.** GT-4 already said entry ids are
+  "derived deterministically from the tenant, the conversation, the tool and the canonical form of the operation and its
+  arguments"; a **Derivation** paragraph now states exactly what that means — the canonical-JSON material (`tenantId`,
+  `conversationId`, `toolName`, `operation`, `args`, and `supersedes` present only on a resubmission), the SHA-256 digest
+  over its UTF-8 bytes, and the RFC 9562 UUIDv8 layout — matching the reference implementation's `deriveEntryId`
+  (`Sakwala/affiant-ts` `packages/core/src/gate/pipeline.ts`), and stating why the id's material is not the Affidavit's own
+  canonical form (SR-1): the id must be fixed before inference runs, and inference is not deterministic. No fixture,
+  vector, schema or hash changes; this text is not tagged. A parallel amendment to SR-1, on what the canonical form is
+  taken over, was drafted but not made: the seven canonical vectors' `expectedBytesUtf8` include `protocolVersion` in
+  every case (and `affidavit.schema.json` requires it on the Affidavit itself, consistent with the `v0.1.1` entry below),
+  so the draft claim that `protocolVersion` is envelope-only and absent from the canonical form does not hold against the
+  current fixtures.
+
 - 2026-09-04 — **both runs republished at `v0.1.1`** ([`conformance/parity/`](conformance/parity/), [`conformance/results/`](conformance/results/)). The TypeScript reference implementation is unchanged: 63 of 63, empty failing set, on Node, Bun and workerd. The .NET reading moves from 3 of 63 to **0 of 63**, and no code changed on either side — the three canonical vectors it passed at `v0.1.0` were being measured against a record [`schemas/0.1.0/affidavit.schema.json`](schemas/0.1.0/affidavit.schema.json) refuses, two of them against no record at all. Its driver's own canonicaliser still reproduces the pinned bytes and digest for six of the seven regenerated vectors, at the first attempt and unedited; what it cannot do is **hold** the shape, which is the `1.0.0-beta.3` model gap the manifest already named. The 63 rows are 53 `planned` and 10 `fenced`; none is `fixed`.
 
 - 2026-09-04 — **`v0.1.1` is tagged**: the seven canonical byte vectors regenerated, and the lint now validates them against the Affidavit schema. The vectors published at `v0.1.0` were promoted from the TypeScript reference implementation **before** it was aligned to this version's wire, and nothing here checked them afterwards — so every one of their inputs described a seed-shaped record that [`schemas/0.1.0/affidavit.schema.json`](schemas/0.1.0/affidavit.schema.json) refuses: `operationType` `"WriteUpdate"`, the card's presentation on the fields, `warnings` and `requiresConfirmation` on the record, `evidence` where a tag says `note`, and no `protocolVersion`, `conversationTurn` or `createdAt`. `INVARIANTS.md` SR-1 defines the canonical form over the accepted state of the Affidavit *as the schema defines it*, so those vectors pinned the bytes of a document this protocol does not have. Every byte and every digest moved. A vector that carries amendments now also records `amendedInput`, the accepted state its bytes are taken over, and [`conformance/lint/lint.mjs`](conformance/lint/lint.mjs) holds both ends of every vector against the Affidavit schema on every push — the check that would have caught this. **No rule text and no schema changed**: the wire, the `0.1.0` schemas and the 56 declarative fixtures are `v0.1.0`'s, unchanged.
