@@ -11,7 +11,7 @@ it is a claim about.
 | Implementation | [`Sakwala/affiant`](https://github.com/Sakwala/affiant) — the .NET packages at **`1.0.0-beta.1`**, released 2026-08-23 |
 | Runtime | `net10.0` |
 | Driver | that repository's `tests/Affiant.Conformance.Tests`, added in [pull request #55](https://github.com/Sakwala/affiant/pull/55), commit `7c4c87dd27f71956c22dceb6c8008c6aa6e120fb` |
-| Protocol ref the fixtures came from | `f0d4ad0b5f0010676a96719682ea3920f0b1baf3` — the commit carrying the v0.1 conformance suite (the `v0.1.0` tag is not cut yet) |
+| Protocol ref the fixtures came from | `f0d4ad0b5f0010676a96719682ea3920f0b1baf3` — the commit carrying the v0.1 conformance suite, which is before the re-promotion of `sequence-a/typed-inputs-on-the-card` and before `v0.1.0` was tagged. The set of fixture **ids** is the same one the tag carries, so this run's failing set and the manifest beside it still name the same documents; one document's bytes differ, and it is one this release fails either way. |
 | Run produced | 2026-09-04T02:15:55.928Z |
 
 ## Totals
@@ -48,6 +48,10 @@ pre-correction reading, which is why it still says "suggested correction".
 
 ## What the manifest says about the gaps
 
-Sixty rows: **49 `planned`** for `1.0.0-beta.3`, **10 `fenced`** with a named host-side workaround and the same release,
-and **1 `fixed`** in `1.0.0-beta.1.1`. The disposition values and what each obliges a row to carry are
-[`../../PARITY.md`](../../PARITY.md).
+Sixty rows: **50 `planned`** — 49 for `1.0.0-beta.3` and one (`gate/standing-order-by-the-book`) for `1.0.0-beta.1.1`
+— **10 `fenced`** with a named host-side workaround and the `1.0.0-beta.3` release, and **0 `fixed`**. The disposition
+values and what each obliges a row to carry are [`../../PARITY.md`](../../PARITY.md). Nothing is `fixed` here on
+purpose: that value names a release a reader can **install**, and the risk-floor correction that closes
+`gate/standing-order-by-the-book` is written and green on branch `build/risk-floor`
+([`Sakwala/affiant#53`](https://github.com/Sakwala/affiant/pull/53)) but ships as `1.0.0-beta.1.1`, which is not
+released. A correction still to come is `plannedFor`.

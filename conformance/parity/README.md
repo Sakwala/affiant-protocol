@@ -7,8 +7,8 @@ does not pass, with the rule each one checks and what is being done about it. Th
 
 | File | Implementation | State |
 |---|---|---|
-| [`dotnet-v0.1.json`](dotnet-v0.1.json) | [Sakwala/affiant](https://github.com/Sakwala/affiant) — the .NET packages at `1.0.0-beta.1` | **published** 2026-09-04. 60 failing rows of 63 fixtures run: 49 `planned` for `1.0.0-beta.3`, 10 `fenced`, 1 `fixed`. All 19 fixtures in [`../ORACLE.md`](../ORACLE.md) appear in it and all 19 failed. The run is [`../results/dotnet-1.0.0-beta.1/`](../results/dotnet-1.0.0-beta.1/). |
-| `typescript-v0.1.json` | [Sakwala/affiant-ts](https://github.com/Sakwala/affiant-ts) — `@affiant/core` | not yet written. Expected to carry an empty `failing[]`: this is the implementation the fixtures were promoted from, and its driver is merge-blocking there. |
+| [`dotnet-v0.1.json`](dotnet-v0.1.json) | [Sakwala/affiant](https://github.com/Sakwala/affiant) — the .NET packages at `1.0.0-beta.1` | **published** 2026-09-04. 60 failing rows of 63 fixtures run: 50 `planned` — 49 for `1.0.0-beta.3` and one for the unreleased `1.0.0-beta.1.1` — and 10 `fenced`. All 19 fixtures in [`../ORACLE.md`](../ORACLE.md) appear in it and all 19 failed. The run is [`../results/dotnet-1.0.0-beta.1/`](../results/dotnet-1.0.0-beta.1/). |
+| [`typescript-v0.1.json`](typescript-v0.1.json) | [Sakwala/affiant-ts](https://github.com/Sakwala/affiant-ts) — `@affiant/core` at `0.1.0-alpha.0` | **published** 2026-09-04. An **empty** `failing[]` of 63 fixtures run, asserted in that repository's CI on Node, Bun and workerd, where the failing set must be identical on each (RT-1). This is the implementation the fixtures were promoted from, so an empty set is what it owes and not a surprise. The run is [`../results/typescript-0.1.0-alpha.0/`](../results/typescript-0.1.0-alpha.0/). |
 
 Naming: `<implementation>-v<protocol minor>.json`. A manifest is produced against exactly one protocol tag and says
 nothing about any other.
