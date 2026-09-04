@@ -352,6 +352,542 @@ if (!existsSync(enumsFile)) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// The promoted conformance suite (conformance/fixtures/{gate,decide,sequence-a,
+// sequence-c,canonical}, MANIFEST.json -> "conformance")
+//
+// Four checks, each a function below, all of them additions to the sections above
+// rather than changes to them:
+//
+//   (a) checkRuleCoverage    INVARIANTS.md's rules against the promoted fixtures,
+//                            BOTH ways: every non-exempt rule must be checked by at
+//                            least one fixture that exists and names it back, and
+//                            every rule id a fixture names must exist.
+//   (b) checkFixtureSchema   every promoted document against the runner's own format
+//                            (conformance/fixture.schema.json; the byte vectors
+//                            against conformance/canonical-vector.schema.json).
+//   (c) checkOracle          the manifest's oracle entries against ORACLE.md's table,
+//                            as an exact set, with the defect sentence carried over.
+//   (d) checkMatcherShapes   the expect.entry / expect.card matchers inside the
+//                            fixtures against the v0.1 wire schemas, AS PARTIALS —
+//                            only the keys present, each against that key's own
+//                            subschema. These are findings, not failures: a matcher
+//                            key is allowed to be a projection with no property of
+//                            its own. A TYPE mismatch is a failure, because that is
+//                            the fixtures and the schemas disagreeing about a shape.
+// ---------------------------------------------------------------------------
+
+/** The label a rule's fixture citations follow in INVARIANTS.md. */
+const CHECKED_BY = '*Checked by:*';
+
+/** A citation that names a promoted fixture, as opposed to a suite, a lint or a seed shape. */
+const PROMOTED_SET = /^(gate|decide|sequence-a|sequence-c|canonical)\//;
+
+/** Matcher keys whose value is a projection or a derived fact, not a wire property. */
+const DERIVED_MATCHER_KEYS = new Set([
+  'expiresAtOffsetMs',
+  'canonicalDiffersFromProposal',
+  'bound',
+  'warningsContain',
+]);
+
+/**
+ * Matcher keys the wire spells somewhere other than a property of the same name.
+ *
+ * A matcher is written against what a reviewer or an auditor sees, and the wire puts
+ * some of that in a different place: the row's `attestation` matcher is the attestation
+ * record's attestor; a card's three confidence numbers live on its Affidavit; a field's
+ * grade and confidence are the provenance tag in force; and the reviewer-facing shape of
+ * a card field (its kind, its closed value set, the pattern an input is held to) is the
+ * card's `presentation` hints, which are supplied by the host and sworn to by nobody.
+ */
+const MATCHER_OVERRIDES = {
+  'entry.attestation': ['attestation', '/properties/by'],
+  'card.aggregateConfidence': ['affidavit', '/properties/aggregateConfidence'],
+  'affidavit.field.source': ['provenance-tag', '/properties/source'],
+  'affidavit.field.confidence': ['provenance-tag', '/properties/confidence'],
+  'affidavit.field.bindingKind': ['binding', '/properties/kind'],
+  'card.field.kind': ['evidence-card-request', '/properties/presentation/items/properties/kind'],
+  'card.field.allowedValues': [
+    'evidence-card-request',
+    '/properties/presentation/items/properties/allowedValues',
+  ],
+  'card.field.pattern': ['evidence-card-request', '/properties/presentation/items/properties/pattern'],
+};
+
+/** An Ajv holding a relaxed copy of every v0.1 schema, for the partial matcher check. */
+const partialAjv = new Ajv2020({ allErrors: true, strict: false });
+addFormats(partialAjv);
+const v01Documents = new Map();
+for (const name of schemaFilesIn(v01SchemasDir)) {
+  const document = readJson(join(v01SchemasDir, name));
+  v01Documents.set(name.replace(/\.schema\.json$/, ''), document);
+  partialAjv.addSchema(relaxDocument(document));
+}
+
+const partialValidators = new Map();
+
+console.log('');
+const conformance = manifest.conformance;
+if (!conformance || !Array.isArray(conformance.fixtures)) {
+  fail('manifest: no "conformance" section, or it lists no fixtures');
+} else {
+  checkUnique(conformance.fixtures, 'conformance');
+  checkPromotedFilesListed(conformance);
+  checkFixtureSchema(conformance);
+  checkOracle(conformance);
+  checkRuleCoverage(conformance);
+  checkMatcherShapes(conformance);
+}
+
+/** The promoted fixture document a manifest row names, or null when it is missing. */
+function readPromoted(entry) {
+  const path = join(fixturesDir, entry.file);
+  if (!existsSync(path)) {
+    fail(`${entry.id}: manifest names a promoted fixture that does not exist — ${entry.file}`);
+    return null;
+  }
+  const document = readJson(path);
+  if (document.id !== entry.id) {
+    fail(`${entry.id}: the file says its id is ${JSON.stringify(document.id)} — a promoted fixture is copied unchanged, ids included`);
+  }
+  return document;
+}
+
+/**
+ * Every promoted file on disk is claimed by the manifest exactly once.
+ *
+ * An unlisted file is never run by a driver — a driver reads the manifest, not the
+ * directory — so a fixture nobody listed is a fixture nobody checks.
+ */
+function checkPromotedFilesListed(section) {
+  const sets = Object.keys(section.sets ?? {});
+  let unlisted = 0;
+  let onDisk = 0;
+  for (const set of sets) {
+    const dir = join(fixturesDir, set);
+    if (!existsSync(dir)) {
+      fail(`conformance: the manifest names a set with no directory — conformance/fixtures/${set}/`);
+      continue;
+    }
+    for (const name of readdirSync(dir).filter((n) => n.endsWith('.json')).sort()) {
+      onDisk += 1;
+      if (!seenFiles.has(`${set}/${name}`)) {
+        fail(`${set}/${name}: promoted fixture file is not listed in MANIFEST.json`);
+        unlisted += 1;
+      }
+    }
+  }
+  if (unlisted === 0) {
+    console.log(`OK    manifest covers all ${onDisk} promoted file(s) in ${sets.join('/, ')}/`);
+  }
+}
+
+/**
+ * (b) Every promoted document validates against the format it is written in.
+ *
+ * The declarative fixtures against conformance/fixture.schema.json — the same closed
+ * key sets the reference runner enforces, so a document this accepts is a document
+ * that runner will run rather than refuse. The byte vectors are a different shape and
+ * go against conformance/canonical-vector.schema.json.
+ */
+function checkFixtureSchema(section) {
+  const validateFixture = compile('conformance/fixture.schema.json');
+  const validateVector = compile('conformance/canonical-vector.schema.json');
+  let declarative = 0;
+  let vectors = 0;
+  for (const entry of section.fixtures) {
+    const document = readPromoted(entry);
+    if (document === null) continue;
+    const isVector = entry.set === 'canonical';
+    const validate = isVector ? validateVector : validateFixture;
+    if (validate(document)) {
+      if (isVector) vectors += 1;
+      else declarative += 1;
+      continue;
+    }
+    console.log(`FAIL  ${entry.id}  ->  ${isVector ? 'canonical-vector' : 'fixture'}.schema.json`);
+    for (const err of validate.errors ?? []) {
+      const at = err.instancePath || '(root)';
+      console.log(`        ${at} ${err.message}${err.params ? ' ' + JSON.stringify(err.params) : ''}`);
+    }
+    fail(`${entry.id}: does not validate against the ${isVector ? 'canonical vector' : 'fixture'} format`);
+  }
+  console.log(
+    `OK    format: ${declarative} declarative fixture(s) and ${vectors} byte vector(s) validate`,
+  );
+}
+
+/** The fixture ids and the defect sentences ORACLE.md's table states, keyed by id. */
+function readOracleTable() {
+  const path = join(repoRoot, 'conformance', 'ORACLE.md');
+  const byId = new Map();
+  if (!existsSync(path)) {
+    fail('conformance: ORACLE.md is missing — the negative-oracle list is not optional');
+    return byId;
+  }
+  for (const line of readFileSync(path, 'utf8').split('\n')) {
+    if (!line.startsWith('|')) continue;
+    const cells = line.slice(1, line.lastIndexOf('|')).split('|').map((c) => c.trim());
+    if (cells.length !== 3) continue;
+    if (/^:?-+:?$/.test(cells[0])) continue;
+    if (cells[0].startsWith('Shipped defect')) continue;
+    for (const [, id] of cells[2].matchAll(/`([^`]+)`/g)) {
+      if (!byId.has(id)) byId.set(id, []);
+      byId.get(id).push({ defect: cells[0], rules: cells[1].split(',').map((r) => r.trim()) });
+    }
+  }
+  return byId;
+}
+
+/**
+ * (c) The manifest's oracle entries and ORACLE.md's table are the same list.
+ *
+ * The negative oracle is the rule that a fixture whose rule a known defective release
+ * violates is accepted only if it FAILS against that release — a fixture a broken
+ * implementation passes is not a test. The list is stated twice, in prose for a reader
+ * and as data for a driver, and this is what keeps the two honest.
+ */
+function checkOracle(section) {
+  const table = readOracleTable();
+  const inManifest = new Map();
+  for (const entry of section.fixtures) {
+    if (entry.oracle === null || entry.oracle === undefined) continue;
+    inManifest.set(entry.id, entry.oracle);
+  }
+  for (const [id, rows] of table) {
+    const stated = inManifest.get(id);
+    if (stated === undefined) {
+      fail(`oracle: ORACLE.md says ${id} must fail on the defective release and the manifest gives it no oracle entry`);
+      continue;
+    }
+    const defects = rows.map((row) => row.defect);
+    if (!defects.includes(stated.defect)) {
+      fail(`oracle: ${id}'s defect sentence is not one ORACLE.md states for it`);
+    }
+    if (!Array.isArray(stated.mustFailOn) || stated.mustFailOn.length === 0) {
+      fail(`oracle: ${id} names no release it must fail on`);
+    }
+  }
+  for (const id of inManifest.keys()) {
+    if (!table.has(id)) {
+      fail(`oracle: the manifest gives ${id} an oracle entry that ORACLE.md's table does not list`);
+    }
+  }
+  const multi = [...table].filter(([, rows]) => rows.length > 1).map(([id]) => id);
+  console.log(
+    `OK    oracle: ${table.size} fixture(s) must fail on ${[...new Set([...inManifest.values()].flatMap((o) => o.mustFailOn))].join(', ')}` +
+      (multi.length === 0 ? '' : ` (${multi.join(', ')} refute more than one defect; the manifest carries the first)`),
+  );
+}
+
+/** Every rule heading in INVARIANTS.md, with the fixture ids its *Checked by* line cites. */
+function readRules() {
+  const path = join(repoRoot, 'INVARIANTS.md');
+  if (!existsSync(path)) {
+    fail('INVARIANTS.md is missing — the coverage lint has nothing to check against');
+    return [];
+  }
+  const rules = [];
+  let current = null;
+  for (const line of readFileSync(path, 'utf8').split('\n')) {
+    const heading = /^###\s+([A-Z]{2}-\d+)\s+—/.exec(line);
+    if (heading) {
+      current = { id: heading[1], body: [] };
+      rules.push(current);
+      continue;
+    }
+    if (line.startsWith('# ') || line.startsWith('## ')) current = null;
+    else if (current !== null) current.body.push(line);
+  }
+  for (const rule of rules) {
+    const body = rule.body.join('\n');
+    const start = body.indexOf(CHECKED_BY);
+    if (start < 0) {
+      rule.cites = [];
+      continue;
+    }
+    // *Checked by:* runs to the next labelled clause on the same rule. A `wire/`
+    // citation is deliberately NOT a check — it means "this rule constrains this
+    // shape" — and a suite:/lint:/guard: entry is a supplement, never a substitute.
+    let clause = body.slice(start + CHECKED_BY.length);
+    for (const stop of ['*Source:*', '*Constrains:*']) {
+      const end = clause.indexOf(stop);
+      if (end >= 0) clause = clause.slice(0, end);
+    }
+    rule.cites = [...clause.matchAll(/`([^`]+)`/g)]
+      .map(([, cite]) => cite)
+      .filter((cite) => PROMOTED_SET.test(cite));
+  }
+  return rules;
+}
+
+/**
+ * (a) The coverage lint, both ways.
+ *
+ * Forward: every rule INVARIANTS.md states must be checked by at least one promoted
+ * fixture that exists and whose own `rules[]` names it back — a citation the fixture
+ * does not reciprocate is a rule nobody actually checks. A rule may be excused only
+ * by name in coverage-exemptions.json, with a version and a reason.
+ *
+ * Backward: every rule id a promoted fixture names must be a rule that exists — a
+ * fixture citing `AF-9` is a fixture whose claim about the rulebook is unreadable.
+ */
+function checkRuleCoverage(section) {
+  const rules = readRules();
+  if (rules.length === 0) return;
+  const ruleIds = new Set(rules.map((rule) => rule.id));
+  const byId = new Map(section.fixtures.map((entry) => [entry.id, entry]));
+
+  const exemptionsPath = join(repoRoot, 'conformance', 'lint', 'coverage-exemptions.json');
+  const exemptions = existsSync(exemptionsPath) ? readJson(exemptionsPath).exemptions ?? [] : [];
+  const exempt = new Map(exemptions.map((entry) => [entry.rule, entry]));
+  for (const rule of exempt.keys()) {
+    if (!ruleIds.has(rule)) fail(`coverage: the exemption file excuses ${rule}, which INVARIANTS.md does not define`);
+  }
+
+  // Backward, first: a fixture naming a rule that does not exist.
+  for (const entry of section.fixtures) {
+    if (!Array.isArray(entry.rules) || entry.rules.length === 0) {
+      fail(`${entry.id}: a promoted fixture must name at least one rule it checks`);
+      continue;
+    }
+    for (const rule of entry.rules) {
+      if (!ruleIds.has(rule)) fail(`${entry.id}: names ${rule}, which INVARIANTS.md does not define`);
+    }
+  }
+
+  // Forward, with the per-rule report.
+  console.log('coverage — every rule in INVARIANTS.md against the promoted fixtures:');
+  let covered = 0;
+  let excused = 0;
+  for (const rule of rules) {
+    const reciprocating = [];
+    for (const cite of rule.cites) {
+      const fixture = byId.get(cite);
+      if (fixture === undefined) {
+        fail(`coverage: ${rule.id} cites ${cite}, which the promoted suite does not contain`);
+        continue;
+      }
+      if (!fixture.rules.includes(rule.id)) {
+        console.log(`WARN  ${rule.id.padEnd(6)} cites ${cite}, whose rules[] does not name it back`);
+        continue;
+      }
+      reciprocating.push(cite);
+    }
+    // Named by a fixture without being cited back is coverage too — the fixture is the
+    // check, and the citation is the index into it — so it is reported, not required.
+    const namedBy = section.fixtures
+      .filter((entry) => entry.rules.includes(rule.id) && !reciprocating.includes(entry.id))
+      .map((entry) => entry.id);
+    const exemption = exempt.get(rule.id);
+    if (reciprocating.length === 0) {
+      if (exemption === undefined) {
+        fail(
+          `coverage: ${rule.id} is checked by no promoted fixture and is not in coverage-exemptions.json — ` +
+            `a rule with zero fixtures is a rule nothing enforces`,
+        );
+        console.log(`FAIL  ${rule.id.padEnd(6)}  0 fixtures, no exemption`);
+      } else {
+        excused += 1;
+        console.log(
+          `EXEMPT ${rule.id.padEnd(5)} until ${String(exemption.until)} — ${exemption.reason}` +
+            (namedBy.length === 0 ? '' : `  [also named by ${namedBy.length} fixture(s)]`),
+        );
+      }
+      continue;
+    }
+    covered += 1;
+    console.log(
+      `RULE  ${rule.id.padEnd(6)} ${String(reciprocating.length).padStart(2)} fixture(s)  ${reciprocating.join(', ')}` +
+        (namedBy.length === 0 ? '' : `  [+${String(namedBy.length)} naming it uncited]`),
+    );
+  }
+  console.log(
+    `OK    coverage: ${covered} of ${rules.length} rule(s) checked by a promoted fixture, ${excused} exempt by name`,
+  );
+}
+
+// --- (d) the matchers against the v0.1 wire schemas, as partials ------------
+
+/**
+ * A copy of a v0.1 schema document with `required` dropped and `additionalProperties`
+ * opened, all the way down — `$id`, `$defs` and `$ref` left alone so references (the
+ * recursive `jsonValue` among them) still resolve.
+ *
+ * "As a partial" means exactly this: a matcher states the keys its rule is about and
+ * nothing else, so a required key it does not state is not a mismatch — but the keys
+ * it DOES state must still be the shape the wire says they are.
+ */
+function relaxDocument(node) {
+  if (node === null || typeof node !== 'object') return node;
+  if (Array.isArray(node)) return node.map(relaxDocument);
+  const out = {};
+  for (const [key, value] of Object.entries(node)) {
+    if (key === 'required' || key === 'additionalProperties') continue;
+    out[key] = relaxDocument(value);
+  }
+  return out;
+}
+
+/** A validator for one property of one v0.1 schema, with the requirements relaxed. */
+function partialValidator(stem, pointer) {
+  const key = `${stem}${pointer}`;
+  if (partialValidators.has(key)) return partialValidators.get(key);
+  const document = v01Documents.get(stem);
+  let validate = null;
+  if (document !== undefined) {
+    try {
+      validate = partialAjv.compile({
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        $ref: `${document.$id}#${pointer}`,
+      });
+    } catch {
+      validate = null;
+    }
+  }
+  partialValidators.set(key, validate);
+  return validate;
+}
+
+/**
+ * A copy of `value` with every `"@some"` dropped.
+ *
+ * A fixture cannot state a derived entry id — the id is a hash of the proposal — so it
+ * writes `"@some"` to assert only that the link is there (RUNNER.md §5). That is a
+ * statement about presence, not about shape, and the wire schema has nothing to say
+ * about it.
+ */
+function withoutSentinels(value) {
+  if (value === '@some') return undefined;
+  if (value === null || typeof value !== 'object') return value;
+  if (Array.isArray(value)) return value.map(withoutSentinels);
+  const out = {};
+  for (const [key, item] of Object.entries(value)) {
+    const kept = withoutSentinels(item);
+    if (kept !== undefined) out[key] = kept;
+  }
+  return out;
+}
+
+/** Whether a v0.1 schema document has the property a pointer names, without following refs. */
+function hasPointer(stem, pointer) {
+  let node = v01Documents.get(stem);
+  for (const step of pointer.split('/').filter(Boolean)) {
+    if (node === null || node === undefined || typeof node !== 'object') return false;
+    node = node[step];
+  }
+  return node !== undefined;
+}
+
+/**
+ * (d) The matchers inside the promoted fixtures against the v0.1 wire schemas.
+ *
+ * A fixture's `expect.entry` and `expect.card` are partial matchers over a Docket row
+ * and an Evidence Card, so the values they state are values the v0.1 schemas describe.
+ * Checking them here is what stops the two halves of this repository — the schemas and
+ * the behaviour suite — from drifting into describing different protocols.
+ *
+ * Most of what this finds is not a defect: a matcher key may legitimately be a
+ * projection of something the wire spells differently (`bound`, `priorSources`), or a
+ * reviewer-facing fact the wire does not carry, or one of the two sentinels a fixture
+ * uses where it cannot know a derived value. Those are printed as findings and named
+ * as such. A TYPE mismatch is different — the schemas and the fixtures disagreeing
+ * about what shape a value has — and it fails the lint.
+ */
+function checkMatcherShapes(section) {
+  const findings = [];
+  const noCounterpart = new Map();
+  let checkedKeys = 0;
+
+  const check = (where, id, rawValue, stem, pointer, path) => {
+    // A stated `null` says "there is none" — a fact about presence, not about shape —
+    // so there is nothing to check. `"@some"` is the sentinel for a link whose id a
+    // fixture cannot know (RUNNER.md §5); it is dropped wherever it appears, because
+    // it stands for "some entry id", not for a value the wire schema describes.
+    const value = withoutSentinels(rawValue);
+    if (value === null || value === undefined) return;
+    if (!hasPointer(stem, pointer)) {
+      const key = `${where} → ${stem}${pointer}`;
+      noCounterpart.set(key, (noCounterpart.get(key) ?? 0) + 1);
+      return;
+    }
+    const validate = partialValidator(stem, pointer);
+    if (validate === null) {
+      findings.push(`${id}: ${path} — the v0.1 subschema ${stem}${pointer} could not be compiled for a partial check`);
+      return;
+    }
+    checkedKeys += 1;
+    if (validate(value)) return;
+    for (const err of validate.errors ?? []) {
+      const at = `${path}${err.instancePath}`;
+      const line = `${id}: ${at} ${err.message}${err.params ? ' ' + JSON.stringify(err.params) : ''}`;
+      if (err.keyword === 'type') {
+        console.log(`FAIL  ${line}`);
+        fail(`matchers: ${line} — the fixtures and the v0.1 schemas disagree about a shape`);
+      } else {
+        findings.push(line);
+      }
+    }
+  };
+
+  const checkObject = (id, matcher, stem, path, family) => {
+    if (matcher === null || typeof matcher !== 'object') return;
+    for (const [key, value] of Object.entries(matcher)) {
+      if (DERIVED_MATCHER_KEYS.has(key)) continue;
+      if (key === 'fields' || key === 'affidavit' || key === 'amendedAffidavit') continue;
+      const override = MATCHER_OVERRIDES[`${family}.${key}`];
+      const target = override ?? [stem, `/properties/${key}`];
+      check(`${family}.${key}`, id, value, target[0], target[1], `${path}.${key}`);
+    }
+  };
+
+  const checkFields = (id, fields, path, family) => {
+    if (!Array.isArray(fields)) return;
+    for (const [index, field] of fields.entries()) {
+      checkObject(id, field, 'affidavit-field', `${path}[${String(index)}]`, family);
+    }
+  };
+
+  for (const entry of section.fixtures) {
+    if (entry.set === 'canonical') continue;
+    const document = readPromoted(entry);
+    if (document === null) continue;
+    const expectation = document.expect ?? {};
+
+    for (const which of ['entry', 'superseded']) {
+      const row = expectation[which];
+      if (row === null || row === undefined) continue;
+      checkObject(entry.id, row, 'docket-entry', `expect.${which}`, 'entry');
+      for (const affidavit of ['affidavit', 'amendedAffidavit']) {
+        const value = row[affidavit];
+        if (value === null || value === undefined) continue;
+        checkObject(entry.id, value, 'affidavit', `expect.${which}.${affidavit}`, 'affidavit');
+        checkFields(entry.id, value.fields, `expect.${which}.${affidavit}.fields`, 'affidavit.field');
+      }
+    }
+
+    const card = expectation.card;
+    if (card === null || card === undefined) continue;
+    checkObject(entry.id, card, 'evidence-card-request', 'expect.card', 'card');
+    checkFields(entry.id, card.fields, 'expect.card.fields', 'card.field');
+  }
+
+  if (noCounterpart.size > 0) {
+    console.log('matchers — stated keys with no property of that name on the v0.1 schema (a projection, or a fact the wire does not carry):');
+    for (const [key, count] of [...noCounterpart].sort()) {
+      console.log(`      ${key}  (${String(count)} fixture(s))`);
+    }
+  }
+  if (findings.length > 0) {
+    console.log(`matchers — ${String(findings.length)} finding(s), none of them a type mismatch:`);
+    for (const finding of findings) console.log(`      ${finding}`);
+  }
+  console.log(
+    `OK    matchers: ${checkedKeys} stated key(s) checked against a v0.1 subschema as a partial`,
+  );
+}
+
 console.log('');
 if (failures.length > 0) {
   console.error(`${failures.length} problem(s):`);

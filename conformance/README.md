@@ -1,33 +1,105 @@
 # Conformance
 
+The suite every Affiant implementation runs, in any language: a set of declarative fixtures, the format they are written
+in, the contract a driver satisfies to run them, and a published parity manifest per implementation naming exactly which
+of them it does not yet pass.
+
+**Affiant** turns every database write an LLM agent proposes into an **Affidavit** — a per-field evidence record (the
+value, the previous value, where each value came from, how confident) — filed in a **Docket** and shown as an **Evidence
+Card** a person approves, amends or rejects before the host writes. A **Standing Order** approves with no person present.
+The numbered rules an implementation must enforce are [`../INVARIANTS.md`](../INVARIANTS.md); the wire shapes are
+[`../schemas/`](../schemas/). This directory is where those rules become something you can run.
+
 ## What is here
 
-- **`fixtures/wire/`** — one JSON file per payload shape, each a **hand-authored example, not a capture**. The key set and the null handling of each are asserted, in the shipped .NET implementation's own test suite, against a real DTO serialized with the exact SignalR `JsonSerializerOptions` the hosts use — the *shape* is checked against running code, the *values* are illustrative. camelCase names, explicit `null` for an absent optional value.
-- **`fixtures/enum-values.json`** — the closed string-value sets for the wire's de-facto enums, pinned as data so an implementation in any language can check its own literals against the same list.
-- **`fixtures/MANIFEST.json`** — the index. For each fixture: its id, its file, what kind of payload it is, which schema describes it (or `null`), whether it is schema-relevant, and a note on what it demonstrates. `derivedFrom` records the framework and host commits the shapes were asserted against, and the date.
-- **`fixtures/v0.1/`** — the **v0.1** fixture set, one directory per schema in [`../schemas/0.1.0/`](../schemas/0.1.0/). Each document was produced by running the TypeScript reference implementation and writing down the Docket row, the Evidence Card or the tool result it emitted; `MANIFEST.json` → `"0.1.0"` → `derivedFrom` says exactly what was completed by hand and why, and each fixture's own row names the reference fixture it came from. Every schema carries at least one **positive**, which must validate, and at least one **negative** — a single deliberate mutation of a named positive, one required key removed or one enum value replaced — which must **fail**. A negative that passes is the more interesting failure: it means the schema does not refuse what the rulebook says it must. A handful of rules relate two objects inside one document and no JSON Schema can state them; the lint checks those itself, and a negative that breaks one is marked `"check": "cross-object"` on its manifest row, because the schema accepts that document and only the lint refuses it.
-- **`lint/`** — a small Node script that runs over both sets. It validates every schema-relevant seed fixture and every v0.1 positive against the schema the manifest assigns it, asserts that every v0.1 negative is refused, checks the cross-object rules a schema cannot state (today: an Evidence Card's `presentation` hints name fields its Affidavit carries), and fails if a manifest entry names a file or a schema that does not exist, if a fixture file on disk is not listed in the manifest exactly once, if a v0.1 schema has no fixture or a v0.1 fixture has no schema, or if an enum set the manifest maps to a schema differs from that schema's `enum` — in either directory. It runs in CI on every push and pull request.
+| | |
+|---|---|
+| [`RUNNER.md`](RUNNER.md) | **The fixture format.** Every key, every step kind, every matcher, the strictness rules, the four ports a fixture assumes, and what a run must report. Read this first. |
+| [`DRIVER.md`](DRIVER.md) | **The driver contract.** What an implementation does to run these documents: pin a tag, supply the ports, bind the step kinds, emit the result, assert the parity manifest. |
+| [`PARITY.md`](PARITY.md) | **The parity-manifest format.** How an implementation publishes what it does not pass, and the equality CI asserts. |
+| [`ORACLE.md`](ORACLE.md) | **The negative oracle.** Which fixtures must *fail* against a release known to violate their rule, and the shipped defect each one refutes. |
+| `fixtures/gate/` `fixtures/decide/` `fixtures/sequence-a/` `fixtures/sequence-c/` | **The 56 declarative fixtures**, promoted unchanged from the TypeScript reference implementation ([`fixtures/PROMOTED_FROM`](fixtures/PROMOTED_FROM) names the commit). |
+| `fixtures/canonical/` | **The seven byte vectors** for canonical serialization (SR-1): an input, the amendments accepted on it, and the exact bytes and SHA-256 they produce. |
+| [`fixtures/MANIFEST.json`](fixtures/MANIFEST.json) | **The index**, in three sections: the seed wire examples, the v0.1 schema fixtures, and `"conformance"` — every promoted document with its `id`, `file`, `rules[]`, `set` and `oracle`. A driver runs what this lists. |
+| [`fixture.schema.json`](fixture.schema.json) · [`canonical-vector.schema.json`](canonical-vector.schema.json) | The two document formats as JSON Schema, with the same closed key sets the reference runner enforces. |
+| [`results.schema.json`](results.schema.json) | What a run emits: per fixture an `id`, an `outcome` (`pass` \| `fail` \| `error` \| `skipped`), a `diff` and a duration, plus a summary and the implementation and tag under test. |
+| [`parity/`](parity/) | One parity manifest per implementation, and [`parity/MANIFEST.schema.json`](parity/MANIFEST.schema.json). |
+| [`lint/`](lint/) | The lint that runs over all of it in CI. |
+| `fixtures/wire/` · `fixtures/v0.1/` · `fixtures/enum-values.json` | The two **shape** sets that came before the suite. `wire/` are hand-authored examples of the wire one shipped implementation sends today, whose key sets are asserted against that implementation's own serializer; `v0.1/` is at least one positive and at least one negative per v0.1 schema, derived from the reference implementation's output; `enum-values.json` pins the closed string sets as data. They pin shapes, not behaviour. |
 
-Four seed fixtures are marked `schemaRelevant: false`: two host hub payloads (how a host talks to its own client) and two transport/UI payloads. They are here as reference shapes and carry no schema in the seed.
+## Starting a second implementation
+
+1. **Read [`RUNNER.md`](RUNNER.md).** It is the whole format, and it assumes nothing about the reference
+   implementation's language.
+2. **Write a driver** to [`DRIVER.md`](DRIVER.md): pin a tag of this repository, build the four ports from each
+   fixture's `given`, bind the eight step kinds to your own gate, run **every** fixture
+   [`fixtures/MANIFEST.json`](fixtures/MANIFEST.json) lists, and emit [`results.schema.json`](results.schema.json).
+3. **Publish a parity manifest** to [`PARITY.md`](PARITY.md) — the fixtures you do not pass, each with the rule it
+   checks and a disposition: *fixed* in a named release, *fenced* by a named host-side workaround, or *ignored* with a
+   reason. Open a pull request here with the file.
+4. **Wire the equality assertion into your CI.** The set of ids your run fails must equal your manifest's exactly, and a
+   difference in either direction fails your build — a fixture that starts failing *and* a fixture that starts passing.
+
+You do not need permission to start, and you do not need to pass everything. An honest manifest is the deliverable.
+
+## The negative oracle
+
+A fixture whose rule a known defective release violates is accepted into this suite only if it **fails** against that
+release. A fixture a broken implementation passes is not a test — it is a formality that will keep passing while the
+thing it claims to check quietly stops working.
+
+For v0.1 the reference-defective release is the shipped .NET packages at `1.0.0-beta.1`, whose defects are recorded.
+[`ORACLE.md`](ORACLE.md) lists every fixture that must fail on it and the defect each one refutes; the same list is
+carried as data on each fixture's manifest row (`oracle: { mustFailOn, defect }`), and the lint checks that the two
+agree. A listed fixture that *passes* on that release is not good news: it means the fixture is mis-authored or the
+recorded defect is not what it was said to be, and it is investigated and the list or the fixture corrected before the
+`v0.1.0` tag.
+
+Fixtures not on the list claim nothing about that release; what each implementation actually does with them is what its
+parity manifest records. The canonical vectors and the fixtures no known release violates are marked
+`acceptedOnReview` instead.
+
+## The lint
 
 ```
-npm --prefix conformance/lint install
+npm --prefix conformance/lint ci
 node conformance/lint/lint.mjs
 ```
 
+It runs in CI on every push and pull request, over everything in this directory:
+
+- every schema-relevant seed fixture and every v0.1 positive validates against the schema the manifest assigns it, and
+  every v0.1 negative is **refused** — a negative that passes means the schema does not refuse what the rulebook says it
+  must. A handful of rules relate two objects inside one document and no JSON Schema can state them; the lint checks
+  those itself, and a negative that breaks one is marked `"check": "cross-object"` on its manifest row, because the
+  schema accepts that document and only the lint refuses it;
+- every fixture file on disk is claimed by the manifest exactly once, no id or file is listed twice, every v0.1 schema
+  has a fixture and every v0.1 fixture a schema, and every pinned enum set matches the schema's own `enum` exactly, in
+  order;
+- **every promoted document validates against its format** — the 56 against `fixture.schema.json`, the 7 against
+  `canonical-vector.schema.json`;
+- **the oracle is checked both ways**: every fixture `ORACLE.md` lists has a manifest oracle entry carrying one of the
+  defect sentences that file states for it, and no manifest entry claims an oracle the table does not list;
+- **rule coverage runs both ways**: every rule in `INVARIANTS.md` must be checked by at least one promoted fixture that
+  exists and whose own `rules[]` names it back, and every rule id a fixture names must be a rule that exists. A rule may
+  be excused only by name in [`lint/coverage-exemptions.json`](lint/coverage-exemptions.json), with a version and a
+  reason; a `suite:` / `lint:` / `guard:` citation is a supplement and never a substitute. The lint prints the full
+  rule-by-rule report, so what is covered and what is merely claimed is visible in every CI log;
+- **the matchers inside the fixtures are checked against the v0.1 wire schemas as partials** — only the keys a matcher
+  states, each against that key's own subschema, with requirements relaxed. Most of what this reports is not a defect (a
+  matcher key may be a projection, or a reviewer-facing fact the wire does not carry), so those are printed as findings;
+  a *type* mismatch fails, because that is the schemas and the fixtures disagreeing about a shape.
+
 ## How versions work
 
-**Versions are git tags on this repository.** The tag is the unit an implementation pins; there is no package to install and no version negotiation on the wire in this seed.
+**Versions are git tags on this repository.** A tag is the unit an implementation pins; there is no package to install
+and no version negotiation on the wire.
 
-An implementation pins a tag, checks its own payloads against the fixtures at that tag, and bumps the pin in its own pull request — so a format change arrives as a reviewable diff in the implementation's own history, never as a silent upstream shift under a running build.
+An implementation pins a tag, runs the suite at that tag, and bumps the pin in its own pull request — so a format change
+arrives as a reviewable diff in the implementation's own history, never as a silent upstream shift under a running
+build. A parity manifest names the tag it was produced against; a manifest produced against one tag says nothing about
+another.
 
-A **parity manifest** — the format is not written yet — will let each implementation record, in public and checked by its own CI, which fixtures it does not yet pass. The point is that a gap is a published fact with a name, not something a reader has to discover by running the suite.
-
-The current tag is `v0.0.1-seed`: a description of the shapes one shipped implementation sends today, not a designed protocol version. The **v0.1 schemas and fixtures are on `main` and not yet tagged** — [`v0.1.0`](../schemas/0.1.0/README.md) is cut once the conformance suite lands beside them. See [`../schemas/README.md`](../schemas/README.md) for what the two sets are and [`../schemas/0.1.0/README.md`](../schemas/0.1.0/README.md) for what changed.
-
-## What is not here yet
-
-- **The runner specification** — how a conformance run is invoked, what it reports, and what counts as a pass. In progress.
-- **The driver contract** — the interface an implementation exposes so the runner can drive it without knowing its language. In progress.
-- **[`INVARIANTS.md`](../INVARIANTS.md)** — on `main` in full since 2026-09-04: every rule written against the working TypeScript reference implementation, with the fixture, suite or lint that checks it.
-- **The promoted fixture suite** — the reference implementation's 56 declarative fixtures, moved here unchanged in id and content, with the negative-oracle list that says which of them must *fail* against a release known to violate their rule. In progress; the v0.1 fixtures above pin the **shapes**, not the behaviour.
+`v0.0.1-seed` is the frozen description of the shipped .NET wire. The **v0.1 schemas, `INVARIANTS.md` and this suite are
+on `main`**; [`v0.1.0`](../schemas/0.1.0/README.md) is cut once the negative oracle has been enforced by a real run —
+the first .NET driver run, which is what turns `ORACLE.md` from a claim into a checked fact.

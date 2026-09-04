@@ -660,5 +660,772 @@
         "notes": "An error arm carrying a code that is neither in the registry nor the read-tool \"tool-error\". A consumer switches on the discriminator and branches on the code; a code outside both sets is one it cannot act on (AF-5)."
       }
     ]
+  },
+  "conformance": {
+    "protocolVersion": "0.1.0",
+    "$note": "The promoted conformance suite: the reference implementation's declarative fixtures and canonical byte vectors, copied here unchanged in id, file name and content (conformance/fixtures/PROMOTED_FROM names the commit). A fixture is a wiring, a sequence of acts and what must then be true; the format is conformance/RUNNER.md and the schema it is checked against is conformance/fixture.schema.json. `oracle` is the negative oracle of conformance/ORACLE.md: a non-null value names a release the fixture MUST fail against and the shipped defect it refutes, and the two must agree with ORACLE.md exactly — the lint checks that. `oracle: null` claims nothing about that release; the parity manifest of each implementation records what it actually does. The canonical vectors are a different document shape (an input, the amendments accepted on it and the exact bytes and SHA-256 they canonicalise to) and no known release violates them, so they are marked acceptedOnReview.",
+    "promotedFrom": {
+      "repository": "Sakwala/affiant-ts",
+      "commit": "c4591eaf332483e2a5a47e161410feaed718aa29",
+      "package": "@affiant/core 0.1.0-alpha.0",
+      "path": "packages/core/test/fixtures",
+      "runner": "@affiant/core/testing — runFixture / runFixtureDir, documented in conformance/RUNNER.md",
+      "date": "2026-09-04",
+      "unchanged": "Byte-identical. Ids, file names and content are the reference implementation's; a parity manifest cites an id by name, so a rename would silently change what a published document refers to."
+    },
+    "sets": {
+      "gate": "the pipeline: substance, provenance, the policy chain, deadlines, filing",
+      "decide": "decisions: authority, attestation, amendments, execution, lineage",
+      "sequence-a": "a chat capture end to end — a tool call through to an executor",
+      "sequence-c": "a capture over a trusted relay, decided or auto-approved",
+      "canonical": "the canonical-serialization byte vectors (SR-1): a different document shape, see conformance/RUNNER.md"
+    },
+    "oracleSource": "conformance/ORACLE.md",
+    "fixtures": [
+      {
+        "id": "gate/substance-hollow-refused",
+        "file": "gate/01-substance-hollow-refused.json",
+        "rules": [
+          "GT-3"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.1"
+          ],
+          "defect": "Substance (a value with `Empty` provenance) is checked at test time only; the runtime files hollow Affidavits"
+        }
+      },
+      {
+        "id": "gate/substance-zero-field-refused",
+        "file": "gate/02-substance-zero-field-refused.json",
+        "rules": [
+          "GT-3"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.1"
+          ],
+          "defect": "Substance (a value with `Empty` provenance) is checked at test time only; the runtime files hollow Affidavits"
+        }
+      },
+      {
+        "id": "gate/ttl-from-verdict",
+        "file": "gate/03-ttl-from-verdict.json",
+        "rules": [
+          "GT-4"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.1"
+          ],
+          "defect": "The time-to-live is stamped from one global default before the policy chain runs"
+        }
+      },
+      {
+        "id": "gate/ttl-from-policy-default",
+        "file": "gate/04-ttl-from-policy-default.json",
+        "rules": [
+          "GT-4"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.1"
+          ],
+          "defect": "The time-to-live is stamped from one global default before the policy chain runs"
+        }
+      },
+      {
+        "id": "gate/ttl-from-gate-default",
+        "file": "gate/05-ttl-from-gate-default.json",
+        "rules": [
+          "GT-4"
+        ],
+        "set": "gate",
+        "oracle": null
+      },
+      {
+        "id": "gate/standing-order-by-the-book",
+        "file": "gate/06-standing-order-by-the-book.json",
+        "rules": [
+          "GT-5",
+          "AZ-1"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.1"
+          ],
+          "defect": "The default risk scorer never returns `Low` while the default threshold is `Low`, so a by-the-book Standing Order never fires (corrected in a later point release; present in beta.1)"
+        }
+      },
+      {
+        "id": "gate/standing-order-threshold-under",
+        "file": "gate/07-standing-order-threshold-under.json",
+        "rules": [
+          "GT-5"
+        ],
+        "set": "gate",
+        "oracle": null
+      },
+      {
+        "id": "gate/standing-order-threshold-over",
+        "file": "gate/08-standing-order-threshold-over.json",
+        "rules": [
+          "GT-5"
+        ],
+        "set": "gate",
+        "oracle": null
+      },
+      {
+        "id": "gate/standing-order-unbound-input",
+        "file": "gate/09-standing-order-unbound-input.json",
+        "rules": [
+          "PV-4"
+        ],
+        "set": "gate",
+        "oracle": null
+      },
+      {
+        "id": "gate/standing-order-bound-input",
+        "file": "gate/10-standing-order-bound-input.json",
+        "rules": [
+          "PV-4",
+          "AZ-1"
+        ],
+        "set": "gate",
+        "oracle": null
+      },
+      {
+        "id": "gate/multiparty-blocked",
+        "file": "gate/11-multiparty-blocked.json",
+        "rules": [
+          "AZ-4"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.1"
+          ],
+          "defect": "A `MultiParty` requirement is routed to the single-card branch — one approval satisfies a joint requirement"
+        }
+      },
+      {
+        "id": "gate/referral-blocked",
+        "file": "gate/12-referral-blocked.json",
+        "rules": [
+          "AZ-4"
+        ],
+        "set": "gate",
+        "oracle": null
+      },
+      {
+        "id": "gate/coverage-refused-declared",
+        "file": "gate/13-coverage-refused-declared.json",
+        "rules": [
+          "CV-4",
+          "AZ-4"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.1"
+          ],
+          "defect": "No `blocked` marker and no coverage refusal"
+        }
+      },
+      {
+        "id": "gate/update-previous-values",
+        "file": "gate/14-update-previous-values.json",
+        "rules": [
+          "AF-3",
+          "AF-1",
+          "AF-2"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.1"
+          ],
+          "defect": "The aggregate confidence is a mean over the non-`Empty` fields, so a mostly-empty Affidavit can report high confidence"
+        }
+      },
+      {
+        "id": "gate/create-null-previous-values",
+        "file": "gate/15-create-null-previous-values.json",
+        "rules": [
+          "AF-3"
+        ],
+        "set": "gate",
+        "oracle": null
+      },
+      {
+        "id": "gate/inference-conversation-and-inferred",
+        "file": "gate/16-inference-conversation-and-inferred.json",
+        "rules": [
+          "GT-1",
+          "PV-1",
+          "PV-3",
+          "AF-1",
+          "AF-2"
+        ],
+        "set": "gate",
+        "oracle": null
+      },
+      {
+        "id": "gate/threshold-without-scorer",
+        "file": "gate/17-threshold-without-scorer.json",
+        "rules": [
+          "CV-1",
+          "GT-5"
+        ],
+        "set": "gate",
+        "oracle": null
+      },
+      {
+        "id": "decide/approve",
+        "file": "decide/01-approve.json",
+        "rules": [
+          "DK-1",
+          "AZ-1",
+          "AZ-2"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.1"
+          ],
+          "defect": "No attestation record on the row: nothing says who or what approved a write"
+        }
+      },
+      {
+        "id": "decide/reject",
+        "file": "decide/02-reject.json",
+        "rules": [
+          "DK-1",
+          "AZ-1"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
+        "id": "decide/second-decision-refused",
+        "file": "decide/03-second-decision-refused.json",
+        "rules": [
+          "DK-1"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
+        "id": "decide/expired-amendments-preserved",
+        "file": "decide/04-expired-amendments-preserved.json",
+        "rules": [
+          "DK-1"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
+        "id": "decide/blocked-refused",
+        "file": "decide/05-blocked-refused.json",
+        "rules": [
+          "AZ-4",
+          "DK-1"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
+        "id": "decide/amend-recompute",
+        "file": "decide/06-amend-recompute.json",
+        "rules": [
+          "AF-1",
+          "AF-4",
+          "DK-2",
+          "DK-4",
+          "PV-2",
+          "SR-1"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.1"
+          ],
+          "defect": "A reviewer's amendment never recomputes the aggregate confidence"
+        }
+      },
+      {
+        "id": "decide/unresolved-identity",
+        "file": "decide/07-unresolved-identity.json",
+        "rules": [
+          "AZ-2",
+          "AZ-6"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.1"
+          ],
+          "defect": "Decision authorization is hand-rolled per host, tenant-blind, and permits the action when identity is unresolved"
+        }
+      },
+      {
+        "id": "decide/wrong-tenant",
+        "file": "decide/08-wrong-tenant.json",
+        "rules": [
+          "AZ-2"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.1"
+          ],
+          "defect": "Decision authorization is hand-rolled per host, tenant-blind, and permits the action when identity is unresolved"
+        }
+      },
+      {
+        "id": "decide/authorization-declined",
+        "file": "decide/09-authorization-declined.json",
+        "rules": [
+          "AZ-2",
+          "AZ-6"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
+        "id": "decide/relay-member-via-relay",
+        "file": "decide/10-relay-member-via-relay.json",
+        "rules": [
+          "AZ-3",
+          "AZ-1"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
+        "id": "decide/relay-without-assertion-refused",
+        "file": "decide/11-relay-without-assertion-refused.json",
+        "rules": [
+          "AZ-3"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
+        "id": "decide/execution-executed",
+        "file": "decide/12-execution-executed.json",
+        "rules": [
+          "DK-1",
+          "AZ-5"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.1"
+          ],
+          "defect": "No execution-outcome state: an approved-but-failed write is indistinguishable from an approved-and-committed one"
+        }
+      },
+      {
+        "id": "decide/execution-failed",
+        "file": "decide/13-execution-failed.json",
+        "rules": [
+          "DK-1"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.1"
+          ],
+          "defect": "No execution-outcome state: an approved-but-failed write is indistinguishable from an approved-and-committed one"
+        }
+      },
+      {
+        "id": "decide/execution-on-pending-refused",
+        "file": "decide/14-execution-on-pending-refused.json",
+        "rules": [
+          "DK-1",
+          "AZ-5"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
+        "id": "decide/resubmit-prefills",
+        "file": "decide/15-resubmit-prefills.json",
+        "rules": [
+          "DK-1",
+          "DK-2",
+          "PV-2"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
+        "id": "decide/executed-only-through-a-report",
+        "file": "decide/16-executed-only-through-a-report.json",
+        "rules": [
+          "AZ-7"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
+        "id": "decide/authorization-throws",
+        "file": "decide/17-authorization-throws.json",
+        "rules": [
+          "AZ-2",
+          "AZ-6"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
+        "id": "decide/execution-recorded-once",
+        "file": "decide/18-execution-recorded-once.json",
+        "rules": [
+          "DK-1",
+          "DK-4",
+          "AZ-5"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
+        "id": "decide/execution-second-report-refused",
+        "file": "decide/19-execution-second-report-refused.json",
+        "rules": [
+          "DK-1",
+          "DK-4",
+          "AZ-5"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
+        "id": "sequence-a/approve-round-trip",
+        "file": "sequence-a/01-approve-round-trip.json",
+        "rules": [
+          "GT-1",
+          "GT-6",
+          "DK-1",
+          "AZ-1",
+          "AZ-5",
+          "SR-1"
+        ],
+        "set": "sequence-a",
+        "oracle": null
+      },
+      {
+        "id": "sequence-a/reject-round-trip",
+        "file": "sequence-a/02-reject-round-trip.json",
+        "rules": [
+          "DK-1",
+          "AZ-1"
+        ],
+        "set": "sequence-a",
+        "oracle": null
+      },
+      {
+        "id": "sequence-a/typed-inputs-on-the-card",
+        "file": "sequence-a/03-typed-inputs-on-the-card.json",
+        "rules": [
+          "AF-1",
+          "SR-4",
+          "AF-2"
+        ],
+        "set": "sequence-a",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.1"
+          ],
+          "defect": "The aggregate confidence is a mean over the non-`Empty` fields, so a mostly-empty Affidavit can report high confidence"
+        }
+      },
+      {
+        "id": "sequence-a/picker-external-binding",
+        "file": "sequence-a/04-picker-external-binding.json",
+        "rules": [
+          "PV-1",
+          "PV-2",
+          "PV-3",
+          "GT-1"
+        ],
+        "set": "sequence-a",
+        "oracle": null
+      },
+      {
+        "id": "sequence-a/mandatory-field-left-empty",
+        "file": "sequence-a/05-mandatory-field-left-empty.json",
+        "rules": [
+          "AF-1",
+          "AF-2",
+          "GT-5"
+        ],
+        "set": "sequence-a",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.1"
+          ],
+          "defect": "The aggregate confidence is a mean over the non-`Empty` fields, so a mostly-empty Affidavit can report high confidence"
+        }
+      },
+      {
+        "id": "sequence-a/mandatory-field-reviewer-approves",
+        "file": "sequence-a/06-mandatory-field-reviewer-approves.json",
+        "rules": [
+          "AF-1",
+          "AF-2",
+          "DK-1"
+        ],
+        "set": "sequence-a",
+        "oracle": null
+      },
+      {
+        "id": "sequence-a/expiry-then-resubmit",
+        "file": "sequence-a/07-expiry-then-resubmit.json",
+        "rules": [
+          "DK-1",
+          "GT-4",
+          "CV-4"
+        ],
+        "set": "sequence-a",
+        "oracle": null
+      },
+      {
+        "id": "sequence-a/late-amendments-preserved",
+        "file": "sequence-a/08-late-amendments-preserved.json",
+        "rules": [
+          "DK-1",
+          "DK-2",
+          "PV-2",
+          "PV-3"
+        ],
+        "set": "sequence-a",
+        "oracle": null
+      },
+      {
+        "id": "sequence-a/interleaved-conversations",
+        "file": "sequence-a/09-interleaved-conversations.json",
+        "rules": [
+          "GT-2"
+        ],
+        "set": "sequence-a",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.1"
+          ],
+          "defect": "Conversation-scope bleed: one process-global context store is shared by every conversation"
+        }
+      },
+      {
+        "id": "sequence-a/replay-keeps-the-deadline",
+        "file": "sequence-a/10-replay-keeps-the-deadline.json",
+        "rules": [
+          "GT-4",
+          "DK-1"
+        ],
+        "set": "sequence-a",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.1"
+          ],
+          "defect": "A re-file with the same id broadcasts a card with a freshly computed deadline"
+        }
+      },
+      {
+        "id": "sequence-a/sweep-pages",
+        "file": "sequence-a/11-sweep-pages.json",
+        "rules": [
+          "DK-3"
+        ],
+        "set": "sequence-a",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.1"
+          ],
+          "defect": "The expiry sweep loads every pending entry, unpaged, on every instance"
+        }
+      },
+      {
+        "id": "sequence-a/rehydration-order",
+        "file": "sequence-a/12-rehydration-order.json",
+        "rules": [
+          "DK-5",
+          "AZ-5"
+        ],
+        "set": "sequence-a",
+        "oracle": null
+      },
+      {
+        "id": "sequence-a/coverage-refused-at-wire-up",
+        "file": "sequence-a/13-coverage-refused-at-wire-up.json",
+        "rules": [
+          "CV-4",
+          "CV-1"
+        ],
+        "set": "sequence-a",
+        "oracle": null
+      },
+      {
+        "id": "sequence-a/mandatory-field-empty-blocks-standing-order",
+        "file": "sequence-a/14-mandatory-field-empty-blocks-standing-order.json",
+        "rules": [
+          "GT-5",
+          "AF-1",
+          "AF-2"
+        ],
+        "set": "sequence-a",
+        "oracle": null
+      },
+      {
+        "id": "sequence-a/optional-field-empty-standing-order-fires",
+        "file": "sequence-a/15-optional-field-empty-standing-order-fires.json",
+        "rules": [
+          "GT-5",
+          "AF-1",
+          "AZ-1"
+        ],
+        "set": "sequence-a",
+        "oracle": null
+      },
+      {
+        "id": "sequence-c/relay-auto-approve-bound-external",
+        "file": "sequence-c/01-relay-auto-approve-bound-external.json",
+        "rules": [
+          "PV-4",
+          "AZ-1",
+          "PV-2",
+          "GT-1"
+        ],
+        "set": "sequence-c",
+        "oracle": null
+      },
+      {
+        "id": "sequence-c/relayed-decision-member-via-relay",
+        "file": "sequence-c/02-relayed-decision-member-via-relay.json",
+        "rules": [
+          "AZ-1",
+          "AZ-3"
+        ],
+        "set": "sequence-c",
+        "oracle": null
+      },
+      {
+        "id": "sequence-c/unbound-external-asks-a-person",
+        "file": "sequence-c/03-unbound-external-asks-a-person.json",
+        "rules": [
+          "PV-4",
+          "PV-5"
+        ],
+        "set": "sequence-c",
+        "oracle": null
+      },
+      {
+        "id": "sequence-c/relay-may-not-attest-member",
+        "file": "sequence-c/04-relay-may-not-attest-member.json",
+        "rules": [
+          "AZ-3",
+          "AZ-2"
+        ],
+        "set": "sequence-c",
+        "oracle": null
+      },
+      {
+        "id": "sequence-c/relay-decision-other-tenant-not-found",
+        "file": "sequence-c/05-relay-decision-other-tenant-not-found.json",
+        "rules": [
+          "AZ-2"
+        ],
+        "set": "sequence-c",
+        "oracle": null
+      },
+      {
+        "id": "canonical/create-shaped",
+        "file": "canonical/01-create-shaped.json",
+        "rules": [
+          "SR-1",
+          "AF-1",
+          "AF-3"
+        ],
+        "set": "canonical",
+        "oracle": null,
+        "acceptedOnReview": true
+      },
+      {
+        "id": "canonical/update-shaped",
+        "file": "canonical/02-update-shaped.json",
+        "rules": [
+          "SR-1",
+          "AF-3",
+          "PV-1"
+        ],
+        "set": "canonical",
+        "oracle": null,
+        "acceptedOnReview": true
+      },
+      {
+        "id": "canonical/wire-evidence-card-request",
+        "file": "canonical/03-wire-evidence-card-request.json",
+        "rules": [
+          "SR-1",
+          "SR-3"
+        ],
+        "set": "canonical",
+        "oracle": null,
+        "acceptedOnReview": true
+      },
+      {
+        "id": "canonical/wire-evidence-card-request-amended",
+        "file": "canonical/04-wire-evidence-card-request-amended.json",
+        "rules": [
+          "SR-1",
+          "AF-1",
+          "AF-2",
+          "AF-4",
+          "DK-2",
+          "PV-2"
+        ],
+        "set": "canonical",
+        "oracle": null,
+        "acceptedOnReview": true
+      },
+      {
+        "id": "canonical/key-order-stress",
+        "file": "canonical/05-key-order-stress.json",
+        "rules": [
+          "SR-1"
+        ],
+        "set": "canonical",
+        "oracle": null,
+        "acceptedOnReview": true
+      },
+      {
+        "id": "canonical/number-forms",
+        "file": "canonical/06-number-forms.json",
+        "rules": [
+          "SR-1"
+        ],
+        "set": "canonical",
+        "oracle": null,
+        "acceptedOnReview": true
+      },
+      {
+        "id": "canonical/money-and-escapes",
+        "file": "canonical/07-money-and-escapes.json",
+        "rules": [
+          "SR-1",
+          "SR-2"
+        ],
+        "set": "canonical",
+        "oracle": null,
+        "acceptedOnReview": true
+      }
+    ]
   }
 }
