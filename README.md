@@ -25,18 +25,34 @@ Versions are git tags. Each implementation pins a tag and bumps it in its own pu
 
 ## Status
 
-- 2026-09-04 — **`INVARIANTS.md` text amendment: GT-4 states the entry-id derivation.** GT-4 already said entry ids are
-  "derived deterministically from the tenant, the conversation, the tool and the canonical form of the operation and its
-  arguments"; a **Derivation** paragraph now states exactly what that means — the canonical-JSON material (`tenantId`,
-  `conversationId`, `toolName`, `operation`, `args`, and `supersedes` present only on a resubmission), the SHA-256 digest
-  over its UTF-8 bytes, and the RFC 9562 UUIDv8 layout — matching the reference implementation's `deriveEntryId`
-  (`Sakwala/affiant-ts` `packages/core/src/gate/pipeline.ts`), and stating why the id's material is not the Affidavit's own
-  canonical form (SR-1): the id must be fixed before inference runs, and inference is not deterministic. No fixture,
-  vector, schema or hash changes; this text is not tagged. A parallel amendment to SR-1, on what the canonical form is
-  taken over, was drafted but not made: the seven canonical vectors' `expectedBytesUtf8` include `protocolVersion` in
-  every case (and `affidavit.schema.json` requires it on the Affidavit itself, consistent with the `v0.1.1` entry below),
-  so the draft claim that `protocolVersion` is envelope-only and absent from the canonical form does not hold against the
-  current fixtures.
+- 2026-09-04 — **`v0.1.2` is tagged: SR-1 states what the canonical form is taken over, and two pinned hashes move.** The
+  form is over the **Affidavit as [`schemas/0.1.0/affidavit.schema.json`](schemas/0.1.0/affidavit.schema.json) defines
+  it** — `protocolVersion` included, alongside `conversationTurn` and `createdAt`. The Evidence Card envelope's
+  presentation is **not** in it: `allowedValues`, `pattern`, `warnings` and `requiresConfirmation` are a host's rendering
+  of a proposal rather than its sworn substance, and a rendering decision inside a hash a grant is checked against would
+  let restyling an input invalidate a grant minted over evidence that did not change. The seven canonical vectors already
+  stated both halves — every one's `expectedBytesUtf8` carries `protocolVersion`, and none carries a presentation key — so
+  no vector, schema or wire changed here.
+
+  What was wrong was the **reference implementation's runtime form**, not this text. Its Affidavit model omitted
+  `protocolVersion` and its wire writer added it on the way out, so the bytes a Docket row's `canonicalHash` was taken
+  over — the bytes a host's execution grant binds to — were not the bytes of the same record on a card. Two declarative
+  fixtures pinned a hash produced by that path and are re-promoted from the corrected reference:
+  [`sequence-a/approve-round-trip`](conformance/fixtures/sequence-a/01-approve-round-trip.json)
+  `776b7b40…6837275` → `2ce4c4af…840eca9` and
+  [`decide/amend-recompute`](conformance/fixtures/decide/06-amend-recompute.json)
+  `8d1579d7…4ecff6a` → `d389401d…3bd3402`. The corrected bytes are the previous bytes with one key inserted. Those two
+  values are the only ones that moved.
+
+  An earlier draft of this amendment said the opposite — that `protocolVersion` was envelope-only and absent from the
+  canonical form — and was **not** made, because the vectors refuse it. This entry replaces that note. The same commit's
+  GT-4 amendment stands unchanged: GT-4 already said entry ids are "derived deterministically from the tenant, the
+  conversation, the tool and the canonical form of the operation and its arguments", and a **Derivation** paragraph states
+  exactly what that means — the canonical-JSON material (`tenantId`, `conversationId`, `toolName`, `operation`, `args`,
+  and `supersedes` present only on a resubmission), the SHA-256 digest over its UTF-8 bytes, and the RFC 9562 UUIDv8
+  layout — matching the reference implementation's `deriveEntryId` (`Sakwala/affiant-ts`
+  `packages/core/src/gate/pipeline.ts`), and why the id's material is not the Affidavit's own canonical form (SR-1): the
+  id must be fixed before inference runs, and inference is not deterministic.
 
 - 2026-09-04 — **both runs republished at `v0.1.1`** ([`conformance/parity/`](conformance/parity/), [`conformance/results/`](conformance/results/)). The TypeScript reference implementation is unchanged: 63 of 63, empty failing set, on Node, Bun and workerd. The .NET reading moves from 3 of 63 to **0 of 63**, and no code changed on either side — the three canonical vectors it passed at `v0.1.0` were being measured against a record [`schemas/0.1.0/affidavit.schema.json`](schemas/0.1.0/affidavit.schema.json) refuses, two of them against no record at all. Its driver's own canonicaliser still reproduces the pinned bytes and digest for six of the seven regenerated vectors, at the first attempt and unedited; what it cannot do is **hold** the shape, which is the `1.0.0-beta.3` model gap the manifest already named. The 63 rows are 53 `planned` and 10 `fenced`; none is `fixed`.
 
