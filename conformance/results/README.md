@@ -15,6 +15,7 @@ One directory per implementation and version, `<implementation>-<version>/`, eac
 | Run | |
 |---|---|
 | [`dotnet-1.0.0-beta.1/`](dotnet-1.0.0-beta.1/) | The first run of any driver against any implementation — [Sakwala/affiant](https://github.com/Sakwala/affiant)'s .NET packages at `1.0.0-beta.1`, 2026-09-04. 63 fixtures run, 3 passed, 60 failed. All 19 oracle fixtures failed. |
+| [`typescript-0.1.0-alpha.0/`](typescript-0.1.0-alpha.0/) | [Sakwala/affiant-ts](https://github.com/Sakwala/affiant-ts)'s `@affiant/core` at `0.1.0-alpha.0`, 2026-09-04 — the reference implementation these fixtures were promoted from. 63 fixtures run, 63 passed, 0 failed. No `ORACLE-RUN.md`: the negative oracle names releases of the .NET implementation and says nothing about this one. |
 
 A run directory is a record of one run at one moment and is not updated in place: a later run against a later release is
 published as a new directory beside it. The lint validates every `results.json` here against the result schema, checks
