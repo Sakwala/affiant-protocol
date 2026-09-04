@@ -27,20 +27,15 @@ The numbered rules an implementation must enforce are [`../INVARIANTS.md`](../IN
 | [`lint/`](lint/) | The lint that runs over all of it in CI. |
 | `fixtures/wire/` · `fixtures/v0.1/` · `fixtures/enum-values.json` | The two **shape** sets that came before the suite. `wire/` are hand-authored examples of the wire one shipped implementation sends today, whose key sets are asserted against that implementation's own serializer; `v0.1/` is at least one positive and at least one negative per v0.1 schema, derived from the reference implementation's output; `enum-values.json` pins the closed string sets as data. They pin shapes, not behaviour. |
 
-## Starting a second implementation
+## How a second implementer starts
 
-1. **Read [`RUNNER.md`](RUNNER.md).** It is the whole format, and it assumes nothing about the reference
-   implementation's language.
-2. **Write a driver** to [`DRIVER.md`](DRIVER.md): pin a tag of this repository, build the four ports from each
-   fixture's `given`, bind the eight step kinds to your own gate, run **every** fixture
-   [`fixtures/MANIFEST.json`](fixtures/MANIFEST.json) lists, and emit [`results.schema.json`](results.schema.json).
-3. **Publish a parity manifest** to [`PARITY.md`](PARITY.md) — the fixtures you do not pass, each with the rule it
-   checks and a disposition: *fixed* in a named release, *fenced* by a named host-side workaround, or *ignored* with a
-   reason. Open a pull request here with the file.
-4. **Wire the equality assertion into your CI.** The set of ids your run fails must equal your manifest's exactly, and a
-   difference in either direction fails your build — a fixture that starts failing *and* a fixture that starts passing.
+**[`../IMPLEMENTING.md`](../IMPLEMENTING.md)** is the full walkthrough — seven steps from pinning a version to opening
+the pull request that lists your implementation in [`../README.md`](../README.md), each pointing at the file that
+governs it ([`RUNNER.md`](RUNNER.md) for the fixture format, [`DRIVER.md`](DRIVER.md) for what a driver does,
+[`PARITY.md`](PARITY.md) for what it publishes) and at a concrete first action. Read that first.
 
-You do not need permission to start, and you do not need to pass everything. An honest manifest is the deliverable.
+You do not need permission to start, and you do not need to pass everything. An honest, CI-asserted parity manifest is
+the deliverable.
 
 ## The negative oracle
 
