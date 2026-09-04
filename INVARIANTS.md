@@ -89,7 +89,10 @@ and `Empty`; one that clears an **optional** proposed field removes it from `fie
 *Why:* the specification's Rule 7 ("tag `Empty`, never omit") and its own worked example ("omit unset fields") disagreed; this
 resolves it — omit the not-proposed, `Empty`-tag the unknown — and makes the field list a statement of intent a policy can
 read. *Checked by:* `gate/update-previous-values`, `gate/inference-conversation-and-inferred`, `decide/amend-recompute`,
-`sequence-a/typed-inputs-on-the-card`, `sequence-a/mandatory-field-left-empty`. *Source:* specification Rule 7.
+`sequence-a/typed-inputs-on-the-card`, `sequence-a/mandatory-field-left-empty`,
+`sequence-a/mandatory-field-empty-blocks-standing-order`, `sequence-a/mandatory-field-reviewer-approves`,
+`sequence-a/optional-field-empty-standing-order-fires`, `canonical/create-shaped`,
+`canonical/wire-evidence-card-request-amended`. *Source:* specification Rule 7.
 
 ### AF-2 — Three confidence numbers; `aggregateConfidence` is the minimum over proposed fields with `Empty` = 0.0 *(v0.1)*
 **MUST.** `aggregateConfidence` = the minimum over every proposed field's current tag, `Empty` counting as 0.0 (so it is 0.0
@@ -102,7 +105,9 @@ safety number an invariant and a fixture pin (0.0 iff a proposed field has unkno
 *Why:* a mean that first discards every `Empty` field lets a mostly-empty Affidavit report high confidence — the exact hole
 once provenance authorises writes; the shipped .NET projection computes that mean (parity manifest).
 *Checked by:* `gate/update-previous-values`, `gate/inference-conversation-and-inferred`, `sequence-a/typed-inputs-on-the-card`,
-`sequence-a/mandatory-field-left-empty`; `suite: model/affidavit computeConfidence`. *Source:* specification
+`sequence-a/mandatory-field-left-empty`, `sequence-a/mandatory-field-empty-blocks-standing-order`,
+`sequence-a/mandatory-field-reviewer-approves`, `canonical/wire-evidence-card-request-amended`;
+`suite: model/affidavit computeConfidence`. *Source:* specification
 `AggregateConfidence // Minimum of all field confidences`; `SchemaDrivenAffidavitProjection` in `Affiant.Core`.
 
 ### AF-3 — `entityId` non-null ⇔ update; updates carry `previousValue` *(v0.1)*
@@ -113,7 +118,8 @@ and `previousValue` null on every field. "Create-only" is therefore a predicate 
 *Why:* the shipped .NET projection hard-codes `EntityId` and every field's `previousValue` to null
 (`src/Affiant.Core/Services/SchemaDrivenAffidavitProjection.cs:129,142`), so every Affidavit it builds is create-shaped and the README's promise that a
 field's `PreviousValue` shows "exactly what is changing" cannot be met by the built-in projection; a host supplies its own
-projection until the conformance release. *Checked by:* `gate/update-previous-values`, `gate/create-null-previous-values`.
+projection until the conformance release. *Checked by:* `gate/update-previous-values`, `gate/create-null-previous-values`, `canonical/create-shaped`,
+`canonical/update-shaped`.
 *Constrains:* `wire/evidence-card-request`. *Source:* `SchemaDrivenAffidavitProjection` in `Affiant.Core`.
 
 ### AF-4 — An accepted amendment recomputes the three confidence numbers *(v0.1)*
@@ -123,7 +129,8 @@ machine's pre-correction tag is preserved below it, never replaced; a field the 
 mandatory field stays present and reads `Empty` at confidence 0; an optional field leaves `fields[]`), so clearing can never
 raise a number.
 *Why:* the shipped hosts' executors return the amended Affidavit with the pre-correction machine confidence.
-*Checked by:* `decide/amend-recompute`. *Source:* the demo hosts' write executors.
+*Checked by:* `decide/amend-recompute`, `canonical/wire-evidence-card-request-amended`. *Source:* the demo hosts' write
+executors.
 
 ### AF-5 — A tool's result is one discriminated union of three kinds *(v0.1)*
 **MUST.** A tool's result on the wire is a discriminated union of three kinds — a read result, a write proposal, and a tool
@@ -147,7 +154,7 @@ tag, and an `Empty` tag always carries 0. A reviewer's act (`UserStated` with a 
 confidence contest: it supersedes the current tag outright (AF-4).
 *Why:* the shipped .NET inference step floors at 0 but does not cap (parity manifest); a merge that let a reviewer's
 correction lose on a tie would silently discard a human decision. *Checked by:* `gate/inference-conversation-and-inferred`,
-`sequence-a/picker-external-binding`; `suite: model/provenance merge and clamp`. *Source:* the specification's seven-source
+`sequence-a/picker-external-binding`, `canonical/update-shaped`; `suite: model/provenance merge and clamp`. *Source:* the specification's seven-source
 list and its merge rule (`docs/affiant-framework-specification.md:55-62`, `:100`).
 
 ### PV-2 — A tag above `Conversation` SHOULD carry a binding; the binding kinds are fixed *(v0.1: SHOULD; v0.2: MUST)*
@@ -164,7 +171,8 @@ binding to every `External` or `Computed` tag it mints (the reference implementa
 follows the staging above and becomes MUST at v0.2). Two obligations are MUST from v0.1 regardless: PV-3 and PV-4.
 *Why:* "the person typed this" or "this came from transfer 4711" must point at something an auditor can check years later.
 *Checked by:* `sequence-a/picker-external-binding`, `decide/amend-recompute`, `decide/resubmit-prefills`,
-`sequence-a/late-amendments-preserved`, `sequence-c/relay-auto-approve-bound-external`. *Constrains:*
+`sequence-a/late-amendments-preserved`, `sequence-c/relay-auto-approve-bound-external`,
+`canonical/wire-evidence-card-request-amended`. *Constrains:*
 `wire/evidence-card-request` (tag shape today, no `binding` field).
 
 ### PV-3 — An implementation's own inference never mints `UserStated` *(v0.1)*
@@ -306,14 +314,16 @@ be flipped after the fact is an audit record that lies. *Checked by:* `decide/ap
 `decide/execution-executed`, `decide/execution-failed`, `decide/execution-on-pending-refused`,
 `decide/execution-recorded-once`, `decide/execution-second-report-refused`, `decide/resubmit-prefills`,
 `sequence-a/approve-round-trip`, `sequence-a/reject-round-trip`, `sequence-a/expiry-then-resubmit`,
-`sequence-a/late-amendments-preserved`, `sequence-a/replay-keeps-the-deadline`. *Constrains:* `wire/docket-expiring`,
+`sequence-a/late-amendments-preserved`, `sequence-a/replay-keeps-the-deadline`,
+`sequence-a/mandatory-field-reviewer-approves`. *Constrains:* `wire/docket-expiring`,
 `wire/docket-expired` (notification shapes). *Source:* `ReviewStatus` and `DocketEntry` in `Affiant.Abstractions`; the host
 vocabulary `approved | rejected | expired | resubmitted` in `wire/action-decision-result` (a host payload).
 
 ### DK-2 — Amendments: `null` clears, absent leaves untouched *(v0.1)*
 **MUST.** In an amendment map, `null` means "cleared" and an absent key means "untouched"; an implementation never conflates
 them and never accepts `undefined` as a value. An amendment naming a field that is not proposed is a caller error and
-changes no state. *Checked by:* `decide/amend-recompute`, `decide/resubmit-prefills`, `sequence-a/late-amendments-preserved`.
+changes no state. *Checked by:* `decide/amend-recompute`, `decide/resubmit-prefills`, `sequence-a/late-amendments-preserved`,
+`canonical/wire-evidence-card-request-amended`.
 *Constrains:* `wire/evidence-card-request-resubmission` (`priorAmendments` shape).
 
 ### DK-3 — The expiry sweep is bounded, paged and host-scheduled *(v0.1)*
@@ -355,7 +365,8 @@ implementation that cannot attribute a write refuses it. Writes a host makes out
 distinct `outsideGate: { reason, recordedBy, at }` that no export may render in an attestation position and that a card
 shows as outside the guarantee.
 *Checked by:* `decide/approve`, `decide/reject`, `decide/relay-member-via-relay`, `gate/standing-order-by-the-book`,
-`gate/standing-order-bound-input`, `sequence-a/approve-round-trip`, `sequence-c/relay-auto-approve-bound-external`,
+`gate/standing-order-bound-input`, `sequence-a/approve-round-trip`, `sequence-a/optional-field-empty-standing-order-fires`,
+`sequence-a/reject-round-trip`, `sequence-c/relay-auto-approve-bound-external`,
 `sequence-c/relayed-decision-member-via-relay`. *Source:* the .NET `DocketEntry` gains the record in the conformance release;
 until then the parity manifest names it.
 
@@ -453,6 +464,7 @@ them; the seed carries both conventions and v0.1 freezes each set as it stands �
 case-folds an enum value on the wire. *Checked by:* every `wire/*` seed fixture through `conformance/lint`; `suite:
 contract fixture round-trip` (Node, Bun, workerd). *Source:* the shipped .NET transport (`JsonHubProtocol` defaults +
 `JsonStringEnumConverter`).
+*Note:* the canonical vectors also exercise SR-3's JSON conventions.
 
 ### SR-4 — Every envelope carries `protocolVersion`; an implementation states the version it targets *(v0.1)*
 **MUST (from v0.1).** Every envelope carries the protocol version string it conforms to. The seed fixtures predate the field
@@ -594,3 +606,4 @@ to exist is corrected here, never invented on the wire. *Checked by:* `suite: te
   ids; AZ-2 gains the framework-side tenant comparison; DK-4 gains "retention keeps approved-unexecuted"; TL-2 names its
   terms; GT-4's replay clause keeps the "if still `pending`" qualifier. To be tagged `v0.1.0` together with the v0.1
   schemas and the conformance suite once they exist.
+- 2026-09-04 — citation index completed: every fixture that names a rule is listed on that rule's *Checked by* line.
