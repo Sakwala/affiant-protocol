@@ -17,7 +17,7 @@ equally loud.
 | Implementation | [`Sakwala/affiant-ts`](https://github.com/Sakwala/affiant-ts) — `@affiant/core` at **`0.1.0-alpha.0`**, the reference implementation these fixtures were promoted from |
 | Runtimes | `node` (the run below), and the same suite under `bun` and inside `workerd` in that repository's CI, where the failing set must be identical on each (RT-1) |
 | Driver | that repository's `packages/conformance-driver`, published as `@affiant/conformance-driver` |
-| Protocol ref the fixtures came from | `242964faba9e6852b8fbfcdef6c3296b5c705f59` — the commit carrying the re-promoted fixture and the `hostOperation` schema, on which `v0.1.0` is tagged |
+| Protocol ref the fixtures came from | **`v0.1.0`** — the tag, which that repository pins in `packages/contract/protocol/PIN` and vendors byte for byte, checksummed on every run |
 | Run produced | 2026-09-04 |
 
 ## Totals
