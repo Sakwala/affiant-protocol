@@ -12,11 +12,13 @@
 //               the designed protocol version. Each document was produced by
 //               running the TypeScript reference implementation and writing down
 //               what it emitted (see MANIFEST.json -> "0.1.0" -> derivedFrom). Each
-//               schema carries at least one POSITIVE, which must validate, and
-//               exactly one NEGATIVE, a single deliberate mutation of a positive,
+//               schema carries at least one POSITIVE, which must validate, and at
+//               least one NEGATIVE, a single deliberate mutation of a positive,
 //               which must FAIL. A negative that passes is the more interesting
 //               failure: it means the schema does not refuse what the rulebook says
-//               it must.
+//               it must. A few rules are relations between two objects that no JSON
+//               Schema can express; those are checked here instead, and a negative
+//               that breaks one is marked `"check": "cross-object"` in the manifest.
 //
 // It also checks that every fixture file on disk is claimed by the manifest exactly
 // once, that no id or file is listed twice, that every v0.1 schema has a fixture and
@@ -161,6 +163,40 @@ if (unlisted.length === 0) {
 }
 
 // ---------------------------------------------------------------------------
+// Cross-object rules
+// ---------------------------------------------------------------------------
+
+/**
+ * The rules a JSON Schema cannot state, because they relate two objects inside one
+ * document. A document that breaks one is as wrong as one that breaks its schema, so
+ * a positive must satisfy both and a negative may fail either.
+ *
+ * Today there is one: an Evidence Card's `presentation` hints are hints about the
+ * fields of THAT card's Affidavit (schemas/0.1.0/README.md). A hint naming a field
+ * the record does not carry renders a control over nothing, and the schema accepts
+ * it — `presentation[].name` is only a non-empty string there.
+ */
+const crossObjectErrors = (schemaRelPath, data) => {
+  const errors = [];
+  if (schemaRelPath === 'schemas/0.1.0/evidence-card-request.schema.json') {
+    const hints = data?.presentation;
+    const fields = data?.affidavit?.fields;
+    if (Array.isArray(hints) && Array.isArray(fields)) {
+      const names = new Set(fields.map((field) => field?.name));
+      for (const [index, hint] of hints.entries()) {
+        if (!names.has(hint?.name)) {
+          errors.push(
+            `/presentation/${index}/name ${JSON.stringify(hint?.name)} is not a field of this ` +
+              `card's Affidavit (it carries ${JSON.stringify([...names])})`,
+          );
+        }
+      }
+    }
+  }
+  return errors;
+};
+
+// ---------------------------------------------------------------------------
 // 0.1.0
 // ---------------------------------------------------------------------------
 
@@ -197,7 +233,8 @@ if (!v01 || !Array.isArray(v01.fixtures)) {
 
     const validate = compile(entry.schema);
     const data = readJson(fixturePath);
-    const valid = validate(data);
+    const crossErrors = crossObjectErrors(entry.schema, data);
+    const valid = validate(data) && crossErrors.length === 0;
 
     if (entry.kind === 'positive') {
       positives += 1;
@@ -210,6 +247,7 @@ if (!v01 || !Array.isArray(v01.fixtures)) {
           const at = err.instancePath || '(root)';
           console.log(`        ${at} ${err.message}${err.params ? ' ' + JSON.stringify(err.params) : ''}`);
         }
+        for (const err of crossErrors) console.log(`        ${err}`);
         fail(`${entry.id}: does not validate against ${entry.schema}`);
       }
     } else {

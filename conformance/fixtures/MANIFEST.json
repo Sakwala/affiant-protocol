@@ -103,10 +103,10 @@
   "0.1.0": {
     "protocolVersion": "0.1.0",
     "schemas": "schemas/0.1.0",
-    "$note": "One positive fixture per v0.1 schema at least, and exactly one negative per schema. A POSITIVE must validate against the schema the row names; a NEGATIVE must fail it. A negative is a single deliberate mutation of a named positive — one required key removed, or one enum value replaced — so the lint proves the schema refuses what the rulebook says it must, not merely that it accepts what it should. common.schema.json carries definitions and no payload of its own, so it is listed in definitionsOnly and exempt from the \"every schema has a fixture\" check.",
+    "$note": "One positive fixture per v0.1 schema at least, and at least one negative per schema. A POSITIVE must validate against the schema the row names; a NEGATIVE must fail it. A negative is a single deliberate mutation of a named positive — one required key removed, or one enum value replaced — so the lint proves the schema refuses what the rulebook says it must, not merely that it accepts what it should. A negative marked `\"check\": \"cross-object\"` states a relation between two objects that no JSON Schema can express: the schema accepts it and the lint refuses it. common.schema.json carries definitions and no payload of its own, so it is listed in definitionsOnly and exempt from the \"every schema has a fixture\" check.",
     "derivedFrom": {
       "referenceImplementation": "Sakwala/affiant-ts @affiant/core 0.1.0-alpha.0 (c4591ea) — every positive below except the four noted was produced by running one of that package's 56 declarative fixtures through the gate and writing down the Docket row, the Evidence Card or the tool result it emitted; the `derivedFrom` on each row names the fixture it came from",
-      "completedBy": "Two properties the v0.1 schemas add and the reference implementation does not yet carry were filled in when the documents were written down: `protocolVersion` on every envelope (SR-4; the reference stamps the tag it pins, 0.0.1-seed) and `protocolVersion` on the Affidavit itself. Nothing else was edited: the ids are the real derived UUIDs, the instants are the fixtures' pinned clock, and the confidence numbers are what the implementation computed.",
+      "completedBy": "Two properties the v0.1 schemas add and the reference implementation does not yet carry were filled in when the documents were written down: `protocolVersion` on every envelope (SR-4; the reference stamps the tag it pins, 0.0.1-seed) and `protocolVersion` on the Affidavit itself. The card's presentation hints were moved, not invented: the reference carries allowedValues and pattern on each field of the wire Affidavit and v0.1 puts them on the envelope, so the rows that carry them say so. Nothing else was edited: the ids are the real derived UUIDs, the instants are the fixtures' pinned clock, the confidence numbers are what the implementation computed, and the warning sentences are verbatim.",
       "authored": "Four shapes no implementation emits yet were authored from INVARIANTS.md and are marked as such on their own rows: the outside-gate marker (AZ-1), and the three notification envelopes (DK-1, DK-3), whose docket ids are nonetheless real ids from a real run.",
       "date": "2026-09-04"
     },
@@ -411,12 +411,53 @@
         "notes": "The card the next reviewer sees: priorAmendments carries what was already agreed on the entry that expired."
       },
       {
+        "id": "v0.1/evidence-card-request/04-presentation-hints",
+        "file": "v0.1/evidence-card-request/04-presentation-hints.json",
+        "schema": "schemas/0.1.0/evidence-card-request.schema.json",
+        "kind": "positive",
+        "derivedFrom": "@affiant/core fixture sequence-a/typed-inputs-on-the-card (Sakwala/affiant-ts, packages/core/test/fixtures)",
+        "notes": "The same card as 01-first-filing with the presentation the host supplied: the enum's closed set, the number's input pattern, and a kind for the date and the free text. In the reference implementation these ride on each field of the wire Affidavit; from v0.1 they are on the envelope, because the record swears to what a value is and where it came from, not to how it is shown. The pattern sits on the number field, which is where that fixture's tool schema declares it — the date field declares no pattern, and a surface renders it from its kind alone. warnings is the empty array the same run emitted. 01-first-filing carries neither property, which is the other half of the check: both are optional and a card with no hints is valid."
+      },
+      {
+        "id": "v0.1/evidence-card-request/05-blocked-with-warnings",
+        "file": "v0.1/evidence-card-request/05-blocked-with-warnings.json",
+        "schema": "schemas/0.1.0/evidence-card-request.schema.json",
+        "kind": "positive",
+        "derivedFrom": "@affiant/core fixture gate/coverage-refused-declared (Sakwala/affiant-ts, packages/core/test/fixtures)",
+        "notes": "The same card as 02-blocked with the warning that run emitted, verbatim. The sentence and the blocked marker say the same thing twice on purpose: the marker is what a surface switches on, the sentence is what a person reads. presentation is absent — that host declared no field schema, so there were no constraints to carry — which shows the two properties are independent."
+      },
+      {
         "id": "v0.1/evidence-card-request/90-missing-protocol-version",
         "file": "v0.1/evidence-card-request/90-missing-protocol-version.json",
         "schema": "schemas/0.1.0/evidence-card-request.schema.json",
         "kind": "negative",
         "derivedFrom": "Mutation of v0.1/evidence-card-request/01-first-filing.json",
         "notes": "protocolVersion removed. Every envelope carries it from v0.1 (SR-4), so a consumer can tell which version of the format it received instead of inferring it from the shape."
+      },
+      {
+        "id": "v0.1/evidence-card-request/91-presentation-unknown-key",
+        "file": "v0.1/evidence-card-request/91-presentation-unknown-key.json",
+        "schema": "schemas/0.1.0/evidence-card-request.schema.json",
+        "kind": "negative",
+        "derivedFrom": "Mutation of v0.1/evidence-card-request/04-presentation-hints.json",
+        "notes": "A presentation entry gains \"required\": true. A presentation hint is a closed object like every other core object (SR-3): a host with a fifth thing to say about an input says it in its own channel, not by widening this one until two implementations disagree about what a card carries."
+      },
+      {
+        "id": "v0.1/evidence-card-request/92-warnings-not-an-array",
+        "file": "v0.1/evidence-card-request/92-warnings-not-an-array.json",
+        "schema": "schemas/0.1.0/evidence-card-request.schema.json",
+        "kind": "negative",
+        "derivedFrom": "Mutation of v0.1/evidence-card-request/04-presentation-hints.json",
+        "notes": "warnings is a single string instead of an array of them. A surface that concatenates a string character by character renders nothing a person can read, and one warning is still a list of one."
+      },
+      {
+        "id": "v0.1/evidence-card-request/93-presentation-names-unknown-field",
+        "file": "v0.1/evidence-card-request/93-presentation-names-unknown-field.json",
+        "schema": "schemas/0.1.0/evidence-card-request.schema.json",
+        "kind": "negative",
+        "check": "cross-object",
+        "derivedFrom": "Mutation of v0.1/evidence-card-request/04-presentation-hints.json",
+        "notes": "A presentation entry names \"dueDate\", which is not a field of this card's Affidavit — the field is \"dueOn\". A hint for a field that is not on the record renders a control over nothing. This is a relation between two objects and no JSON Schema can express it, so the schema ACCEPTS this document and the fixture lint refuses it; see conformance/lint/lint.mjs."
       },
       {
         "id": "v0.1/money/01-decimal-string",
