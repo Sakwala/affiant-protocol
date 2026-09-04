@@ -2,6 +2,8 @@
 
 The rulebook for [Affiant](https://affiant.dev): the wire format, the numbered invariants and the conformance fixtures that every Affiant implementation — in any language — must satisfy.
 
+**[Implement Affiant in your language →](IMPLEMENTING.md)** — how a new implementation, in any language and under its own name, becomes a conforming one.
+
 Affiant turns every database write an LLM agent proposes into an **Affidavit**: a per-field evidence record (the value, the previous value, where each value came from, how confident) filed in a **Docket** and shown as an **Evidence Card** that a person approves, amends or rejects before the host writes. A **Standing Order** is a policy verdict that approves a write with no person present.
 
 This repository holds no runtime code. It holds:
