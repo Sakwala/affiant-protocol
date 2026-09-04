@@ -319,6 +319,20 @@ those produce (SR-1). Their schema is [`canonical-vector.schema.json`](canonical
 }
 ```
 
+A vector that carries amendments carries a seventh property, `amendedInput`: **the accepted state** — the Affidavit
+after those amendments, with each amended field's reviewer-act tag in force (PV-2) and the confidence numbers recomputed
+over what is left (AF-2, AF-4). That is the document the bytes are actually taken over, and it is written down rather
+than left implicit for two reasons. A driver has somewhere to look when its own folding produces different bytes, so a
+failure says *which* state it disagrees about rather than only *that* it disagrees. And it can be held against
+[`schemas/0.1.0/affidavit.schema.json`](../schemas/0.1.0/affidavit.schema.json), which is what
+[`lint/lint.mjs`](lint/lint.mjs) does to both ends of every vector on every push.
+
+**`input` is an Affidavit the v0.1 schema accepts, and so is `amendedInput`.** The vector schema can only say they are
+objects; SR-1 is the stronger claim, and at `v0.1.0` nothing was making it. All seven vectors published under that tag
+described a seed-shaped record — `operationType: "WriteUpdate"`, the card's presentation on the fields, `evidence` where
+a tag says `note`, no `protocolVersion` — so they pinned the canonical bytes of a document this protocol does not have.
+They were regenerated for `v0.1.1` and the lint now refuses the shape.
+
 Unlike a fixture, the expected values here **were written by an implementation** — a 1,500-byte canonical document typed
 by hand is a transcription waiting to enshrine a typo. What makes a vector trustworthy is that three paths sharing no
 code have to agree on it: the implementation, a second canonicalizer written out from the rule, and an off-the-shelf
