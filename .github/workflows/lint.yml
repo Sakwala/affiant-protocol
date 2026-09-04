@@ -23,5 +23,8 @@ jobs:
         run: npm ci
         working-directory: conformance/lint
 
+      # Both fixture sets, both schema directories: the seed examples against
+      # `schemas/`, and the v0.1 fixtures against `schemas/0.1.0/` — where a
+      # positive must validate and a negative must fail.
       - name: Lint fixtures
         run: node conformance/lint/lint.mjs

@@ -1,17 +1,32 @@
-// Validates every schema-relevant conformance fixture against the schema the manifest
-// assigns it. The fixtures are hand-authored examples, not captures: their key sets are
-// asserted against the shipped .NET serializer by the hosts' wire-shape tests, but their
-// values are illustrative. So a failure here means the schema and the example disagree;
-// decide which is right against the .NET serializer.
+// The fixture lint. It runs over two fixture sets that live side by side in this
+// repository and are checked the same way, against different schema directories:
 //
-// It also checks that the manifest names every wire fixture file exactly once, that no
-// manifest id or file is duplicated, and that every enum set the manifest maps to a schema
-// matches that schema's `enum` exactly, in order.
+//   0.0.1-seed  `conformance/fixtures/wire/`  ->  `schemas/`
+//               hand-authored examples of the wire one shipped implementation
+//               sends today. Their key sets are asserted against the shipped .NET
+//               serializer by the hosts' wire-shape tests; their values are
+//               illustrative. A failure here means the schema and the example
+//               disagree; decide which is right against that serializer.
+//
+//   0.1.0       `conformance/fixtures/v0.1/`  ->  `schemas/0.1.0/`
+//               the designed protocol version. Each document was produced by
+//               running the TypeScript reference implementation and writing down
+//               what it emitted (see MANIFEST.json -> "0.1.0" -> derivedFrom). Each
+//               schema carries at least one POSITIVE, which must validate, and
+//               exactly one NEGATIVE, a single deliberate mutation of a positive,
+//               which must FAIL. A negative that passes is the more interesting
+//               failure: it means the schema does not refuse what the rulebook says
+//               it must.
+//
+// It also checks that every fixture file on disk is claimed by the manifest exactly
+// once, that no id or file is listed twice, that every v0.1 schema has a fixture and
+// every v0.1 fixture has a schema, and that every enum set the manifest maps to a
+// schema matches that schema's `enum` exactly, in order — in both directories.
 //
 // Run: node conformance/lint/lint.mjs   (from the repository root, or anywhere)
 
-import { readFileSync, existsSync, readdirSync } from 'node:fs';
-import { join, dirname, resolve } from 'node:path';
+import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { join, dirname, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
@@ -19,7 +34,8 @@ import addFormats from 'ajv-formats';
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '..', '..');
 const fixturesDir = join(repoRoot, 'conformance', 'fixtures');
-const schemasDir = join(repoRoot, 'schemas');
+const seedSchemasDir = join(repoRoot, 'schemas');
+const v01SchemasDir = join(seedSchemasDir, '0.1.0');
 const manifestPath = join(fixturesDir, 'MANIFEST.json');
 
 const failures = [];
@@ -33,12 +49,14 @@ if (!existsSync(manifestPath)) {
 }
 const manifest = readJson(manifestPath);
 
-// Load every schema in schemas/ so that $ref between them resolves by $id.
+// Every schema in both directories goes into one Ajv instance: the `$id`s differ by
+// version, so a `$ref` from a v0.1 schema can never resolve to a seed one by accident.
 const ajv = new Ajv2020({ allErrors: true, strict: true });
 addFormats(ajv);
-for (const name of readdirSync(schemasDir).filter((n) => n.endsWith('.schema.json')).sort()) {
-  ajv.addSchema(readJson(join(schemasDir, name)));
-}
+const schemaFilesIn = (dir) =>
+  existsSync(dir) ? readdirSync(dir).filter((n) => n.endsWith('.schema.json')).sort() : [];
+for (const name of schemaFilesIn(seedSchemasDir)) ajv.addSchema(readJson(join(seedSchemasDir, name)));
+for (const name of schemaFilesIn(v01SchemasDir)) ajv.addSchema(readJson(join(v01SchemasDir, name)));
 
 const compiled = new Map();
 const compile = (schemaRelPath) => {
@@ -49,36 +67,45 @@ const compile = (schemaRelPath) => {
   return validate;
 };
 
-console.log(`affiant-protocol fixture lint — protocolVersion ${manifest.protocolVersion}`);
+console.log(`affiant-protocol fixture lint — seed ${manifest.protocolVersion}, and ${manifest['0.1.0'].protocolVersion}`);
 const derivedFrom = manifest.derivedFrom ?? {};
-console.log('the wire fixtures are hand-authored examples; their shapes were asserted against:');
+console.log('the seed wire fixtures are hand-authored examples; their shapes were asserted against:');
 console.log(`  framework  ${derivedFrom.framework}`);
 console.log(`  hosts      ${derivedFrom.hosts}`);
 console.log(`  date       ${derivedFrom.date}`);
+console.log('the v0.1 fixtures were produced by running:');
+console.log(`  reference  ${manifest['0.1.0'].derivedFrom.referenceImplementation}`);
 console.log('');
 
-let checked = 0;
-
-// (b) No manifest entry may repeat an id or a file — a duplicate would otherwise be
-// validated twice and silently inflate the count.
 const seenIds = new Set();
 const seenFiles = new Set();
-let duplicates = 0;
-for (const entry of manifest.fixtures) {
-  if (seenIds.has(entry.id)) {
-    fail(`manifest: duplicate fixture id — ${entry.id}`);
-    duplicates += 1;
+
+/** No manifest entry may repeat an id or a file, across BOTH sets. */
+const checkUnique = (entries, where) => {
+  let duplicates = 0;
+  for (const entry of entries) {
+    if (seenIds.has(entry.id)) {
+      fail(`manifest: duplicate fixture id — ${entry.id}`);
+      duplicates += 1;
+    }
+    seenIds.add(entry.id);
+    if (seenFiles.has(entry.file)) {
+      fail(`manifest: duplicate fixture file — ${entry.file}`);
+      duplicates += 1;
+    }
+    seenFiles.add(entry.file);
   }
-  seenIds.add(entry.id);
-  if (seenFiles.has(entry.file)) {
-    fail(`manifest: duplicate fixture file — ${entry.file}`);
-    duplicates += 1;
+  if (duplicates === 0) {
+    console.log(`OK    manifest ${where}: ${entries.length} entries, no duplicate id or file`);
   }
-  seenFiles.add(entry.file);
-}
-if (duplicates === 0) {
-  console.log(`OK    manifest: ${manifest.fixtures.length} entries, no duplicate id or file`);
-}
+};
+
+// ---------------------------------------------------------------------------
+// 0.0.1-seed
+// ---------------------------------------------------------------------------
+
+checkUnique(manifest.fixtures, 'seed');
+let checked = 0;
 
 for (const entry of manifest.fixtures) {
   const fixturePath = join(fixturesDir, entry.file);
@@ -119,8 +146,8 @@ for (const entry of manifest.fixtures) {
   }
 }
 
-// (a) Every wire fixture file on disk must be claimed by the manifest — an unlisted file is
-// never validated, so it must not exist unnoticed.
+// Every seed wire fixture on disk must be claimed by the manifest — an unlisted file
+// is never validated, so it must not exist unnoticed.
 const wireDir = join(fixturesDir, 'wire');
 const onDisk = existsSync(wireDir)
   ? readdirSync(wireDir).filter((n) => n.endsWith('.json')).sort()
@@ -133,9 +160,118 @@ if (unlisted.length === 0) {
   console.log(`OK    manifest covers all ${onDisk.length} file(s) in conformance/fixtures/wire/`);
 }
 
-// The enum sets the manifest lists must exist in the enum fixture, and (c) where the manifest
-// maps a set to a schema, the set and that schema's `enum` must be identical, in order — the
-// order of provenanceSource is normative (it is the determinism ladder).
+// ---------------------------------------------------------------------------
+// 0.1.0
+// ---------------------------------------------------------------------------
+
+console.log('');
+const v01 = manifest['0.1.0'];
+if (!v01 || !Array.isArray(v01.fixtures)) {
+  fail('manifest: no "0.1.0" section, or it lists no fixtures');
+} else {
+  checkUnique(v01.fixtures, '0.1.0');
+
+  const definitionsOnly = new Set(v01.definitionsOnly ?? []);
+  const schemasWithPositive = new Set();
+  let positives = 0;
+  let negatives = 0;
+
+  for (const entry of v01.fixtures) {
+    const fixturePath = join(fixturesDir, entry.file);
+    if (!existsSync(fixturePath)) {
+      fail(`${entry.id}: manifest names a fixture file that does not exist — ${entry.file}`);
+      continue;
+    }
+    if (!entry.schema) {
+      fail(`${entry.id}: a v0.1 fixture must name the schema it is about`);
+      continue;
+    }
+    if (!existsSync(join(repoRoot, entry.schema))) {
+      fail(`${entry.id}: manifest names a schema that does not exist — ${entry.schema}`);
+      continue;
+    }
+    if (entry.kind !== 'positive' && entry.kind !== 'negative') {
+      fail(`${entry.id}: kind must be "positive" or "negative", not ${JSON.stringify(entry.kind)}`);
+      continue;
+    }
+
+    const validate = compile(entry.schema);
+    const data = readJson(fixturePath);
+    const valid = validate(data);
+
+    if (entry.kind === 'positive') {
+      positives += 1;
+      schemasWithPositive.add(entry.schema);
+      if (valid) {
+        console.log(`PASS  ${entry.id}  ->  ${entry.schema}`);
+      } else {
+        console.log(`FAIL  ${entry.id}  ->  ${entry.schema}`);
+        for (const err of validate.errors ?? []) {
+          const at = err.instancePath || '(root)';
+          console.log(`        ${at} ${err.message}${err.params ? ' ' + JSON.stringify(err.params) : ''}`);
+        }
+        fail(`${entry.id}: does not validate against ${entry.schema}`);
+      }
+    } else {
+      negatives += 1;
+      if (valid) {
+        console.log(`FAIL  ${entry.id}  ->  ${entry.schema}  (a negative fixture validated)`);
+        fail(
+          `${entry.id}: this document is supposed to FAIL ${entry.schema} and it validated. ` +
+            `Either the mutation is not the violation the manifest claims, or the schema does not ` +
+            `refuse what the rulebook says it must.`,
+        );
+      } else {
+        console.log(`REFUSED  ${entry.id}  ->  ${entry.schema}`);
+      }
+    }
+  }
+
+  // Coverage, both ways: a schema with no positive fixture is a shape nothing pins,
+  // and a fixture directory nobody listed is a document nothing validates.
+  for (const name of schemaFilesIn(v01SchemasDir)) {
+    const rel = `schemas/0.1.0/${name}`;
+    if (definitionsOnly.has(rel)) continue;
+    if (!schemasWithPositive.has(rel)) {
+      fail(`${rel}: no positive fixture in the 0.1.0 manifest section validates against it`);
+    }
+  }
+  const v01Dir = join(fixturesDir, 'v0.1');
+  const walk = (dir) => {
+    if (!existsSync(dir)) return [];
+    return readdirSync(dir).flatMap((name) => {
+      const full = join(dir, name);
+      return statSync(full).isDirectory() ? walk(full) : full.endsWith('.json') ? [full] : [];
+    });
+  };
+  const v01OnDisk = walk(v01Dir).map((p) => relative(fixturesDir, p)).sort();
+  const v01Unlisted = v01OnDisk.filter((p) => !seenFiles.has(p));
+  for (const p of v01Unlisted) fail(`${p}: fixture file is not listed in MANIFEST.json`);
+  if (v01Unlisted.length === 0) {
+    console.log(`OK    manifest covers all ${v01OnDisk.length} file(s) in conformance/fixtures/v0.1/`);
+  }
+  console.log(
+    `OK    0.1.0: ${positives} positive and ${negatives} negative fixture(s) over ` +
+      `${schemasWithPositive.size} of ${schemaFilesIn(v01SchemasDir).length - definitionsOnly.size} schema(s)`,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Enum parity
+// ---------------------------------------------------------------------------
+
+console.log('');
+
+/** Read `enum` out of a schema, following an optional JSON pointer to a subschema. */
+const enumAt = (schemaRelPath, pointer) => {
+  let node = readJson(join(repoRoot, schemaRelPath));
+  for (const step of (pointer ?? '/enum').split('/').filter(Boolean)) {
+    if (node === undefined || node === null) return undefined;
+    node = node[step];
+  }
+  return node;
+};
+
 const enumsFile = join(fixturesDir, manifest.enums.file);
 if (!existsSync(enumsFile)) {
   fail(`enums: manifest names a file that does not exist — ${manifest.enums.file}`);
@@ -148,24 +284,32 @@ if (!existsSync(enumsFile)) {
       fail(`${set.id}: not an array in ${manifest.enums.file}`);
       continue;
     }
-    if (!set.schema) continue;
-    const schemaPath = join(repoRoot, set.schema);
-    if (!existsSync(schemaPath)) {
-      fail(`${set.id}: manifest names a schema that does not exist — ${set.schema}`);
-      continue;
-    }
-    const schemaEnum = readJson(schemaPath).enum;
-    if (!Array.isArray(schemaEnum)) {
-      fail(`${set.id}: ${set.schema} has no top-level enum to compare against`);
-      continue;
-    }
-    if (JSON.stringify(schemaEnum) !== JSON.stringify(values)) {
-      fail(`${set.id}: differs from ${set.schema} enum`);
-      console.log(`FAIL  ${set.id}  ==  ${set.schema}`);
-      console.log(`        ${manifest.enums.file}: ${JSON.stringify(values)}`);
-      console.log(`        ${set.schema}: ${JSON.stringify(schemaEnum)}`);
-    } else {
-      console.log(`OK    ${set.id}  ==  ${set.schema}`);
+    // The set is compared against every schema the manifest maps it to — the seed's
+    // and v0.1's — so a value added to one and not the other fails here rather than
+    // in an implementation months later. The ORDER is normative for provenanceSource:
+    // it is the determinism ladder.
+    for (const [schemaRelPath, pointer] of [
+      [set.schema, undefined],
+      [set.v01Schema, set.v01Pointer],
+    ]) {
+      if (!schemaRelPath) continue;
+      if (!existsSync(join(repoRoot, schemaRelPath))) {
+        fail(`${set.id}: manifest names a schema that does not exist — ${schemaRelPath}`);
+        continue;
+      }
+      const schemaEnum = enumAt(schemaRelPath, pointer);
+      if (!Array.isArray(schemaEnum)) {
+        fail(`${set.id}: ${schemaRelPath}${pointer ?? ''} has no enum to compare against`);
+        continue;
+      }
+      if (JSON.stringify(schemaEnum) !== JSON.stringify(values)) {
+        fail(`${set.id}: differs from ${schemaRelPath}${pointer ?? ''} enum`);
+        console.log(`FAIL  ${set.id}  ==  ${schemaRelPath}`);
+        console.log(`        ${manifest.enums.file}: ${JSON.stringify(values)}`);
+        console.log(`        ${schemaRelPath}: ${JSON.stringify(schemaEnum)}`);
+      } else {
+        console.log(`OK    ${set.id}  ==  ${schemaRelPath}`);
+      }
     }
   }
 }
@@ -176,4 +320,8 @@ if (failures.length > 0) {
   for (const f of failures) console.error(`  - ${f}`);
   process.exit(1);
 }
-console.log(`${checked} schema-relevant fixture(s) validated, 0 problems.`);
+console.log(
+  `${checked} seed fixture(s) validated; ` +
+    `${manifest['0.1.0'].fixtures.length} v0.1 fixture(s) checked (positives validated, negatives refused); ` +
+    `0 problems.`,
+);

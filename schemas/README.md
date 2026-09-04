@@ -2,11 +2,28 @@
 
 JSON Schema (draft 2020-12) for the Affiant wire format.
 
+## Two directories
+
+There are two schema sets here, side by side, and they describe different things.
+
+| Directory | Version | What it is |
+|---|---|---|
+| `schemas/*.schema.json` | `0.0.1-seed` | **The seed.** A description of the wire one shipped implementation sends *today*, read off its models and checked against example payloads. Eight schemas. Frozen: nothing in it changes. |
+| [`schemas/0.1.0/`](0.1.0/) | `0.1.0` | **The designed protocol.** Twenty-one schemas written to [`../INVARIANTS.md`](../INVARIANTS.md), covering the Docket row, the attestation record, bindings, money, the refusal registry and the telemetry registry — none of which the seed had a schema for at all. |
+
+They are **not compatible**, on purpose, and both stay: the seed is what an adopter of the shipped .NET packages
+is looking at right now, and v0.1 is what both implementations are being brought to. Each has its own fixture set
+in [`../conformance/fixtures/`](../conformance/fixtures/) (`wire/` for the seed, `v0.1/` for v0.1) and both are
+checked by the same lint on every push.
+
+Start at [`0.1.0/README.md`](0.1.0/README.md) for the `protocolVersion` policy, the `$id` note, the renames, and a
+table of what changed from the seed. The rest of this file is about the seed.
+
 ## What these are
 
 A **seed**, version `0.0.1-seed`, derived from the wire a shipped implementation already sends — the .NET framework at [`Sakwala/affiant`](https://github.com/Sakwala/affiant) `v1.0.0-beta.1` and the two hosts that run on it. Every property, type and nullability here was read off that implementation's models and checked against the example payloads in [`../conformance/fixtures/`](../conformance/fixtures/) — which are hand-authored examples, not captures: their key sets are asserted against the shipped .NET serializer by the hosts' wire-shape tests, their values are illustrative.
 
-**This is not protocol v0.1.** It is a description of what one implementation ships today, published so a second implementation has something exact to build against. v0.1 is the first version that is designed rather than captured, and it will not be backward compatible with this seed.
+**This is not protocol v0.1.** It is a description of what one implementation ships today, published so a second implementation has something exact to build against. v0.1 is the first version that is designed rather than captured, it is not backward compatible with this seed, and it now lives in [`0.1.0/`](0.1.0/).
 
 Payloads are camelCase, enums are serialized as their member names, and an absent optional value is an explicit `null` rather than a missing property — so every property is `required` and nullability is expressed as a union type.
 
@@ -27,9 +44,11 @@ Payloads are camelCase, enums are serialized as their member names, and an absen
 
 Four wire fixtures have no schema in this seed: two host hub payloads and two transport/UI payloads. They are here as reference shapes and the manifest says so per fixture.
 
-## What v0.1 will add
+## What v0.1 added
 
-Each of these is a real gap in the seed, named here so nobody has to guess what is missing:
+Every gap below was a real hole in the seed. All of them are closed in [`0.1.0/`](0.1.0/); the list is kept as
+written so a reader of the seed can see what it does not carry, and [`0.1.0/README.md`](0.1.0/README.md) has the
+full seed-to-v0.1 table.
 
 - **A `protocolVersion` field on every envelope**, so a consumer can tell which version of the format it received instead of inferring it from the shape.
 - **A `binding` on the provenance tag**, naming the specific external record or computation a value came from, so `External` and `Computed` stop being bare labels.
