@@ -18,9 +18,10 @@ below.
 
 ### 1. Pin a version
 
-Versions of this repository are git tags. There is no `v0.1.0` tag yet — the rules, the schemas and the conformance
-suite are all on `main`, so until it exists you pin the commit you built against instead, and move the pin to the tag
-once it is cut. Either fetch that commit at build time and verify a checksum recorded beside the pin, or vendor
+Versions of this repository are git tags. The current one is `v0.1.1`; pin that, not a branch. (A commit is a
+legitimate pin too, and is what you use while a version's text is on `main` and its tag has not been cut — a commit is
+as immutable as a tag and, unlike a tag, cannot be moved under a running build.) Either fetch the ref at build time and
+verify a checksum recorded beside the pin, or vendor
 [`conformance/fixtures/**`](conformance/fixtures/), [`schemas/0.1.0/**`](schemas/0.1.0/) and the three format schemas
 ([`conformance/fixture.schema.json`](conformance/fixture.schema.json),
 [`conformance/canonical-vector.schema.json`](conformance/canonical-vector.schema.json),

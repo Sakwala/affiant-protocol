@@ -366,6 +366,12 @@ if (!existsSync(enumsFile)) {
 //   (b) checkFixtureSchema   every promoted document against the runner's own format
 //                            (conformance/fixture.schema.json; the byte vectors
 //                            against conformance/canonical-vector.schema.json).
+//   (b2) checkVectorRecords  every byte vector's `input` — and its `amendedInput`,
+//                            where it carries one — against the AFFIDAVIT schema.
+//                            The vector format says an input is an object; SR-1 says
+//                            the canonical form is over the accepted state of the
+//                            Affidavit as the schema defines it, and that is a
+//                            stronger claim nothing was checking.
 //   (c) checkOracle          the manifest's oracle entries against ORACLE.md's table,
 //                            as an exact set, with the defect sentence carried over.
 //   (d) checkMatcherShapes   the expect.entry / expect.card matchers inside the
@@ -432,6 +438,7 @@ if (!conformance || !Array.isArray(conformance.fixtures)) {
   checkUnique(conformance.fixtures, 'conformance');
   checkPromotedFilesListed(conformance);
   checkFixtureSchema(conformance);
+  checkVectorRecords(conformance);
   checkOracle(conformance);
   checkRuleCoverage(conformance);
   checkMatcherShapes(conformance);
@@ -645,6 +652,67 @@ function checkFixtureSchema(section) {
   console.log(
     `OK    format: ${declarative} declarative fixture(s) and ${vectors} byte vector(s) validate`,
   );
+}
+
+/**
+ * (b2) Every byte vector's record is an Affidavit the v0.1 schema accepts.
+ *
+ * `canonical-vector.schema.json` says an `input` is an object, and no more: the vector
+ * format is about the vector, not about the document inside it. SR-1 is the stronger
+ * claim — *the canonical form of a filed proposal is a deterministic byte sequence over
+ * the Affidavit and its accepted amendments* — and "the Affidavit" is the record
+ * `schemas/0.1.0/affidavit.schema.json` defines (AF-1, AF-5). A vector whose input is
+ * not that record pins the bytes of a document this protocol does not have.
+ *
+ * That is not hypothetical. The seven vectors promoted at v0.1.0 came from the
+ * TypeScript reference implementation before it was aligned to the v0.1 wire, and every
+ * one of them described a seed-shaped record: `operationType: "WriteUpdate"`,
+ * `allowedValues` and `pattern` on the fields, `warnings` and `requiresConfirmation` on
+ * the record, `evidence` where a tag now says `note`, and no `protocolVersion`,
+ * `conversationTurn` or `createdAt` at all. Nothing here refused them, so they were
+ * promoted, tagged and re-vendored by two drivers. This is the check that would have
+ * caught it, and it runs on every push.
+ *
+ * Both ends of an amended vector are checked. `input` is the proposal; `amendedInput`
+ * is the accepted state its amendments produce, which is the document the bytes are
+ * actually taken over — so it is the one an execution grant binds to, and the one that
+ * most has to be a record the protocol describes.
+ */
+function checkVectorRecords(section) {
+  const affidavit = compile('schemas/0.1.0/affidavit.schema.json');
+  let valid = 0;
+  let refused = 0;
+  for (const entry of section.fixtures) {
+    if (entry.set !== 'canonical') continue;
+    const document = readPromoted(entry);
+    if (document === null) continue;
+    for (const property of ['input', 'amendedInput']) {
+      const record = document[property];
+      if (record === undefined) continue;
+      if (affidavit(record)) {
+        valid += 1;
+        continue;
+      }
+      refused += 1;
+      console.log(`FAIL  ${entry.id} ${property}  ->  schemas/0.1.0/affidavit.schema.json`);
+      for (const err of affidavit.errors ?? []) {
+        const at = err.instancePath || '(root)';
+        console.log(`        ${at} ${err.message}${err.params ? ' ' + JSON.stringify(err.params) : ''}`);
+      }
+      fail(
+        `${entry.id}: its ${property} is not an Affidavit the v0.1 schema accepts — SR-1's ` +
+          `canonical form is over the Affidavit as schemas/0.1.0/affidavit.schema.json defines it`,
+      );
+    }
+  }
+  if (refused === 0) {
+    console.log(`OK    vectors: ${String(valid)} canonical record(s) validate against the Affidavit schema`);
+  } else {
+    console.log(
+      `      vectors: ${String(valid)} canonical record(s) validate against the Affidavit schema, ` +
+        `${String(refused)} refused`,
+    );
+  }
 }
 
 /** The fixture ids and the defect sentences ORACLE.md's table states, keyed by id. */
