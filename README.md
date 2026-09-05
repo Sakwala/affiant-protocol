@@ -12,7 +12,7 @@ This repository holds no runtime code. It holds:
 - `INVARIANTS.md` — the numbered, testable rules an implementation must enforce
 - `conformance/` — the fixtures, the runner specification, the driver contract and the parity-manifest format
 
-`schemas/`, `INVARIANTS.md` and the whole of `conformance/` — the fixtures, the runner specification, the driver contract and the parity-manifest format — are tagged `v0.1.2`, and both drivers have published a parity manifest and a run log here: the TypeScript reference implementation's is read at `v0.1.2`, with an empty failing set, and the .NET implementation's is read at `v0.1.1`, with every fixture the negative oracle lists failing against the release it was meant to fail against. Two of the 56 declarative fixtures were re-promoted at `v0.1.2` with a corrected `canonicalHash`, so the .NET reading moves to the new tag when that implementation re-pins it.
+`schemas/`, `INVARIANTS.md` and the whole of `conformance/` — the fixtures, the runner specification, the driver contract and the parity-manifest format — are tagged `v0.1.2`, and both drivers have published a parity manifest and a run log here, both read at `v0.1.2`, both with an empty failing set: the TypeScript reference implementation's, and the .NET implementation's, now at NuGet package `1.0.0-beta.3`.
 
 Versions are git tags. Each implementation pins a tag and bumps it in its own pull request; a parity manifest records, per implementation, which fixtures it does not yet pass — in public, checked in CI.
 
@@ -20,10 +20,12 @@ Versions are git tags. Each implementation pins a tag and bumps it in its own pu
 
 | Language | Repository | Status |
 |---|---|---|
-| .NET | [Sakwala/affiant](https://github.com/Sakwala/affiant) | shipped — ten NuGet packages at `v1.0.0-beta.1`. Conformant to the subset it passes: 0 of 63 fixtures at `v0.1.1`, with every gap named in [`conformance/parity/dotnet-v0.1.json`](conformance/parity/dotnet-v0.1.json) |
+| .NET | [Sakwala/affiant](https://github.com/Sakwala/affiant) | shipped — ten NuGet packages at `v1.0.0-beta.3`. Conformant: 63 of 63 fixtures at `v0.1.2`, with an empty failing set in [`conformance/parity/dotnet-v0.1.json`](conformance/parity/dotnet-v0.1.json) |
 | TypeScript | [Sakwala/affiant-ts](https://github.com/Sakwala/affiant-ts) | building in public — the reference implementation. Conformant: 63 of 63 fixtures on Node, Bun and workerd, with an empty failing set in [`conformance/parity/typescript-v0.1.json`](conformance/parity/typescript-v0.1.json) |
 
 ## Status
+
+- 2026-09-05 — **the .NET run is republished at `v0.1.2`, package `1.0.0-beta.3`** ([`conformance/parity/dotnet-v0.1.json`](conformance/parity/dotnet-v0.1.json), [`conformance/results/dotnet-1.0.0-beta.3/`](conformance/results/dotnet-1.0.0-beta.3/)). The .NET packages at `1.0.0-beta.3` ([release](https://github.com/Sakwala/affiant/releases/tag/v1.0.0-beta.3); ten packages on NuGet.org), against the vendored `v0.1.2` suite: **63 of 63**, empty failing set. Both implementations now read at the current tag with an empty failing set. The negative-oracle assertion names one release, `1.0.0-beta.1`, and reports itself skipped against this one, so this run carries no `ORACLE-RUN.md`. [`conformance/results/dotnet-1.0.0-beta.1/`](conformance/results/dotnet-1.0.0-beta.1/) stays published unchanged — a published run is evidence of what happened at that ref.
 
 - 2026-09-04 — **the TypeScript run is republished at `v0.1.2`** ([`conformance/parity/typescript-v0.1.json`](conformance/parity/typescript-v0.1.json), [`conformance/results/typescript-0.1.0-alpha.0/`](conformance/results/typescript-0.1.0-alpha.0/)). `@affiant/core` at `0.1.0-alpha.0`, against the vendored `v0.1.2` suite: **63 of 63**, empty failing set, asserted identical on Node, Bun and workerd (RT-1). The set of ids and the failing set are unchanged from `v0.1.1`; what changed is the two documents' pinned `canonicalHash` and the implementation's runtime canonical form, which now includes `protocolVersion` and so produces the same bytes for a record as its own wire writer does. The .NET manifest and run still read at `v0.1.1` and move when that implementation re-pins.
 
