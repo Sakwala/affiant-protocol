@@ -82,8 +82,8 @@ can express a host-supplied policy type exists, this becomes a row in the table 
 
 `v0.1.3` amends PV-3: the value is literally present in the utterance is a property of two strings, so the
 **implementation** establishes it from the unmodified utterance and the port's `presence` and `utteranceSpan` are hints it
-verifies the same way. The five fixtures the table below lists — the four the amendment arrives with and the one it
-amends — are its negative oracle against `Sakwala/affiant` `1.0.0-beta.3` (the release deployed to the demo hosts on
+verifies the same way. The five fixtures the table below lists — the four oracle fixtures the amendment arrives with
+and the one it amends — are its negative oracle against `Sakwala/affiant` `1.0.0-beta.3` (the release deployed to the demo hosts on
 2026-09-06).
 
 | Shipped defect (as recorded in the framework's own issues and reviews) | Rule | Fixtures that must fail on beta.3 |

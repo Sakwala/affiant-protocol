@@ -204,9 +204,9 @@ point — and an occurrence is a hit only where each neighbour is absent or is n
 decimal digit (`Nd`) or connector punctuation (`Pc`). Those categories are read from the implementation's own Unicode
 database, and a code point that database leaves unassigned is a boundary. Two runtimes at two Unicode versions can
 therefore differ on code points assigned since the older one, which is a limit of this rule and not a licence to
-normalise; each implementation's parity manifest states the version its runtime carried (`conformance/PARITY.md`,
-`runtimes[].unicodeVersion`). The **utterance** is the current turn's user text, unmodified; earlier turns are not
-searched. A whitespace-only value text never hits. The first hit wins, unless the port supplied a span that verifies. A span **verifies only when it is itself a hit**: the utterance's substring at that span equals the value text
+normalise; from `v0.1.3` runs onward, each implementation's parity manifest states the version its runtime carried
+(`conformance/PARITY.md`, `runtimes[].unicodeVersion`). The **utterance** is the current turn's user text, unmodified;
+earlier turns are not searched. A whitespace-only value text never hits. The first hit wins, unless the port supplied a span that verifies. A span **verifies only when it is itself a hit**: the utterance's substring at that span equals the value text
 under this comparison *and* the span's own neighbours pass the test above. A span that verifies is the hit; one that
 does not is discarded, and the finder runs from the start of the utterance as if the port had named none. A span's
 `start` and `end` are **integer-valued** JSON numbers — `4.0` is `4`, and a fractional or non-numeric coordinate
@@ -738,6 +738,6 @@ to exist is corrected here, never invented on the wire. *Checked by:* `suite: te
   `utteranceSpan` so a fixture can pin a binding's offset, length and digest, which nothing in the suite could state
   before; and one existing fixture, `sequence-a/picker-external-binding`, whose port scripted `presence: "literal"` with
   no span for a value the finder now finds, so its `status` is bound to the span it was read from; and the parity
-  manifest's `runtimes[]` gained an optional `unicodeVersion`, because the neighbour test reads its categories from a
-  runtime's own Unicode database and two runtimes need not carry the same one. No wire shape and no canonical vector
-  changed.
+  manifest's `runtimes[]` gained a `unicodeVersion` — optional in the schema, required by the lint of every manifest
+  read at `v0.1.3` or later — because the neighbour test reads its categories from a runtime's own Unicode database and
+  two runtimes need not carry the same one. No wire shape and no canonical vector changed.
