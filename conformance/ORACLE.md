@@ -1,12 +1,17 @@
 # The negative oracle — fixtures that must fail on a release known to be broken
 
 A fixture whose rule a known defective release violates is accepted into `conformance/` only if it **fails** against that
-release (`INVARIANTS.md`, preamble). For v0.1 the release is the shipped .NET packages at `1.0.0-beta.1` (2026-08-23), whose
-defects are known; for the PV-3 amendment at `v0.1.3` it is `1.0.0-beta.3` (2026-09-05), and that list is the second table
-below. This file lists every fixture that must fail on it, the rule it checks, and the shipped defect it
-refutes. A listed fixture that *passes* on beta.1 is either mis-authored or the defect is not what was recorded — it is
-investigated and this list or the fixture is corrected before the `v0.1.0` tag. Fixtures not listed here MAY pass or fail
-on beta.1; the parity manifest records which.
+release (`INVARIANTS.md`, preamble). This file lists, **per release**, every fixture that must fail on it, the rule it
+checks, and the shipped defect it refutes. Two releases are listed, each with its own table: the shipped .NET packages at
+`1.0.0-beta.1` (2026-08-23) for v0.1, and `1.0.0-beta.3` (2026-09-05) for the PV-3 amendment at `v0.1.3`.
+
+The procedure is the same for both. A listed fixture that *passes* on the release it is listed against is either
+mis-authored or the defect is not what was recorded — it is investigated, and this list or the fixture is corrected before
+the tag that carries it: `v0.1.0` for the beta.1 table, `v0.1.3` for the beta.3 table. Fixtures not listed against a
+release MAY pass or fail on it; the parity manifest records which. A release's table says nothing about the other
+release.
+
+## The list for `1.0.0-beta.1`
 
 **This list has been run.** The .NET conformance driver's first run against `1.0.0-beta.1` (2026-09-04) is published at
 [`results/dotnet-1.0.0-beta.1/`](results/dotnet-1.0.0-beta.1/): all 19 fixtures below failed, none passed. Three rows
@@ -82,19 +87,32 @@ verifies the same way. The two fixtures the amendment arrives with are its negat
 
 | Shipped defect (as recorded in the framework's own issues and reviews) | Rule | Fixtures that must fail on beta.3 |
 |---|---|---|
-| Presence is taken from the inference port's `presence` property alone, and no shipped port reports it: every value a person typed is graded `Inferred` and carries no binding | PV-3 | `gate/inference-presence-computed-from-the-utterance` |
+| Presence is taken from the inference port's `presence` property alone, and no shipped port reports it: every value a person typed is graded `Inferred` and carries no binding | PV-3 | `gate/inference-presence-computed-from-the-utterance`, `gate/inference-case-folds-and-the-digest-is-the-utterances` |
 | A port's `presence: "literal"` is honoured unverified: a value that is not in the utterance is graded `Conversation` and bound to the span the port named | PV-3 | `gate/inference-port-literal-unconfirmed` |
+| A binding is minted only where the port named a span, and from the span the port named: a value the person typed carries no binding when the port reported none, and a span naming text inside a longer token is minted as given | PV-2, PV-3 | `sequence-a/picker-external-binding`, `gate/inference-port-span-fails-the-boundary` |
 
-Both rows are read off the release's own source. `src/Affiant.Core/Filters/TaskInferenceStep.cs` at the tag
+Every row is read off the release's own source. `src/Affiant.Core/Filters/TaskInferenceStep.cs` at the tag
 `v1.0.0-beta.3` grades a field `Conversation` when, and only when, the port's JSON carries `presence` equal to `literal`,
 and `Inferred` otherwise; its `UtteranceSpanOf` mints an `utterance-span` binding from whatever `start` and `end` the port
 named, digesting the value the port reported rather than the utterance's own substring, and mints none when the port names
-no span. So the first fixture — a port that reports value and confidence only, for values that are in the utterance —
-reads `Inferred` and unbound on that release where the fixture expects `Conversation` and bound; and the second — a port
-that reports `literal` with a span for a value that is not in the utterance — reads `Conversation` and bound where the
-fixture expects `Inferred` and unbound. Neither is a claim about a run: the run that turns them into evidence is the .NET
-driver's at [Sakwala/affiant#123](https://github.com/Sakwala/affiant/issues/123), published under `results/` with the
-release that closes it.
+no span. So `gate/inference-presence-computed-from-the-utterance` and
+`gate/inference-case-folds-and-the-digest-is-the-utterances` — ports that report value and confidence only, for values
+that are in the utterance — read `Inferred` and unbound on that release where both fixtures expect `Conversation` and
+bound; `gate/inference-port-literal-unconfirmed` — a port that reports `literal` with a span for a value that is not in
+the utterance — reads `Conversation` and bound where the fixture expects `Inferred` and unbound;
+`gate/inference-port-span-fails-the-boundary` — a port that reports `literal` with a span naming the `20` inside
+`2026-09-08` — is honoured as given and reads `Conversation`, bound, where the fixture expects `Inferred` and unbound;
+and `sequence-a/picker-external-binding` — a port that reports `literal` for `Active` with no span — mints no binding
+where the fixture, from `v0.1.3`, expects the field bound to the span it was read from.
+
+A table is read off a release's source; it becomes evidence when it is **run**. Before `v0.1.3` is tagged, the .NET
+conformance driver runs this suite twice: against the published `1.0.0-beta.3` packages, where all five fixtures above
+must fail, and against the branch that fixes
+[Sakwala/affiant#123](https://github.com/Sakwala/affiant/issues/123), where all five must pass. The run is published
+under `results/` like the beta.1 one, and this line names it.
+
+**verified by:** *(the beta.3 run — results path and date — is written here when the run exists; until then this table is
+read, not run, and the `v0.1.3` tag waits on it)*
 
 ## The run
 

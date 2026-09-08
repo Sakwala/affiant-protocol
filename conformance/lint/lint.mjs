@@ -30,6 +30,7 @@
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 
@@ -381,11 +382,13 @@ if (!existsSync(enumsFile)) {
 //                            key is allowed to be a projection with no property of
 //                            its own. A TYPE mismatch is a failure, because that is
 //                            the fixtures and the schemas disagreeing about a shape.
-//   (f) checkInferencePresence  every scripted `presence` / `utteranceSpan` hint against
-//                            PV-3's finder run over the fixture's OWN utterance. A hint
-//                            that contradicts the text is legal only where the fixture
-//                            pins the grade the finder gives, so no fixture can pass by
-//                            a port's claim beating the utterance.
+//   (f) checkInferencePresence  every proposed inferred field against PV-3's finder, run
+//                            over the fixture's OWN utterance: the grade where a source is
+//                            pinned, `bound`, and the span with its digest where one is
+//                            pinned. A scripted `presence` / `utteranceSpan` hint that
+//                            contradicts the text is legal only where the fixture pins the
+//                            grade the finder gives, so no fixture can pass by a port's
+//                            claim beating the utterance.
 //
 // ---------------------------------------------------------------------------
 
@@ -912,117 +915,225 @@ function checkRuleCoverage(section) {
   );
 }
 
-// --- (f) the scripted presence hints against PV-3's finder ------------------
+// --- (f) PV-3's finder, and the inference expectations of every fixture -----
 
 /**
- * PV-3's finder, verbatim, in the one place this repository can run it.
+ * PV-3's finder (INVARIANTS.md, PV-3, "The finder"), in the one place this repository
+ * can run it. It is stated over code points, folded by SIMPLE uppercase mapping only,
+ * so that this lint, the .NET step and the TypeScript pipeline all settle on the same
+ * hit for the same fixture. Every departure from the plain JavaScript idiom below is
+ * there because the idiom diverges from .NET on a real input:
  *
- * The value text is the string itself, or the raw JSON token for a number or a boolean.
- * A hit is an occurrence of the value text in the utterance under an ordinal,
- * case-insensitive comparison whose neighbouring characters are absent or are neither
- * letters nor digits. An empty or whitespace-only value text never hits.
- *
- * One limitation, stated because it is the lint's and not the rule's: a fixture is JSON,
- * so a number reaches here already parsed and its "raw JSON token" is reconstructed as
- * the shortest positional form. A fixture that wrote `6.0` where its utterance says `6`
- * would be read here as `6`. No fixture does, and an implementation reading the port's
- * own JSON sees the token the port wrote.
+ *   - `toLowerCase()` over the whole string is not length-preserving (U+0130 lowercases
+ *     to two UTF-16 units), so an index taken in the folded string does not address the
+ *     original. Folding is per code point instead, and the offsets are the original's.
+ *   - `toUpperCase()` applies FULL case mappings (ß→SS, ﬁ→FI), which .NET's
+ *     `OrdinalIgnoreCase` does not. A fold whose result is not a single code point is
+ *     discarded and the code point kept as it is.
  */
-function isLetterOrDigit(character) {
-  return character !== undefined && /^[\p{L}\p{Nd}]$/u.test(character);
+
+/** A code point's simple uppercase mapping, or the code point itself where there is none. */
+function foldCodePoint(point) {
+  const folded = [...String.fromCodePoint(point).toUpperCase()];
+  return folded.length === 1 ? folded[0].codePointAt(0) : point;
 }
 
-/** The whole code point ending at `end`, or beginning at `start` — never half a surrogate pair. */
-function codePointBefore(text, end) {
-  if (end <= 0) return undefined;
-  const one = text.slice(end - 1, end);
-  if (end >= 2 && /[\uDC00-\uDFFF]/.test(one) && /[\uD800-\uDBFF]/.test(text.slice(end - 2, end - 1))) {
-    return text.slice(end - 2, end);
+/** A string as code points, each with the UTF-16 offset it begins at. */
+function codePointsOf(text) {
+  const points = [];
+  const offsets = [];
+  for (let at = 0; at < text.length; ) {
+    const point = text.codePointAt(at);
+    points.push(point);
+    offsets.push(at);
+    at += point > 0xffff ? 2 : 1;
   }
-  return one;
+  return { points, offsets };
 }
 
-function codePointAt(text, start) {
-  if (start >= text.length) return undefined;
-  const point = text.codePointAt(start);
-  return String.fromCodePoint(point);
+/** A neighbour blocks a hit when it is a letter, a mark, a decimal digit or connector punctuation. */
+function blocksAHit(point) {
+  return point !== undefined && /^[\p{L}\p{M}\p{Nd}\p{Pc}]$/u.test(String.fromCodePoint(point));
 }
 
+/** SR-1's rendering of a number: shortest round-trip decimal, always positional, `-0` as `0`. */
+function canonicalNumber(value) {
+  if (!Number.isFinite(value)) return null;
+  if (Object.is(value, -0)) return '0';
+  const shortest = String(value);
+  const exponent = /^(-?)(\d+)(?:\.(\d+))?[eE]([+-]?\d+)$/.exec(shortest);
+  if (exponent === null) return shortest;
+  const [, sign, whole, fraction = '', power] = exponent;
+  const digits = whole + fraction;
+  const point = whole.length + Number(power);
+  if (point <= 0) return `${sign}0.${'0'.repeat(-point)}${digits}`;
+  if (point >= digits.length) return `${sign}${digits}${'0'.repeat(point - digits.length)}`;
+  return `${sign}${digits.slice(0, point)}.${digits.slice(point)}`;
+}
+
+/**
+ * The value text a hit is looked for as. `null`, objects and arrays have none and never
+ * hit — which is a grade (`Inferred`), not an error: a fixture may script any JSON value.
+ */
 function valueTextOf(value) {
   if (typeof value === 'string') return value;
-  if (typeof value === 'number' || typeof value === 'boolean') return JSON.stringify(value);
+  if (typeof value === 'boolean') return value ? 'true' : 'false';
+  if (typeof value === 'number') return canonicalNumber(value);
   return null;
 }
 
+/** Every hit of the value text in the utterance, in order, as UTF-16 `{ offset, length }`. */
 function finderHits(utterance, valueText) {
   const hits = [];
-  if (valueText.trim() === '') return hits;
-  const haystack = utterance.toLowerCase();
-  const needle = valueText.toLowerCase();
-  for (let at = haystack.indexOf(needle); at >= 0; at = haystack.indexOf(needle, at + 1)) {
-    const before = codePointBefore(utterance, at);
-    const after = codePointAt(utterance, at + valueText.length);
-    if (!isLetterOrDigit(before) && !isLetterOrDigit(after)) hits.push(at);
+  if (typeof valueText !== 'string' || valueText.trim() === '') return hits;
+  const haystack = codePointsOf(utterance);
+  const folded = haystack.points.map(foldCodePoint);
+  const needle = codePointsOf(valueText).points.map(foldCodePoint);
+  if (needle.length === 0) return hits;
+  for (let at = 0; at + needle.length <= folded.length; at += 1) {
+    let equal = true;
+    for (let i = 0; i < needle.length; i += 1) {
+      if (folded[at + i] !== needle[i]) {
+        equal = false;
+        break;
+      }
+    }
+    if (!equal) continue;
+    if (blocksAHit(haystack.points[at - 1])) continue;
+    if (blocksAHit(haystack.points[at + needle.length])) continue;
+    const offset = haystack.offsets[at];
+    const after = at + needle.length;
+    const end = after < haystack.offsets.length ? haystack.offsets[after] : utterance.length;
+    hits.push({ offset, length: end - offset });
   }
   return hits;
 }
 
-/** Whether a port-supplied span verifies: the utterance at that span IS the value text (D1/PV-3). */
-function spanVerifies(utterance, span, valueText) {
-  if (span === null || typeof span !== 'object') return false;
+/**
+ * A port-supplied span verifies only where it is ITSELF a hit — the substring equals the
+ * value text under the same comparison AND the span's own neighbours pass the boundary
+ * test. A span that names an occurrence the finder's rule rejects is discarded, and the
+ * finder runs from the start of the utterance as if the port had named none.
+ */
+function verifiedSpan(utterance, span, valueText) {
+  if (span === null || typeof span !== 'object') return null;
   const { start, end } = span;
-  if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || end > utterance.length || end < start) {
-    return false;
-  }
-  return utterance.slice(start, end).toLowerCase() === valueText.toLowerCase();
+  if (!Number.isInteger(start) || !Number.isInteger(end)) return null;
+  if (start < 0 || end > utterance.length || end <= start) return null;
+  const found = finderHits(utterance, valueText).find(
+    (hit) => hit.offset === start && hit.offset + hit.length === end,
+  );
+  return found ?? null;
 }
 
-/** The source a fixture's expectations pin for one field, or null where they pin none. */
-function expectedSourceOf(document, fieldName) {
-  const expectation = document.expect ?? {};
-  const lists = [];
-  for (const which of ['entry', 'superseded']) {
-    const row = expectation[which];
-    if (row === null || row === undefined) continue;
-    for (const affidavit of ['affidavit', 'amendedAffidavit']) {
-      const fields = row[affidavit]?.fields;
-      if (Array.isArray(fields)) lists.push(fields);
-    }
-  }
-  const cardFields = expectation.card?.fields;
-  if (Array.isArray(cardFields)) lists.push(cardFields);
-  for (const fields of lists) {
-    for (const field of fields) {
-      if (field?.name === fieldName && typeof field.source === 'string') return field.source;
-    }
-  }
-  return null;
+/** What PV-3 makes of one scripted inference field, over one utterance. */
+function finderVerdict(utterance, field) {
+  const valueText = valueTextOf(field.value);
+  if (valueText === null) return { valueText: null, hit: null, grade: 'Inferred' };
+  const hit = verifiedSpan(utterance, field.utteranceSpan ?? null, valueText) ?? finderHits(utterance, valueText)[0] ?? null;
+  return { valueText, hit, grade: hit === null ? 'Inferred' : 'Conversation' };
+}
+
+/** The digest an `utterance-span` binding carries: SHA-256 over the utterance's own substring. */
+function spanDigest(utterance, hit) {
+  return createHash('sha256').update(Buffer.from(utterance.slice(hit.offset, hit.offset + hit.length), 'utf8')).digest('hex');
 }
 
 /**
- * (f) Every scripted inference hint against the finder, over the fixture's own utterance.
+ * The field names the fixture's own acts propose. A port may report a field the operation
+ * does not propose; that field never reaches an Affidavit, so no expectation can pin it and
+ * nothing below applies to it.
+ */
+function proposedFieldNames(document) {
+  const names = new Set();
+  let shaped = false;
+  const walk = (node) => {
+    if (node === null || typeof node !== 'object') return;
+    if (Array.isArray(node)) {
+      for (const item of node) walk(item);
+      return;
+    }
+    if (node.operation !== null && typeof node.operation === 'object' && Array.isArray(node.operation.fields)) {
+      shaped = true;
+      for (const name of node.operation.fields) if (typeof name === 'string') names.add(name);
+    }
+    if (Array.isArray(node.schema)) {
+      shaped = true;
+      for (const field of node.schema) if (field !== null && typeof field?.name === 'string') names.add(field.name);
+    }
+    if (node.tool !== null && typeof node.tool === 'object' && Array.isArray(node.tool.fields)) {
+      shaped = true;
+      for (const field of node.tool.fields) if (field !== null && typeof field?.name === 'string') names.add(field.name);
+    }
+    for (const value of Object.values(node)) walk(value);
+  };
+  walk(document.given?.prior);
+  walk(document.given?.step);
+  walk(document.given?.steps);
+  return { names, shaped };
+}
+
+/** The fields a deterministic interceptor sets: their tag in force is not inference's (GT-1 step 2). */
+function interceptedFieldNames(document) {
+  const names = new Set();
+  const interceptors = document.given?.gate?.interceptors;
+  if (!Array.isArray(interceptors)) return names;
+  for (const interceptor of interceptors) {
+    for (const name of Object.keys(interceptor?.fields ?? {})) names.add(name);
+  }
+  return names;
+}
+
+/** Every field matcher the fixture's expectations state for one field name. */
+function expectedMattersOf(document, fieldName) {
+  const found = [];
+  const walk = (node) => {
+    if (node === null || typeof node !== 'object') return;
+    if (Array.isArray(node)) {
+      for (const item of node) walk(item);
+      return;
+    }
+    const states = 'source' in node || 'bound' in node || 'bindingKind' in node || 'utteranceSpan' in node;
+    if (node.name === fieldName && states) found.push(node);
+    for (const value of Object.values(node)) walk(value);
+  };
+  walk(document.expect);
+  return found;
+}
+
+/**
+ * (f) Every fixture's scripted inference against PV-3's finder, over its own utterance.
  *
  * PV-3 at v0.1.3 puts presence in the implementation's hands: it finds the value text in
- * the unmodified utterance and grades `Conversation` on a hit, `Inferred` otherwise. A
- * fixture's `presence` and `utteranceSpan` are the PORT's report, and the implementation
- * verifies them the same way — so a fixture that scripts `literal` for a value its own
- * utterance does not carry is scripting a claim the rule says is not honoured.
+ * the unmodified utterance, grades `Conversation` on a hit and `Inferred` otherwise, and
+ * binds a hit to the span it was read from. A fixture's `presence` and `utteranceSpan` are
+ * the PORT's report, which the implementation verifies the same way.
  *
- * That is legal, and one fixture does it on purpose: `gate/inference-port-literal-unconfirmed`
- * exists to prove the claim loses. What is NOT legal is scripting such a claim without
- * saying which grade must come out, because then the document passes whether the
- * implementation honours the port or the text — the one thing this amendment is about.
- * So a contradiction is refused unless the fixture pins that field's `source` to the
- * grade the finder gives.
+ * So this runs the finder over every proposed inferred field — hint or no hint — and holds
+ * the fixture's own expectations to it: the grade where a `source` is pinned, `bound`, and
+ * the span where one is pinned, digest recomputed over the utterance. A field whose
+ * expectation pins a source inference cannot mint (an interceptor's `External`, a
+ * reviewer's `UserStated`) is displaced: the tag in force is not inference's and nothing
+ * here is about it.
  *
- * A fixture with no `given.ctx.utterance` is the rule's own no-utterance path: there is
- * nothing to establish presence from, the port's report stands, and there is nothing here
- * to check.
+ * A scripted hint that contradicts the finder is legal — `gate/inference-port-literal-unconfirmed`
+ * and `gate/inference-port-span-fails-the-boundary` exist to prove a port's claim loses —
+ * but only where the fixture pins the grade the finder gives. A contradiction with no grade
+ * pinned is refused, because such a document passes whether an implementation reads the
+ * port or the text.
+ *
+ * A fixture whose caller supplies no utterance at all is PV-3's no-utterance path: the
+ * port's report stands and there is nothing here to check. An EMPTY utterance is an
+ * utterance, and is checked like any other.
  */
 function checkInferencePresence(section) {
+  let checkedFields = 0;
   let checkedHints = 0;
   let deliberate = 0;
   let noUtterance = 0;
+  let notProposed = 0;
+  let displacedCount = 0;
+  let pinnedSpans = 0;
 
   for (const entry of section.fixtures) {
     if (entry.set === 'canonical') continue;
@@ -1031,61 +1142,115 @@ function checkInferencePresence(section) {
     const scripted = document.given?.gate?.inference;
     if (scripted === null || scripted === undefined || typeof scripted !== 'object') continue;
     const utterance = document.given?.ctx?.utterance;
+    const { names: proposed, shaped } = proposedFieldNames(document);
+    const intercepted = interceptedFieldNames(document);
 
     for (const [name, field] of Object.entries(scripted)) {
       if (field === null || typeof field !== 'object') continue;
-      const hasPresence = field.presence !== undefined && field.presence !== null;
-      const hasSpan = field.utteranceSpan !== undefined && field.utteranceSpan !== null;
-      if (!hasPresence && !hasSpan) continue;
-
+      if (shaped && !proposed.has(name)) {
+        notProposed += 1;
+        continue;
+      }
       if (typeof utterance !== 'string') {
         noUtterance += 1;
         continue;
       }
 
-      const valueText = valueTextOf(field.value);
-      if (valueText === null) {
-        fail(`${entry.id}: field ${name} scripts a presence hint on a value an Affidavit field cannot carry`);
+      const matchers = expectedMattersOf(document, name);
+      const displaced =
+        intercepted.has(name) ||
+        matchers.some(
+          (matcher) =>
+            typeof matcher.source === 'string' && matcher.source !== 'Conversation' && matcher.source !== 'Inferred',
+        );
+      if (displaced) {
+        displacedCount += 1;
         continue;
       }
 
-      checkedHints += 1;
-      const verified = spanVerifies(utterance, field.utteranceSpan ?? null, valueText);
-      const found = verified || finderHits(utterance, valueText).length > 0;
-      const finderGrade = found ? 'Conversation' : 'Inferred';
+      const { valueText, hit, grade } = finderVerdict(utterance, field);
+      checkedFields += 1;
 
-      const claim =
-        field.presence === 'literal' ? 'Conversation'
-        : field.presence === 'inferred' ? 'Inferred'
-        : hasSpan ? 'Conversation'
-        : null;
-      const spanContradicts = hasSpan && !verified;
-      if ((claim === null || claim === finderGrade) && !spanContradicts) continue;
-
-      const why =
-        spanContradicts
-          ? `the span it supplies covers ${JSON.stringify(utterance.slice(field.utteranceSpan.start, field.utteranceSpan.end))}, not ${JSON.stringify(valueText)}`
-          : `it reports ${JSON.stringify(field.presence)} where the finder grades ${finderGrade} over ${JSON.stringify(utterance)}`;
-
-      const expected = expectedSourceOf(document, name);
-      if (expected === finderGrade) {
-        deliberate += 1;
-        console.log(`      ${entry.id}: field ${name} — ${why}; the fixture pins ${finderGrade}, so the claim loses (PV-3)`);
-        continue;
+      // The port's claim, where it made one, against what the utterance says.
+      const hasPresence = field.presence !== undefined && field.presence !== null;
+      const hasSpan = field.utteranceSpan !== undefined && field.utteranceSpan !== null;
+      if (hasPresence || hasSpan) {
+        checkedHints += 1;
+        const claim = field.presence === 'inferred' ? 'Inferred' : hasPresence || hasSpan ? 'Conversation' : null;
+        if (claim !== grade) {
+          const why =
+            hasSpan && verifiedSpan(utterance, field.utteranceSpan, valueText ?? '') === null
+              ? `the span it supplies does not verify against ${JSON.stringify(utterance)}`
+              : `it reports ${JSON.stringify(field.presence ?? null)} where the finder grades ${grade} over ${JSON.stringify(utterance)}`;
+          const pinned = matchers.some((matcher) => matcher.source === grade);
+          if (pinned) {
+            deliberate += 1;
+            console.log(`      ${entry.id}: field ${name} — ${why}; the fixture pins ${grade}, so the claim loses (PV-3)`);
+          } else {
+            console.log(`FAIL  ${entry.id}: field ${name} — ${why}`);
+            fail(
+              `${entry.id}: field ${name} scripts a port hint its own utterance contradicts — ${why} — and does not pin ` +
+                `that field's source to ${grade}. PV-3 verifies the port's claim against the utterance, so a fixture ` +
+                `that states the claim without stating the grade passes whether an implementation honours the port or the text.`,
+            );
+          }
+        }
       }
-      console.log(`FAIL  ${entry.id}: field ${name} — ${why}`);
-      fail(
-        `${entry.id}: field ${name} scripts a port hint its own utterance contradicts — ${why} — and does not pin ` +
-          `that field's source to ${finderGrade}. PV-3 verifies the port's claim against the utterance, so a fixture ` +
-          `that states the claim without stating the grade passes whether an implementation honours the port or the text.`,
-      );
+
+      // The fixture's own expectations, hint or no hint.
+      for (const matcher of matchers) {
+        if (typeof matcher.source === 'string' && matcher.source !== grade) {
+          fail(
+            `${entry.id}: field ${name} expects source ${matcher.source} where PV-3's finder grades ${grade} over ` +
+              `${JSON.stringify(utterance)} (value text ${JSON.stringify(valueText)})`,
+          );
+        }
+        if (typeof matcher.bound === 'boolean' && matcher.bound !== (hit !== null)) {
+          fail(
+            `${entry.id}: field ${name} expects bound ${matcher.bound} where PV-3's finder ` +
+              `${hit === null ? 'finds no hit, so there is no binding' : `hits at offset ${hit.offset}, which mints an utterance-span binding`}`,
+          );
+        }
+        if (matcher.bindingKind !== undefined) {
+          const expected = hit === null ? null : 'utterance-span';
+          if (matcher.bindingKind !== expected) {
+            fail(
+              `${entry.id}: field ${name} expects bindingKind ${JSON.stringify(matcher.bindingKind)} where PV-3's ` +
+                `finder gives ${JSON.stringify(expected)}`,
+            );
+          }
+        }
+        if (matcher.utteranceSpan !== undefined && matcher.utteranceSpan !== null) {
+          pinnedSpans += 1;
+          if (hit === null) {
+            fail(`${entry.id}: field ${name} pins an utteranceSpan where PV-3's finder finds no hit at all`);
+            continue;
+          }
+          const digest = spanDigest(utterance, hit);
+          const pinned = matcher.utteranceSpan;
+          if (pinned.offset !== hit.offset || pinned.length !== hit.length) {
+            fail(
+              `${entry.id}: field ${name} pins utteranceSpan { offset ${pinned.offset}, length ${pinned.length} } ` +
+                `where PV-3's finder hits { offset ${hit.offset}, length ${hit.length} }`,
+            );
+          } else if (pinned.hash !== digest) {
+            fail(
+              `${entry.id}: field ${name} pins an utteranceSpan hash that is not the SHA-256 of the utterance's own ` +
+                `substring ${JSON.stringify(utterance.slice(hit.offset, hit.offset + hit.length))} (expected ${digest})`,
+            );
+          }
+        }
+      }
     }
   }
 
   console.log(
-    `OK    presence: ${checkedHints} scripted hint(s) checked against PV-3's finder over their own utterance` +
-      (deliberate === 0 ? '' : `, ${deliberate} of them a deliberate contradiction with the grade pinned`) +
-      (noUtterance === 0 ? '' : `, ${noUtterance} on a fixture with no utterance (the port's report stands)`),
+    `OK    presence: ${checkedFields} inferred field(s) checked against PV-3's finder over their own utterance ` +
+      `(${checkedHints} carrying a port hint, ${pinnedSpans} with the span and its digest pinned)` +
+      (deliberate === 0 ? '' : `; ${deliberate} deliberate contradiction(s) with the grade pinned`) +
+      (displacedCount === 0 ? '' : `; ${displacedCount} displaced by an interceptor or a reviewer's act`) +
+      (notProposed === 0 ? '' : `; ${notProposed} reported for a field the operation does not propose`) +
+      (noUtterance === 0 ? '' : `; ${noUtterance} on a fixture with no utterance (the port's report stands)`),
   );
 }
 

@@ -175,7 +175,7 @@ follows the staging above and becomes MUST at v0.2). Two obligations are MUST fr
 `canonical/wire-evidence-card-request-amended`. *Constrains:*
 `wire/evidence-card-request` (tag shape today, no `binding` field).
 
-### PV-3 — An implementation's own inference never mints `UserStated`, and it establishes presence from the utterance *(v0.1)*
+### PV-3 — An implementation's own inference never mints `UserStated` *(v0.1)*
 **MUST.** The inference step mints `Conversation` or `Inferred`; it cannot mint `UserStated`, `External` or `Computed`.
 `UserStated` is an observation of the person's act — an utterance span, a form input, a reviewer's amendment or prefill —
 never the host vouching for a value. An implementation MUST make this structural (the inference path has no way to name the
@@ -187,20 +187,31 @@ unmodified utterance. The inference port's `presence` and `utteranceSpan` are **
 a value the finder below cannot find mints `Inferred`; a port that reported `inferred`, or nothing at all, for a value the
 finder does find mints `Conversation`. A port's claim is never honoured unverified.
 
-*The finder.* The **value text** is the text the span digest is taken over: the string itself, or the raw JSON token for a
-number or a boolean. A **hit** is an occurrence of the value text in the utterance under an ordinal, case-insensitive
-comparison (invariant culture) whose neighbouring characters are absent or are neither letters nor digits (Unicode
-categories L\* and Nd). The **utterance** is the current turn's user text, unmodified; earlier turns are not searched. An
-empty or whitespace-only value text never hits. The first hit wins, unless the port supplied a span that verifies — a span
-verifies when the utterance's substring at that span equals the value text under the same comparison — in which case that
-span is the hit.
+*The finder.* The **value text** is the text the span digest is taken over. For a string it is the string itself; for a
+number it is SR-1's canonical rendering of that number (shortest round-trip decimal, always positional, `-0` written as
+`0`); for a boolean it is `true` or `false`. `null`, objects and arrays have no value text and never hit. A **hit** is an
+occurrence of the value text in the utterance under a **case-insensitive ordinal comparison**: two code points match when
+they are equal, or when their *simple* uppercase mappings — `UnicodeData.txt`'s single-code-point mapping — are equal.
+Full case mappings (`SpecialCasing.txt`: ß→SS, ﬁ→FI, İ→i̇) are not applied, no culture is consulted, nothing is normalised
+and no code point is ignorable, so a fold never changes a string's length and the comparison runs code point by code
+point. This is what .NET's `StringComparison.OrdinalIgnoreCase` does; in JavaScript it is `toUpperCase()` applied per code
+point, keeping the original code point wherever the result is not a single code point. The **neighbours** of an occurrence
+are the whole code points immediately before and after it in the utterance — a surrogate pair is one code point — and an
+occurrence is a hit only where each neighbour is absent or is none of a letter (`L*`), a mark (`M*`), a decimal digit
+(`Nd`) or connector punctuation (`Pc`). The **utterance** is the current turn's user text, unmodified; earlier turns are
+not searched. An empty or whitespace-only value text never hits. The first hit wins, unless the port supplied a span that
+verifies. A span **verifies only when it is itself a hit**: the utterance's substring at that span equals the value text
+under this comparison *and* the span's own neighbours pass the test above. A span that verifies is the hit; one that does
+not is discarded, and the finder runs from the start of the utterance as if the port had named none.
 
 *The binding.* A hit mints an `utterance-span` binding (PV-2): `offset` and `length` in UTF-16 code units of the utterance,
 and `hash` = SHA-256 as 64 lowercase hexadecimal characters over the UTF-8 bytes of the **utterance's own substring** at
 that span, which is what was there when the value was read. No hit, no binding.
 
-*No utterance in hand.* An implementation whose caller supplies no utterance has nothing to establish presence from; there,
-and only there, the port's report stands as given.
+*No utterance in hand.* An implementation whose caller **supplies no utterance** — null, or whatever its language spells
+absence as — has nothing to establish presence from; there, and only there, the port's report stands as given. An empty or
+whitespace-only utterance **is** an utterance: nothing hits in it, a port's `literal` cannot verify against it, and every
+field the port inferred is `Inferred`. An implementation guards on absence, never on emptiness.
 
 *Why:* both reference implementations had implemented a proxy for the rule's condition — "the port said so" — and no
 shipped inference port asked the model for `presence`, so every value a person typed was sworn "AI suggested". A condition
@@ -209,6 +220,7 @@ its own literalness is not. The cost is on the record: a short value can occur i
 is graded `Conversation` with a binding that points at the place the text was found, which is the rule's own consequence
 and is auditable; a paraphrase is `Inferred`. *Checked by:* `gate/inference-conversation-and-inferred`,
 `gate/inference-presence-computed-from-the-utterance`, `gate/inference-port-literal-unconfirmed`,
+`gate/inference-port-span-fails-the-boundary`, `gate/inference-case-folds-and-the-digest-is-the-utterances`,
 `sequence-a/picker-external-binding`, `sequence-a/late-amendments-preserved`; `suite: gate types (type-level:
 mintInference cannot name UserStated)`. *Source:* [`Sakwala/affiant#123`](https://github.com/Sakwala/affiant/issues/123);
 `Sakwala/affiant` `src/Affiant.Core/Filters/TaskInferenceStep.cs` at `v1.0.0-beta.3`, which grades `Conversation` only
@@ -691,9 +703,16 @@ to exist is corrected here, never invented on the wire. *Checked by:* `suite: te
   ordinal, case-insensitive comparison with non-alphanumeric neighbours, grades `Conversation` on a hit and `Inferred`
   otherwise, and binds a hit to `{ offset, length, hash }` over the utterance's own substring; the port's `presence` and
   `utteranceSpan` become hints verified the same way, and a caller with no utterance in hand keeps the port's report.
+  The comparison is pinned to simple uppercase mappings so the two implementations fold alike, the neighbour test covers
+  letters, marks, decimal digits and connector punctuation, a number's value text is SR-1's canonical rendering rather than
+  the port's raw token, and a port-supplied span verifies only where it is itself a hit.
   `conformance/RUNNER.md` and `conformance/fixture.schema.json` make both hints optional; `conformance/lint/lint.mjs`
-  refuses a fixture whose scripted hint contradicts the finder over its own utterance without pinning the grade the finder
-  gives; and two fixtures authored here rather than promoted —
-  `gate/inference-presence-computed-from-the-utterance` and `gate/inference-port-literal-unconfirmed` — are the amendment's
-  negative oracle against `1.0.0-beta.3` (`conformance/ORACLE.md`). No schema, no wire, no vector and no existing fixture
-  changed: every scripted `literal` in the suite already hits its own utterance and every scripted `inferred` already misses.
+  runs the finder over every fixture's own utterance and checks the expectations of every proposed inferred field against
+  it — grade, `bound`, and the span where one is pinned; and four fixtures authored here rather than promoted —
+  `gate/inference-presence-computed-from-the-utterance`, `gate/inference-port-literal-unconfirmed`,
+  `gate/inference-port-span-fails-the-boundary` and `gate/inference-case-folds-and-the-digest-is-the-utterances` — are the
+  amendment's negative oracle against `1.0.0-beta.3` (`conformance/ORACLE.md`). What changed beyond the rule: the fixture
+  schema, twice — `presence` left `inferredField.required`, and `fieldMatcher` gained an optional `utteranceSpan` so a
+  fixture can pin a binding's offset, length and digest, which nothing in the suite could state before; and one existing
+  fixture, `sequence-a/picker-external-binding`, whose port scripted `presence: "literal"` with no span for a value the
+  finder now finds, so its `status` is bound to the span it was read from. No wire shape and no canonical vector changed.
