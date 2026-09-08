@@ -1,6 +1,6 @@
-Fifty-six of the 60 declarative fixtures under gate/, decide/, sequence-a/ and sequence-c/,
+Fifty-six of the 61 declarative fixtures under gate/, decide/, sequence-a/ and sequence-c/,
 and all seven canonical byte vectors under canonical/, were promoted — copied in id, file
-name and content — from the TypeScript reference implementation. The other four were authored
+name and content — from the TypeScript reference implementation. The other five were authored
 here; the section "Authored here, not promoted" below says which and why. One of the fifty-six
 has since been amended in place rather than re-promoted: "Amended here at v0.1.3", below.
 
@@ -67,14 +67,26 @@ Authored here, not promoted (v0.1.3):
   gate/19-inference-port-literal-unconfirmed.json
   gate/20-inference-port-span-fails-the-boundary.json
   gate/21-inference-case-folds-and-the-digest-is-the-utterances.json
+  gate/22-inference-empty-value-is-nothing-reported.json
 
 PV-3 at v0.1.3 states that an implementation establishes presence from the unmodified
 utterance itself, and that the inference port's `presence` and `utteranceSpan` are hints it
 verifies the same way. Neither implementation did that when the rule was amended — the .NET
 step graded `Conversation` only where the port's JSON said `presence: "literal"`, and no
 shipped inference port asks a model for `presence` at all — so there was no reference
-behaviour to promote. These four are the amendment's negative oracle instead: all must fail
-against Sakwala/affiant 1.0.0-beta.3, and conformance/ORACLE.md says why each does.
+behaviour to promote. The first four are the amendment's negative oracle instead: all four must
+fail against Sakwala/affiant 1.0.0-beta.3, and conformance/ORACLE.md says why each does.
+
+The fifth, gate/22, is not on that list and is not evidence about the release. It pins the
+half of the rule that says what a port did NOT report: a value of null, an object, an array or
+the empty string is not a value a field can carry, so nothing is merged, the field stays Empty,
+and a proposal whose only field is Empty is refused by GT-3. 1.0.0-beta.3 already skips an
+empty value text (src/Affiant.Core/Filters/TaskInferenceStep.cs at that tag, the guard on
+ReadScalarText) and so passes it; the implementation the fixture is aimed at is the TypeScript
+core, which admitted the empty string as Inferred at the port's confidence and would file the
+proposal instead of refusing it (packages/core/src/gate/pipeline.ts at 0.1.0-alpha.0). It is
+authored here for the same reason as the other four: no implementation had the behaviour to
+copy.
 
 Amended here at v0.1.3, not re-promoted:
 
@@ -127,5 +139,5 @@ To verify the promotion, from a checkout of both repositories:
   diff -r <affiant-ts>/packages/core/test/fixtures/sequence-c conformance/fixtures/sequence-c
   diff -r <affiant-ts>/packages/core/test/fixtures/canonical  conformance/fixtures/canonical
 
-The gate/ diff reports the four files authored here as extra, and the sequence-a/ diff reports
+The gate/ diff reports the five files authored here as extra, and the sequence-a/ diff reports
 04-picker-external-binding.json as differing; every other file is identical.

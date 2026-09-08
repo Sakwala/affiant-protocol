@@ -973,17 +973,37 @@ function canonicalNumber(value) {
 }
 
 /**
- * The value text a hit is looked for as. `null`, objects and arrays have none and never
- * hit — which is a grade (`Inferred`), not an error: a fixture may script any JSON value.
+ * The value text a hit is looked for as, or `null` where the port reported NOTHING for the
+ * field (PV-3, "The finder").
+ *
+ * A `value` of `null`, an object, an array or the empty string is not a value a field can
+ * carry, and a number the runtime parsed as infinity or NaN has no canonical rendering
+ * (SR-1 refuses it). In each case nothing is merged, no tag is minted, and the field stays
+ * whatever it already was — `Empty` under AF-1 where nothing else set it. That is a grade
+ * nobody gave, not an error: a fixture may script any JSON value.
+ *
+ * A whitespace-only string IS a value. It is filed as the port reported it, and it never
+ * hits, which `finderHits` enforces.
  */
 function valueTextOf(value) {
-  if (typeof value === 'string') return value;
+  if (typeof value === 'string') return value === '' ? null : value;
   if (typeof value === 'boolean') return value ? 'true' : 'false';
   if (typeof value === 'number') return canonicalNumber(value);
   return null;
 }
 
-/** Every hit of the value text in the utterance, in order, as UTF-16 `{ offset, length }`. */
+/**
+ * Every hit of the value text in the utterance, in order, as UTF-16 `{ offset, length }`.
+ *
+ * Both strings are walked as whole code points, which is also what makes PV-3's surrogate
+ * clause hold here without a guard of its own: a hit can neither begin nor end inside a
+ * surrogate pair, because a pair is one element of `haystack.points` and a lone surrogate
+ * in the value text is a different element from the paired one it is half of. The offsets
+ * reported are the original string's, never the folded copy's.
+ *
+ * A whitespace-only value text never hits (PV-3); the empty string never reaches here,
+ * because `valueTextOf` reads it as nothing reported.
+ */
 function finderHits(utterance, valueText) {
   const hits = [];
   if (typeof valueText !== 'string' || valueText.trim() === '') return hits;
@@ -1015,6 +1035,10 @@ function finderHits(utterance, valueText) {
  * value text under the same comparison AND the span's own neighbours pass the boundary
  * test. A span that names an occurrence the finder's rule rejects is discarded, and the
  * finder runs from the start of the utterance as if the port had named none.
+ *
+ * `start` and `end` must be integer-VALUED (PV-3): JSON's `4.0` is `4` and verifies, while
+ * a fractional or non-numeric coordinate discards the hint rather than being rounded into
+ * one. `Number.isInteger` is exactly that test once the document is parsed.
  */
 function verifiedSpan(utterance, span, valueText) {
   if (span === null || typeof span !== 'object') return null;
@@ -1027,12 +1051,16 @@ function verifiedSpan(utterance, span, valueText) {
   return found ?? null;
 }
 
-/** What PV-3 makes of one scripted inference field, over one utterance. */
+/**
+ * What PV-3 makes of one scripted inference field, over one utterance. `reported: false`
+ * is the case where the port reported nothing a field can carry: there is no grade to give,
+ * because the field is never merged.
+ */
 function finderVerdict(utterance, field) {
   const valueText = valueTextOf(field.value);
-  if (valueText === null) return { valueText: null, hit: null, grade: 'Inferred' };
+  if (valueText === null) return { reported: false, valueText: null, hit: null, grade: null };
   const hit = verifiedSpan(utterance, field.utteranceSpan ?? null, valueText) ?? finderHits(utterance, valueText)[0] ?? null;
-  return { valueText, hit, grade: hit === null ? 'Inferred' : 'Conversation' };
+  return { reported: true, valueText, hit, grade: hit === null ? 'Inferred' : 'Conversation' };
 }
 
 /** The digest an `utterance-span` binding carries: SHA-256 over the utterance's own substring. */
@@ -1137,6 +1165,11 @@ function displacesInference(matcher) {
  * `given.ctx.utterance`, and `""` where the fixture states none (`DRIVER.md`). A fixture
  * that omits the key is therefore checked as the empty utterance it will be run with —
  * where nothing hits — rather than skipped.
+ *
+ * A field the port reported nothing for — `null`, an object, an array, the empty string or
+ * a non-finite number — has no grade at all: inference mints no tag and the field stays
+ * `Empty`. Such a field is held to that instead, so a fixture cannot expect `Conversation`
+ * or `Inferred`, a binding, or a span on a value that was never merged.
  */
 function checkInferencePresence(section) {
   let checkedFields = 0;
@@ -1144,6 +1177,7 @@ function checkInferencePresence(section) {
   let deliberate = 0;
   let noUtterance = 0;
   let notProposed = 0;
+  let notReported = 0;
   let displacedCount = 0;
   let pinnedSpans = 0;
 
@@ -1178,7 +1212,27 @@ function checkInferencePresence(section) {
       const matchers = allMatchers.filter((matcher) => !displacesInference(matcher));
       displacedCount += allMatchers.length - matchers.length;
 
-      const { valueText, hit, grade } = finderVerdict(utterance, field);
+      const { reported, valueText, hit, grade } = finderVerdict(utterance, field);
+
+      // Nothing a field can carry was reported: no merge, no tag, no binding (PV-3).
+      if (!reported) {
+        notReported += 1;
+        for (const matcher of matchers) {
+          const why =
+            `${entry.id}: field ${name} — the port reports ${JSON.stringify(field.value ?? null)}, which is not a value a ` +
+            `field can carry, so PV-3 merges nothing and the field stays Empty (AF-1)`;
+          if (typeof matcher.source === 'string') fail(`${why}; the fixture expects source ${matcher.source}`);
+          if (matcher.bound === true) fail(`${why}; the fixture expects it bound`);
+          if (matcher.bindingKind !== undefined && matcher.bindingKind !== null) {
+            fail(`${why}; the fixture expects bindingKind ${JSON.stringify(matcher.bindingKind)}`);
+          }
+          if (matcher.utteranceSpan !== undefined && matcher.utteranceSpan !== null) {
+            fail(`${why}; the fixture pins an utteranceSpan on it`);
+          }
+        }
+        continue;
+      }
+
       checkedFields += 1;
 
       // The port's claim, where it made one, against what the utterance says.
@@ -1260,6 +1314,7 @@ function checkInferencePresence(section) {
       (deliberate === 0 ? '' : `; ${deliberate} deliberate contradiction(s) with the grade pinned`) +
       (displacedCount === 0 ? '' : `; ${displacedCount} expectation(s) displaced by an interceptor or a reviewer's act`) +
       (notProposed === 0 ? '' : `; ${notProposed} reported for a field the operation does not propose`) +
+      (notReported === 0 ? '' : `; ${notReported} where the port reported no value a field can carry, so nothing is merged`) +
       (noUtterance === 0 ? '' : `; ${noUtterance} on a fixture that states no utterance, checked as the empty one`),
   );
 }

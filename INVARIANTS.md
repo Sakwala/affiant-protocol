@@ -189,12 +189,16 @@ finder does find mints `Conversation`. A port's claim is never honoured unverifi
 
 *The finder.* The **value text** is the text the span digest is taken over. For a string it is the string itself; for a
 number it is SR-1's canonical rendering of that number (shortest round-trip decimal, always positional, `-0` written as
-`0`); for a boolean it is `true` or `false`. `null`, objects and arrays have no value text and never hit. A **hit** is
-an occurrence of the value text in the utterance under an **ordinal comparison that folds ASCII case and nothing else**:
-two code points match when they are equal, or when both are ASCII letters (`A`–`Z` against `a`–`z`) that differ only in
-case. Every other code point compares exactly — no culture, no normalisation, nothing ignorable, and no case mapping
-read from any runtime's Unicode data — so a case variant outside ASCII does not hit (a typed `Критический` is not found
-by a port's `критический`, which is `Inferred`), while an exact echo in any script is. The **neighbours** of an
+`0`); for a boolean it is `true` or `false`. A `value` the port reports as `null`, an object, an array or the **empty
+string** is **nothing reported** for that field: it is not a value a field can carry, so nothing is merged, no tag is
+minted and the field stays whatever it already was — `Empty` under AF-1 where nothing else set it — while a
+whitespace-only string **is** a value and is filed as the port reported it. A number the runtime parses as infinity or
+NaN is nothing reported in the same way, SR-1 giving it no canonical rendering, and never an error out of the inference
+step. A **hit** is an occurrence of the value text in the utterance under an **ordinal comparison that folds ASCII
+case and nothing else**: two code points match when they are equal, or when both are ASCII letters (`A`–`Z` against
+`a`–`z`) that differ only in case. Every other code point compares exactly — no culture, no normalisation, nothing
+ignorable, and no case mapping read from any runtime's Unicode data — so a case variant outside ASCII does not hit (a
+typed `Критический` is not found by a port's `критический`, which is `Inferred`), while an exact echo in any script is. The **neighbours** of an
 occurrence are the whole code points immediately before and after it in the utterance — a surrogate pair is one code
 point — and an occurrence is a hit only where each neighbour is absent or is none of a letter (`L*`), a mark (`M*`), a
 decimal digit (`Nd`) or connector punctuation (`Pc`). Those categories are read from the implementation's own Unicode
@@ -202,10 +206,12 @@ database, and a code point that database leaves unassigned is a boundary. Two ru
 therefore differ on code points assigned since the older one, which is a limit of this rule and not a licence to
 normalise; each implementation's parity manifest states the version its runtime carried (`conformance/PARITY.md`,
 `runtimes[].unicodeVersion`). The **utterance** is the current turn's user text, unmodified; earlier turns are not
-searched. An empty or whitespace-only value text never hits. The first hit wins, unless the port supplied a span that
-verifies. A span **verifies only when it is itself a hit**: the utterance's substring at that span equals the value text
+searched. A whitespace-only value text never hits. The first hit wins, unless the port supplied a span that verifies. A span **verifies only when it is itself a hit**: the utterance's substring at that span equals the value text
 under this comparison *and* the span's own neighbours pass the test above. A span that verifies is the hit; one that
-does not is discarded, and the finder runs from the start of the utterance as if the port had named none.
+does not is discarded, and the finder runs from the start of the utterance as if the port had named none. A span's
+`start` and `end` are **integer-valued** JSON numbers — `4.0` is `4`, and a fractional or non-numeric coordinate
+discards the hint — and no hit ever begins or ends **inside a surrogate pair**, so an occurrence whose first or last
+UTF-16 code unit is half of a pair is not a hit.
 
 *The binding.* A hit mints an `utterance-span` binding (PV-2): `offset` and `length` in UTF-16 code units of the utterance,
 and `hash` = SHA-256 as 64 lowercase hexadecimal characters over the UTF-8 bytes of the **utterance's own substring** at
@@ -229,7 +235,8 @@ fold table vendored here and pinned to a Unicode release is the `v0.2` option if
 beyond ASCII. *Checked by:* `gate/inference-conversation-and-inferred`,
 `gate/inference-presence-computed-from-the-utterance`, `gate/inference-port-literal-unconfirmed`,
 `gate/inference-port-span-fails-the-boundary`, `gate/inference-case-folds-and-the-digest-is-the-utterances`,
-`sequence-a/picker-external-binding`, `sequence-a/late-amendments-preserved`; `suite: gate types (type-level:
+`gate/inference-empty-value-is-nothing-reported`, `sequence-a/picker-external-binding`,
+`sequence-a/late-amendments-preserved`; `suite: gate types (type-level:
 mintInference cannot name UserStated)`. *Source:*
 [`Sakwala/affiant#123`](https://github.com/Sakwala/affiant/issues/123); `Sakwala/affiant`
 `src/Affiant.Core/Filters/TaskInferenceStep.cs` at `v1.0.0-beta.3`, which grades `Conversation` only where the port's
@@ -716,13 +723,17 @@ to exist is corrected here, never invented on the wire. *Checked by:* `suite: te
   with no utterance in hand keeps the port's report. The fold is ASCII-only, so the two implementations fold alike
   without depending on a runtime's Unicode data, which no two of them share; the neighbour test covers letters, marks,
   decimal digits and connector punctuation, a number's value text is SR-1's canonical rendering rather than the port's
-  raw token, and a port-supplied span verifies only where it is itself a hit. `conformance/RUNNER.md` and
+  raw token, a port-supplied span verifies only where it is itself a hit and carries integer-valued coordinates, no hit
+  begins or ends inside a surrogate pair, and a `value` that is `null`, an object, an array, the empty string or a
+  non-finite number is nothing reported at all — the field is not merged and stays `Empty`. `conformance/RUNNER.md` and
   `conformance/fixture.schema.json` make both hints optional; `conformance/lint/lint.mjs` runs the finder over every
   fixture's own utterance and checks the expectations of every proposed inferred field against it — grade, `bound`, and
-  the span where one is pinned; and four fixtures authored here rather than promoted —
+  the span where one is pinned; and five fixtures authored here rather than promoted. Four —
   `gate/inference-presence-computed-from-the-utterance`, `gate/inference-port-literal-unconfirmed`,
   `gate/inference-port-span-fails-the-boundary` and `gate/inference-case-folds-and-the-digest-is-the-utterances` — are
-  the amendment's negative oracle against `1.0.0-beta.3` (`conformance/ORACLE.md`). What changed beyond the rule: the
+  the amendment's negative oracle against `1.0.0-beta.3` (`conformance/ORACLE.md`); the fifth,
+  `gate/inference-empty-value-is-nothing-reported`, pins the value a field cannot carry and is on no oracle list,
+  because that release already skips a port's empty value and passes it. What changed beyond the rule: the
   fixture schema, twice — `presence` left `inferredField.required`, and `fieldMatcher` gained an optional
   `utteranceSpan` so a fixture can pin a binding's offset, length and digest, which nothing in the suite could state
   before; and one existing fixture, `sequence-a/picker-external-binding`, whose port scripted `presence: "literal"` with
