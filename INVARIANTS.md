@@ -33,8 +33,8 @@ where a rule below *corrects* the shipped behaviour, the example still shows the
 (`wire/evidence-card-request` reports `aggregateConfidence` 0.95, the mean, where AF-2 requires the minimum, 0.9). A `wire/`
 citation means "this rule constrains this shape"; only a conformance fixture id means "this rule is checked here". A fixture
 whose rule a known defective release violates is accepted into `conformance/` only through the **negative oracle**: it must
-*fail* against that release (for v0.1, `Sakwala/affiant` `1.0.0-beta.1`; the fixtures that must fail on it, and the
-shipped defect each refutes, are listed in `conformance/ORACLE.md`)
+*fail* against that release (for v0.1, `Sakwala/affiant` `1.0.0-beta.1`; for the PV-3 amendment at v0.1.3, `1.0.0-beta.3`;
+the fixtures that must fail on each, and the shipped defect each refutes, are listed in `conformance/ORACLE.md`)
 before it is accepted — a fixture a broken implementation passes is not a test. A fixture no known release violates (the
 canonical vectors, the relay sequences) is accepted on review and named as such in the manifest.
 
@@ -175,13 +175,44 @@ follows the staging above and becomes MUST at v0.2). Two obligations are MUST fr
 `canonical/wire-evidence-card-request-amended`. *Constrains:*
 `wire/evidence-card-request` (tag shape today, no `binding` field).
 
-### PV-3 — An implementation's own inference never mints `UserStated` *(v0.1)*
-**MUST.** The inference step mints `Conversation` (the value is literally present in the utterance; with an `utterance-span`
-binding when the inference port supplies offsets) or `Inferred`; it cannot mint `UserStated`, `External` or `Computed`.
+### PV-3 — An implementation's own inference never mints `UserStated`, and it establishes presence from the utterance *(v0.1)*
+**MUST.** The inference step mints `Conversation` or `Inferred`; it cannot mint `UserStated`, `External` or `Computed`.
 `UserStated` is an observation of the person's act — an utterance span, a form input, a reviewer's amendment or prefill —
 never the host vouching for a value. An implementation MUST make this structural (the inference path has no way to name the
-source), not a convention. *Checked by:* `gate/inference-conversation-and-inferred`, `sequence-a/picker-external-binding`,
-`sequence-a/late-amendments-preserved`; `suite: gate types (type-level: mintInference cannot name UserStated)`.
+source), not a convention.
+
+**Which of the two (v0.1.3).** `Conversation` means the value is literally present in the utterance, and that is a property
+of two strings rather than an opinion the model holds about its own answer. The **implementation** establishes it, from the
+unmodified utterance. The inference port's `presence` and `utteranceSpan` are **hints**: a port that reported `literal` for
+a value the finder below cannot find mints `Inferred`; a port that reported `inferred`, or nothing at all, for a value the
+finder does find mints `Conversation`. A port's claim is never honoured unverified.
+
+*The finder.* The **value text** is the text the span digest is taken over: the string itself, or the raw JSON token for a
+number or a boolean. A **hit** is an occurrence of the value text in the utterance under an ordinal, case-insensitive
+comparison (invariant culture) whose neighbouring characters are absent or are neither letters nor digits (Unicode
+categories L\* and Nd). The **utterance** is the current turn's user text, unmodified; earlier turns are not searched. An
+empty or whitespace-only value text never hits. The first hit wins, unless the port supplied a span that verifies — a span
+verifies when the utterance's substring at that span equals the value text under the same comparison — in which case that
+span is the hit.
+
+*The binding.* A hit mints an `utterance-span` binding (PV-2): `offset` and `length` in UTF-16 code units of the utterance,
+and `hash` = SHA-256 as 64 lowercase hexadecimal characters over the UTF-8 bytes of the **utterance's own substring** at
+that span, which is what was there when the value was read. No hit, no binding.
+
+*No utterance in hand.* An implementation whose caller supplies no utterance has nothing to establish presence from; there,
+and only there, the port's report stands as given.
+
+*Why:* both reference implementations had implemented a proxy for the rule's condition — "the port said so" — and no
+shipped inference port asked the model for `presence`, so every value a person typed was sworn "AI suggested". A condition
+stated over two strings is one two implementations can apply identically from the same fixture; a model's judgement about
+its own literalness is not. The cost is on the record: a short value can occur in the utterance for an unrelated reason and
+is graded `Conversation` with a binding that points at the place the text was found, which is the rule's own consequence
+and is auditable; a paraphrase is `Inferred`. *Checked by:* `gate/inference-conversation-and-inferred`,
+`gate/inference-presence-computed-from-the-utterance`, `gate/inference-port-literal-unconfirmed`,
+`sequence-a/picker-external-binding`, `sequence-a/late-amendments-preserved`; `suite: gate types (type-level:
+mintInference cannot name UserStated)`. *Source:* [`Sakwala/affiant#123`](https://github.com/Sakwala/affiant/issues/123);
+`Sakwala/affiant` `src/Affiant.Core/Filters/TaskInferenceStep.cs` at `v1.0.0-beta.3`, which grades `Conversation` only
+where the port's JSON says `presence: "literal"`.
 
 ### PV-4 — A verdict with no person present never depends on an unbound tag above `Conversation` *(v0.1)*
 **MUST.** A policy declares the provenance sources it predicates on. Before honouring a `StandingOrder` verdict the gate
@@ -652,3 +683,17 @@ to exist is corrected here, never invented on the wire. *Checked by:* `suite: te
   record on a card. It is corrected, and the two declarative fixtures that pinned a hash produced by that path —
   `sequence-a/approve-round-trip` and `decide/amend-recompute` — are re-promoted from the corrected reference. Those two
   hashes are the only values that moved: no schema, no wire, no vector and no other fixture changed.
+- 2026-09-08 — **v0.1.3**: PV-3 states who establishes presence. Its parenthetical said `Conversation` means "the value is
+  literally present in the utterance; with an `utterance-span` binding when the inference port supplies offsets", which left
+  the grade in the port's hands — and no shipped inference port asks a model for `presence` at all, so every value a person
+  typed was graded `Inferred` and shown as "AI suggested" ([`Sakwala/affiant#123`](https://github.com/Sakwala/affiant/issues/123)).
+  The rule now states the condition itself: the implementation finds the value text in the unmodified utterance under an
+  ordinal, case-insensitive comparison with non-alphanumeric neighbours, grades `Conversation` on a hit and `Inferred`
+  otherwise, and binds a hit to `{ offset, length, hash }` over the utterance's own substring; the port's `presence` and
+  `utteranceSpan` become hints verified the same way, and a caller with no utterance in hand keeps the port's report.
+  `conformance/RUNNER.md` and `conformance/fixture.schema.json` make both hints optional; `conformance/lint/lint.mjs`
+  refuses a fixture whose scripted hint contradicts the finder over its own utterance without pinning the grade the finder
+  gives; and two fixtures authored here rather than promoted —
+  `gate/inference-presence-computed-from-the-utterance` and `gate/inference-port-literal-unconfirmed` — are the amendment's
+  negative oracle against `1.0.0-beta.3` (`conformance/ORACLE.md`). No schema, no wire, no vector and no existing fixture
+  changed: every scripted `literal` in the suite already hits its own utterance and every scripted `inferred` already misses.

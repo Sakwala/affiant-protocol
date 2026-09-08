@@ -381,6 +381,12 @@ if (!existsSync(enumsFile)) {
 //                            key is allowed to be a projection with no property of
 //                            its own. A TYPE mismatch is a failure, because that is
 //                            the fixtures and the schemas disagreeing about a shape.
+//   (f) checkInferencePresence  every scripted `presence` / `utteranceSpan` hint against
+//                            PV-3's finder run over the fixture's OWN utterance. A hint
+//                            that contradicts the text is legal only where the fixture
+//                            pins the grade the finder gives, so no fixture can pass by
+//                            a port's claim beating the utterance.
+//
 // ---------------------------------------------------------------------------
 
 /** The label a rule's fixture citations follow in INVARIANTS.md. */
@@ -442,6 +448,7 @@ if (!conformance || !Array.isArray(conformance.fixtures)) {
   checkOracle(conformance);
   checkRuleCoverage(conformance);
   checkMatcherShapes(conformance);
+  checkInferencePresence(conformance);
   checkPublished(conformance);
 }
 
@@ -902,6 +909,183 @@ function checkRuleCoverage(section) {
   }
   console.log(
     `OK    coverage: ${covered} of ${rules.length} rule(s) checked by a promoted fixture, ${excused} exempt by name`,
+  );
+}
+
+// --- (f) the scripted presence hints against PV-3's finder ------------------
+
+/**
+ * PV-3's finder, verbatim, in the one place this repository can run it.
+ *
+ * The value text is the string itself, or the raw JSON token for a number or a boolean.
+ * A hit is an occurrence of the value text in the utterance under an ordinal,
+ * case-insensitive comparison whose neighbouring characters are absent or are neither
+ * letters nor digits. An empty or whitespace-only value text never hits.
+ *
+ * One limitation, stated because it is the lint's and not the rule's: a fixture is JSON,
+ * so a number reaches here already parsed and its "raw JSON token" is reconstructed as
+ * the shortest positional form. A fixture that wrote `6.0` where its utterance says `6`
+ * would be read here as `6`. No fixture does, and an implementation reading the port's
+ * own JSON sees the token the port wrote.
+ */
+function isLetterOrDigit(character) {
+  return character !== undefined && /^[\p{L}\p{Nd}]$/u.test(character);
+}
+
+/** The whole code point ending at `end`, or beginning at `start` — never half a surrogate pair. */
+function codePointBefore(text, end) {
+  if (end <= 0) return undefined;
+  const one = text.slice(end - 1, end);
+  if (end >= 2 && /[\uDC00-\uDFFF]/.test(one) && /[\uD800-\uDBFF]/.test(text.slice(end - 2, end - 1))) {
+    return text.slice(end - 2, end);
+  }
+  return one;
+}
+
+function codePointAt(text, start) {
+  if (start >= text.length) return undefined;
+  const point = text.codePointAt(start);
+  return String.fromCodePoint(point);
+}
+
+function valueTextOf(value) {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return JSON.stringify(value);
+  return null;
+}
+
+function finderHits(utterance, valueText) {
+  const hits = [];
+  if (valueText.trim() === '') return hits;
+  const haystack = utterance.toLowerCase();
+  const needle = valueText.toLowerCase();
+  for (let at = haystack.indexOf(needle); at >= 0; at = haystack.indexOf(needle, at + 1)) {
+    const before = codePointBefore(utterance, at);
+    const after = codePointAt(utterance, at + valueText.length);
+    if (!isLetterOrDigit(before) && !isLetterOrDigit(after)) hits.push(at);
+  }
+  return hits;
+}
+
+/** Whether a port-supplied span verifies: the utterance at that span IS the value text (D1/PV-3). */
+function spanVerifies(utterance, span, valueText) {
+  if (span === null || typeof span !== 'object') return false;
+  const { start, end } = span;
+  if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || end > utterance.length || end < start) {
+    return false;
+  }
+  return utterance.slice(start, end).toLowerCase() === valueText.toLowerCase();
+}
+
+/** The source a fixture's expectations pin for one field, or null where they pin none. */
+function expectedSourceOf(document, fieldName) {
+  const expectation = document.expect ?? {};
+  const lists = [];
+  for (const which of ['entry', 'superseded']) {
+    const row = expectation[which];
+    if (row === null || row === undefined) continue;
+    for (const affidavit of ['affidavit', 'amendedAffidavit']) {
+      const fields = row[affidavit]?.fields;
+      if (Array.isArray(fields)) lists.push(fields);
+    }
+  }
+  const cardFields = expectation.card?.fields;
+  if (Array.isArray(cardFields)) lists.push(cardFields);
+  for (const fields of lists) {
+    for (const field of fields) {
+      if (field?.name === fieldName && typeof field.source === 'string') return field.source;
+    }
+  }
+  return null;
+}
+
+/**
+ * (f) Every scripted inference hint against the finder, over the fixture's own utterance.
+ *
+ * PV-3 at v0.1.3 puts presence in the implementation's hands: it finds the value text in
+ * the unmodified utterance and grades `Conversation` on a hit, `Inferred` otherwise. A
+ * fixture's `presence` and `utteranceSpan` are the PORT's report, and the implementation
+ * verifies them the same way — so a fixture that scripts `literal` for a value its own
+ * utterance does not carry is scripting a claim the rule says is not honoured.
+ *
+ * That is legal, and one fixture does it on purpose: `gate/inference-port-literal-unconfirmed`
+ * exists to prove the claim loses. What is NOT legal is scripting such a claim without
+ * saying which grade must come out, because then the document passes whether the
+ * implementation honours the port or the text — the one thing this amendment is about.
+ * So a contradiction is refused unless the fixture pins that field's `source` to the
+ * grade the finder gives.
+ *
+ * A fixture with no `given.ctx.utterance` is the rule's own no-utterance path: there is
+ * nothing to establish presence from, the port's report stands, and there is nothing here
+ * to check.
+ */
+function checkInferencePresence(section) {
+  let checkedHints = 0;
+  let deliberate = 0;
+  let noUtterance = 0;
+
+  for (const entry of section.fixtures) {
+    if (entry.set === 'canonical') continue;
+    const document = readPromoted(entry);
+    if (document === null) continue;
+    const scripted = document.given?.gate?.inference;
+    if (scripted === null || scripted === undefined || typeof scripted !== 'object') continue;
+    const utterance = document.given?.ctx?.utterance;
+
+    for (const [name, field] of Object.entries(scripted)) {
+      if (field === null || typeof field !== 'object') continue;
+      const hasPresence = field.presence !== undefined && field.presence !== null;
+      const hasSpan = field.utteranceSpan !== undefined && field.utteranceSpan !== null;
+      if (!hasPresence && !hasSpan) continue;
+
+      if (typeof utterance !== 'string') {
+        noUtterance += 1;
+        continue;
+      }
+
+      const valueText = valueTextOf(field.value);
+      if (valueText === null) {
+        fail(`${entry.id}: field ${name} scripts a presence hint on a value an Affidavit field cannot carry`);
+        continue;
+      }
+
+      checkedHints += 1;
+      const verified = spanVerifies(utterance, field.utteranceSpan ?? null, valueText);
+      const found = verified || finderHits(utterance, valueText).length > 0;
+      const finderGrade = found ? 'Conversation' : 'Inferred';
+
+      const claim =
+        field.presence === 'literal' ? 'Conversation'
+        : field.presence === 'inferred' ? 'Inferred'
+        : hasSpan ? 'Conversation'
+        : null;
+      const spanContradicts = hasSpan && !verified;
+      if ((claim === null || claim === finderGrade) && !spanContradicts) continue;
+
+      const why =
+        spanContradicts
+          ? `the span it supplies covers ${JSON.stringify(utterance.slice(field.utteranceSpan.start, field.utteranceSpan.end))}, not ${JSON.stringify(valueText)}`
+          : `it reports ${JSON.stringify(field.presence)} where the finder grades ${finderGrade} over ${JSON.stringify(utterance)}`;
+
+      const expected = expectedSourceOf(document, name);
+      if (expected === finderGrade) {
+        deliberate += 1;
+        console.log(`      ${entry.id}: field ${name} — ${why}; the fixture pins ${finderGrade}, so the claim loses (PV-3)`);
+        continue;
+      }
+      console.log(`FAIL  ${entry.id}: field ${name} — ${why}`);
+      fail(
+        `${entry.id}: field ${name} scripts a port hint its own utterance contradicts — ${why} — and does not pin ` +
+          `that field's source to ${finderGrade}. PV-3 verifies the port's claim against the utterance, so a fixture ` +
+          `that states the claim without stating the grade passes whether an implementation honours the port or the text.`,
+      );
+    }
+  }
+
+  console.log(
+    `OK    presence: ${checkedHints} scripted hint(s) checked against PV-3's finder over their own utterance` +
+      (deliberate === 0 ? '' : `, ${deliberate} of them a deliberate contradiction with the grade pinned`) +
+      (noUtterance === 0 ? '' : `, ${noUtterance} on a fixture with no utterance (the port's report stands)`),
   );
 }
 

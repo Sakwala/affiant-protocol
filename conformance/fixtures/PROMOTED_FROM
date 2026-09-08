@@ -1,6 +1,7 @@
-The 56 declarative fixtures under gate/, decide/, sequence-a/ and sequence-c/ and the
-seven canonical byte vectors under canonical/ were promoted — copied unchanged in id,
-file name and content — from the TypeScript reference implementation.
+Fifty-six of the 58 declarative fixtures under gate/, decide/, sequence-a/ and sequence-c/,
+and all seven canonical byte vectors under canonical/, were promoted — copied unchanged in
+id, file name and content — from the TypeScript reference implementation. The other two were
+authored here; the section "Authored here, not promoted" below says which and why.
 
   repository  Sakwala/affiant-ts   https://github.com/Sakwala/affiant-ts
   commit      aa485f2946e4678a357544e0a115dc88536cca44
@@ -59,6 +60,25 @@ set of bytes says nothing about another. Every run published under conformance/r
 on its own record the ref it was produced against, which is how a reader tells which set of
 bytes a given claim is about.
 
+Authored here, not promoted (v0.1.3):
+
+  gate/18-inference-presence-computed-from-the-utterance.json
+  gate/19-inference-port-literal-unconfirmed.json
+
+PV-3 at v0.1.3 states that an implementation establishes presence from the unmodified
+utterance itself, and that the inference port's `presence` and `utteranceSpan` are hints it
+verifies the same way. Neither implementation did that when the rule was amended — the .NET
+step graded `Conversation` only where the port's JSON said `presence: "literal"`, and no
+shipped inference port asks a model for `presence` at all — so there was no reference
+behaviour to promote. These two are the amendment's negative oracle instead: both must fail
+against Sakwala/affiant 1.0.0-beta.3, and conformance/ORACLE.md says why each does.
+
+A fixture authored here is held to the same bar as a promoted one: it is listed in
+MANIFEST.json, validated against conformance/fixture.schema.json by the lint, named on the
+rule it checks, and cited back from that rule's *Checked by* line. What it cannot claim is
+the thing promotion buys — that a working implementation is green against these exact bytes
+— which is why the oracle rows matter more here, not less.
+
 Byte-identical, and deliberately so. A parity manifest cites a fixture by its id, so a
 rename silently changes what a published document refers to; and a fixture edited on
 the way in would no longer be the document the reference implementation is green
@@ -77,3 +97,5 @@ To verify the promotion, from a checkout of both repositories:
   diff -r <affiant-ts>/packages/core/test/fixtures/sequence-a conformance/fixtures/sequence-a
   diff -r <affiant-ts>/packages/core/test/fixtures/sequence-c conformance/fixtures/sequence-c
   diff -r <affiant-ts>/packages/core/test/fixtures/canonical  conformance/fixtures/canonical
+
+The gate/ diff reports the two files authored here as extra; every other file is identical.

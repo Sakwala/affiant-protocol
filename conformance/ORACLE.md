@@ -1,8 +1,9 @@
-# The negative oracle — fixtures that must fail on `Sakwala/affiant` `1.0.0-beta.1`
+# The negative oracle — fixtures that must fail on a release known to be broken
 
 A fixture whose rule a known defective release violates is accepted into `conformance/` only if it **fails** against that
 release (`INVARIANTS.md`, preamble). For v0.1 the release is the shipped .NET packages at `1.0.0-beta.1` (2026-08-23), whose
-defects are known. This file lists every fixture that must fail on it, the rule it checks, and the shipped defect it
+defects are known; for the PV-3 amendment at `v0.1.3` it is `1.0.0-beta.3` (2026-09-05), and that list is the second table
+below. This file lists every fixture that must fail on it, the rule it checks, and the shipped defect it
 refutes. A listed fixture that *passes* on beta.1 is either mis-authored or the defect is not what was recorded — it is
 investigated and this list or the fixture is corrected before the `v0.1.0` tag. Fixtures not listed here MAY pass or fail
 on beta.1; the parity manifest records which.
@@ -71,6 +72,29 @@ by the implementation's own tests instead (`RiskConfigurationTests` in `Affiant.
 
 A rule this repository cannot reach with a fixture is a gap in the suite, not a rule to drop. When a fixture format that
 can express a host-supplied policy type exists, this becomes a row in the table above.
+
+## The defect at `1.0.0-beta.3` — presence taken from the port's claim
+
+`v0.1.3` amends PV-3: the value is literally present in the utterance is a property of two strings, so the
+**implementation** establishes it from the unmodified utterance and the port's `presence` and `utteranceSpan` are hints it
+verifies the same way. The two fixtures the amendment arrives with are its negative oracle against
+`Sakwala/affiant` `1.0.0-beta.3` (the release deployed to the demo hosts on 2026-09-06).
+
+| Shipped defect (as recorded in the framework's own issues and reviews) | Rule | Fixtures that must fail on beta.3 |
+|---|---|---|
+| Presence is taken from the inference port's `presence` property alone, and no shipped port reports it: every value a person typed is graded `Inferred` and carries no binding | PV-3 | `gate/inference-presence-computed-from-the-utterance` |
+| A port's `presence: "literal"` is honoured unverified: a value that is not in the utterance is graded `Conversation` and bound to the span the port named | PV-3 | `gate/inference-port-literal-unconfirmed` |
+
+Both rows are read off the release's own source. `src/Affiant.Core/Filters/TaskInferenceStep.cs` at the tag
+`v1.0.0-beta.3` grades a field `Conversation` when, and only when, the port's JSON carries `presence` equal to `literal`,
+and `Inferred` otherwise; its `UtteranceSpanOf` mints an `utterance-span` binding from whatever `start` and `end` the port
+named, digesting the value the port reported rather than the utterance's own substring, and mints none when the port names
+no span. So the first fixture — a port that reports value and confidence only, for values that are in the utterance —
+reads `Inferred` and unbound on that release where the fixture expects `Conversation` and bound; and the second — a port
+that reports `literal` with a span for a value that is not in the utterance — reads `Conversation` and bound where the
+fixture expects `Inferred` and unbound. Neither is a claim about a run: the run that turns them into evidence is the .NET
+driver's at [Sakwala/affiant#123](https://github.com/Sakwala/affiant/issues/123), published under `results/` with the
+release that closes it.
 
 ## The run
 
