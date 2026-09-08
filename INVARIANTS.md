@@ -189,20 +189,23 @@ finder does find mints `Conversation`. A port's claim is never honoured unverifi
 
 *The finder.* The **value text** is the text the span digest is taken over. For a string it is the string itself; for a
 number it is SR-1's canonical rendering of that number (shortest round-trip decimal, always positional, `-0` written as
-`0`); for a boolean it is `true` or `false`. `null`, objects and arrays have no value text and never hit. A **hit** is an
-occurrence of the value text in the utterance under a **case-insensitive ordinal comparison**: two code points match when
-they are equal, or when their *simple* uppercase mappings — `UnicodeData.txt`'s single-code-point mapping — are equal.
-Full case mappings (`SpecialCasing.txt`: ß→SS, ﬁ→FI, İ→i̇) are not applied, no culture is consulted, nothing is normalised
-and no code point is ignorable, so a fold never changes a string's length and the comparison runs code point by code
-point. This is what .NET's `StringComparison.OrdinalIgnoreCase` does; in JavaScript it is `toUpperCase()` applied per code
-point, keeping the original code point wherever the result is not a single code point. The **neighbours** of an occurrence
-are the whole code points immediately before and after it in the utterance — a surrogate pair is one code point — and an
-occurrence is a hit only where each neighbour is absent or is none of a letter (`L*`), a mark (`M*`), a decimal digit
-(`Nd`) or connector punctuation (`Pc`). The **utterance** is the current turn's user text, unmodified; earlier turns are
-not searched. An empty or whitespace-only value text never hits. The first hit wins, unless the port supplied a span that
+`0`); for a boolean it is `true` or `false`. `null`, objects and arrays have no value text and never hit. A **hit** is
+an occurrence of the value text in the utterance under an **ordinal comparison that folds ASCII case and nothing else**:
+two code points match when they are equal, or when both are ASCII letters (`A`–`Z` against `a`–`z`) that differ only in
+case. Every other code point compares exactly — no culture, no normalisation, nothing ignorable, and no case mapping
+read from any runtime's Unicode data — so a case variant outside ASCII does not hit (a typed `Критический` is not found
+by a port's `критический`, which is `Inferred`), while an exact echo in any script is. The **neighbours** of an
+occurrence are the whole code points immediately before and after it in the utterance — a surrogate pair is one code
+point — and an occurrence is a hit only where each neighbour is absent or is none of a letter (`L*`), a mark (`M*`), a
+decimal digit (`Nd`) or connector punctuation (`Pc`). Those categories are read from the implementation's own Unicode
+database, and a code point that database leaves unassigned is a boundary. Two runtimes at two Unicode versions can
+therefore differ on code points assigned since the older one, which is a limit of this rule and not a licence to
+normalise; each implementation's parity manifest states the version its runtime carried (`conformance/PARITY.md`,
+`runtimes[].unicodeVersion`). The **utterance** is the current turn's user text, unmodified; earlier turns are not
+searched. An empty or whitespace-only value text never hits. The first hit wins, unless the port supplied a span that
 verifies. A span **verifies only when it is itself a hit**: the utterance's substring at that span equals the value text
-under this comparison *and* the span's own neighbours pass the test above. A span that verifies is the hit; one that does
-not is discarded, and the finder runs from the start of the utterance as if the port had named none.
+under this comparison *and* the span's own neighbours pass the test above. A span that verifies is the hit; one that
+does not is discarded, and the finder runs from the start of the utterance as if the port had named none.
 
 *The binding.* A hit mints an `utterance-span` binding (PV-2): `offset` and `length` in UTF-16 code units of the utterance,
 and `hash` = SHA-256 as 64 lowercase hexadecimal characters over the UTF-8 bytes of the **utterance's own substring** at
@@ -214,17 +217,23 @@ whitespace-only utterance **is** an utterance: nothing hits in it, a port's `lit
 field the port inferred is `Inferred`. An implementation guards on absence, never on emptiness.
 
 *Why:* both reference implementations had implemented a proxy for the rule's condition — "the port said so" — and no
-shipped inference port asked the model for `presence`, so every value a person typed was sworn "AI suggested". A condition
-stated over two strings is one two implementations can apply identically from the same fixture; a model's judgement about
-its own literalness is not. The cost is on the record: a short value can occur in the utterance for an unrelated reason and
-is graded `Conversation` with a binding that points at the place the text was found, which is the rule's own consequence
-and is auditable; a paraphrase is `Inferred`. *Checked by:* `gate/inference-conversation-and-inferred`,
+shipped inference port asked the model for `presence`, so every value a person typed was sworn "AI suggested". A
+condition stated over two strings is one two implementations can apply identically from the same fixture; a model's
+judgement about its own literalness is not. The cost is on the record: a short value can occur in the utterance for an
+unrelated reason and is graded `Conversation` with a binding that points at the place the text was found, which is the
+rule's own consequence and is auditable; a paraphrase is `Inferred`. The fold stops at ASCII because no runtime's own
+case mapping is a single function to state the rule in: .NET 10, Node 24 and `UnicodeData.txt` disagree over U+0131 and
+over 28 Greek code points with ypogegrammeni, and two runtimes ship two Unicode versions, so a rule written in terms of
+any of them would have the implementations implement different functions — the divergence this rule exists to close. A
+fold table vendored here and pinned to a Unicode release is the `v0.2` option if an adopter needs case-insensitivity
+beyond ASCII. *Checked by:* `gate/inference-conversation-and-inferred`,
 `gate/inference-presence-computed-from-the-utterance`, `gate/inference-port-literal-unconfirmed`,
 `gate/inference-port-span-fails-the-boundary`, `gate/inference-case-folds-and-the-digest-is-the-utterances`,
 `sequence-a/picker-external-binding`, `sequence-a/late-amendments-preserved`; `suite: gate types (type-level:
-mintInference cannot name UserStated)`. *Source:* [`Sakwala/affiant#123`](https://github.com/Sakwala/affiant/issues/123);
-`Sakwala/affiant` `src/Affiant.Core/Filters/TaskInferenceStep.cs` at `v1.0.0-beta.3`, which grades `Conversation` only
-where the port's JSON says `presence: "literal"`.
+mintInference cannot name UserStated)`. *Source:*
+[`Sakwala/affiant#123`](https://github.com/Sakwala/affiant/issues/123); `Sakwala/affiant`
+`src/Affiant.Core/Filters/TaskInferenceStep.cs` at `v1.0.0-beta.3`, which grades `Conversation` only where the port's
+JSON says `presence: "literal"`.
 
 ### PV-4 — A verdict with no person present never depends on an unbound tag above `Conversation` *(v0.1)*
 **MUST.** A policy declares the provenance sources it predicates on. Before honouring a `StandingOrder` verdict the gate
@@ -695,24 +704,29 @@ to exist is corrected here, never invented on the wire. *Checked by:* `suite: te
   record on a card. It is corrected, and the two declarative fixtures that pinned a hash produced by that path —
   `sequence-a/approve-round-trip` and `decide/amend-recompute` — are re-promoted from the corrected reference. Those two
   hashes are the only values that moved: no schema, no wire, no vector and no other fixture changed.
-- 2026-09-08 — **v0.1.3**: PV-3 states who establishes presence. Its parenthetical said `Conversation` means "the value is
-  literally present in the utterance; with an `utterance-span` binding when the inference port supplies offsets", which left
-  the grade in the port's hands — and no shipped inference port asks a model for `presence` at all, so every value a person
-  typed was graded `Inferred` and shown as "AI suggested" ([`Sakwala/affiant#123`](https://github.com/Sakwala/affiant/issues/123)).
-  The rule now states the condition itself: the implementation finds the value text in the unmodified utterance under an
-  ordinal, case-insensitive comparison with non-alphanumeric neighbours, grades `Conversation` on a hit and `Inferred`
-  otherwise, and binds a hit to `{ offset, length, hash }` over the utterance's own substring; the port's `presence` and
-  `utteranceSpan` become hints verified the same way, and a caller with no utterance in hand keeps the port's report.
-  The comparison is pinned to simple uppercase mappings so the two implementations fold alike, the neighbour test covers
-  letters, marks, decimal digits and connector punctuation, a number's value text is SR-1's canonical rendering rather than
-  the port's raw token, and a port-supplied span verifies only where it is itself a hit.
-  `conformance/RUNNER.md` and `conformance/fixture.schema.json` make both hints optional; `conformance/lint/lint.mjs`
-  runs the finder over every fixture's own utterance and checks the expectations of every proposed inferred field against
-  it — grade, `bound`, and the span where one is pinned; and four fixtures authored here rather than promoted —
+- 2026-09-08 — **v0.1.3**: PV-3 states who establishes presence. Its parenthetical said `Conversation` means "the value
+  is literally present in the utterance; with an `utterance-span` binding when the inference port supplies offsets",
+  which left the grade in the port's hands — and no shipped inference port asks a model for `presence` at all, so every
+  value a person typed was graded `Inferred` and shown as "AI suggested"
+  ([`Sakwala/affiant#123`](https://github.com/Sakwala/affiant/issues/123)). The rule now states the condition itself:
+  the implementation finds the value text in the unmodified utterance under an ordinal comparison that folds ASCII case
+  and nothing else, bounded by neighbours that are none of a letter, a mark, a decimal digit or connector punctuation,
+  grades `Conversation` on a hit and `Inferred` otherwise, and binds a hit to `{ offset, length, hash }` over the
+  utterance's own substring; the port's `presence` and `utteranceSpan` become hints verified the same way, and a caller
+  with no utterance in hand keeps the port's report. The fold is ASCII-only, so the two implementations fold alike
+  without depending on a runtime's Unicode data, which no two of them share; the neighbour test covers letters, marks,
+  decimal digits and connector punctuation, a number's value text is SR-1's canonical rendering rather than the port's
+  raw token, and a port-supplied span verifies only where it is itself a hit. `conformance/RUNNER.md` and
+  `conformance/fixture.schema.json` make both hints optional; `conformance/lint/lint.mjs` runs the finder over every
+  fixture's own utterance and checks the expectations of every proposed inferred field against it — grade, `bound`, and
+  the span where one is pinned; and four fixtures authored here rather than promoted —
   `gate/inference-presence-computed-from-the-utterance`, `gate/inference-port-literal-unconfirmed`,
-  `gate/inference-port-span-fails-the-boundary` and `gate/inference-case-folds-and-the-digest-is-the-utterances` — are the
-  amendment's negative oracle against `1.0.0-beta.3` (`conformance/ORACLE.md`). What changed beyond the rule: the fixture
-  schema, twice — `presence` left `inferredField.required`, and `fieldMatcher` gained an optional `utteranceSpan` so a
-  fixture can pin a binding's offset, length and digest, which nothing in the suite could state before; and one existing
-  fixture, `sequence-a/picker-external-binding`, whose port scripted `presence: "literal"` with no span for a value the
-  finder now finds, so its `status` is bound to the span it was read from. No wire shape and no canonical vector changed.
+  `gate/inference-port-span-fails-the-boundary` and `gate/inference-case-folds-and-the-digest-is-the-utterances` — are
+  the amendment's negative oracle against `1.0.0-beta.3` (`conformance/ORACLE.md`). What changed beyond the rule: the
+  fixture schema, twice — `presence` left `inferredField.required`, and `fieldMatcher` gained an optional
+  `utteranceSpan` so a fixture can pin a binding's offset, length and digest, which nothing in the suite could state
+  before; and one existing fixture, `sequence-a/picker-external-binding`, whose port scripted `presence: "literal"` with
+  no span for a value the finder now finds, so its `status` is bound to the span it was read from; and the parity
+  manifest's `runtimes[]` gained an optional `unicodeVersion`, because the neighbour test reads its categories from a
+  runtime's own Unicode database and two runtimes need not carry the same one. No wire shape and no canonical vector
+  changed.

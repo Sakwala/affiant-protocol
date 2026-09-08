@@ -82,37 +82,55 @@ can express a host-supplied policy type exists, this becomes a row in the table 
 
 `v0.1.3` amends PV-3: the value is literally present in the utterance is a property of two strings, so the
 **implementation** establishes it from the unmodified utterance and the port's `presence` and `utteranceSpan` are hints it
-verifies the same way. The two fixtures the amendment arrives with are its negative oracle against
-`Sakwala/affiant` `1.0.0-beta.3` (the release deployed to the demo hosts on 2026-09-06).
+verifies the same way. The five fixtures the table below lists — the four the amendment arrives with and the one it
+amends — are its negative oracle against `Sakwala/affiant` `1.0.0-beta.3` (the release deployed to the demo hosts on
+2026-09-06).
 
 | Shipped defect (as recorded in the framework's own issues and reviews) | Rule | Fixtures that must fail on beta.3 |
 |---|---|---|
-| Presence is taken from the inference port's `presence` property alone, and no shipped port reports it: every value a person typed is graded `Inferred` and carries no binding | PV-3 | `gate/inference-presence-computed-from-the-utterance`, `gate/inference-case-folds-and-the-digest-is-the-utterances` |
+| Presence is taken from the inference port's `presence` property alone, and no shipped port reports it: every value a person typed is graded `Inferred` and carries no binding — and on the shipped packages neither of these two reaches the gate at all, because the beta.3 fixture loader reads `presence` as required where `v0.1.3` makes it optional and throws without it, so each is an `error` outcome; a probe that scripts `presence: "inferred"` into them, which is beta.3's own spelling of a port that claimed nothing, shows the recorded grading defect underneath | PV-3 | `gate/inference-presence-computed-from-the-utterance`, `gate/inference-case-folds-and-the-digest-is-the-utterances` |
 | A port's `presence: "literal"` is honoured unverified: a value that is not in the utterance is graded `Conversation` and bound to the span the port named | PV-3 | `gate/inference-port-literal-unconfirmed` |
 | A binding is minted only where the port named a span, and from the span the port named: a value the person typed carries no binding when the port reported none, and a span naming text inside a longer token is minted as given | PV-2, PV-3 | `sequence-a/picker-external-binding`, `gate/inference-port-span-fails-the-boundary` |
 
 Every row is read off the release's own source. `src/Affiant.Core/Filters/TaskInferenceStep.cs` at the tag
-`v1.0.0-beta.3` grades a field `Conversation` when, and only when, the port's JSON carries `presence` equal to `literal`,
-and `Inferred` otherwise; its `UtteranceSpanOf` mints an `utterance-span` binding from whatever `start` and `end` the port
-named, digesting the value the port reported rather than the utterance's own substring, and mints none when the port names
-no span. So `gate/inference-presence-computed-from-the-utterance` and
+`v1.0.0-beta.3` grades a field `Conversation` when, and only when, the port's JSON carries `presence` equal to
+`literal`, and `Inferred` otherwise; its `UtteranceSpanOf` mints an `utterance-span` binding from whatever `start` and
+`end` the port named, digesting the value the port reported rather than the utterance's own substring, and mints none
+when the port names no span. So `gate/inference-presence-computed-from-the-utterance` and
 `gate/inference-case-folds-and-the-digest-is-the-utterances` — ports that report value and confidence only, for values
-that are in the utterance — read `Inferred` and unbound on that release where both fixtures expect `Conversation` and
-bound; `gate/inference-port-literal-unconfirmed` — a port that reports `literal` with a span for a value that is not in
-the utterance — reads `Conversation` and bound where the fixture expects `Inferred` and unbound;
-`gate/inference-port-span-fails-the-boundary` — a port that reports `literal` with a span naming the `20` inside
-`2026-09-08` — is honoured as given and reads `Conversation`, bound, where the fixture expects `Inferred` and unbound;
-and `sequence-a/picker-external-binding` — a port that reports `literal` for `Active` with no span — mints no binding
-where the fixture, from `v0.1.3`, expects the field bound to the span it was read from.
+that are in the utterance — grade `Inferred` and unbound on that release where both fixtures expect `Conversation` and
+bound, once the release's loader is given the `presence` key it requires; `gate/inference-port-literal-unconfirmed` — a
+port that reports `literal` with a span for a value that is not in the utterance — reads `Conversation` and bound where
+the fixture expects `Inferred` and unbound; `gate/inference-port-span-fails-the-boundary` — a port that reports
+`literal` with a span naming the `20` inside `2026-09-08` — is honoured as given and reads `Conversation`, bound, where
+the fixture expects `Inferred` and unbound; and `sequence-a/picker-external-binding` — a port that reports `literal` for
+`Active` with no span — mints no binding where the fixture, from `v0.1.3`, expects the field bound to the span it was
+read from.
 
-A table is read off a release's source; it becomes evidence when it is **run**. Before `v0.1.3` is tagged, the .NET
-conformance driver runs this suite twice: against the published `1.0.0-beta.3` packages, where all five fixtures above
-must fail, and against the branch that fixes
-[Sakwala/affiant#123](https://github.com/Sakwala/affiant/issues/123), where all five must pass. The run is published
-under `results/` like the beta.1 one, and this line names it.
+A table is read off a release's source; it becomes evidence when it is **run**. This one has been run. On 2026-09-08 the
+.NET conformance harness `1.0.0-beta.3`, restored from nuget.org into an isolated package cache by a scratch consumer,
+ran this branch's fixture tree: **62 of the 67 documents passed, none of the five above did, and nothing outside the
+table failed.** Three failed on the grade and the binding — `gate/inference-port-literal-unconfirmed`,
+`gate/inference-port-span-fails-the-boundary` and `sequence-a/picker-external-binding`, each with the diff its row
+describes. Two, `gate/inference-presence-computed-from-the-utterance` and
+`gate/inference-case-folds-and-the-digest-is-the-utterances`, errored in the release's fixture loader before the gate ran,
+for the reason their row gives; the probe that row describes supplies the missing key and shows the grading defect itself.
 
-**verified by:** *(the beta.3 run — results path and date — is written here when the run exists; until then this table is
-read, not run, and the `v0.1.3` tag waits on it)*
+One line of the `sequence-a/picker-external-binding` diff is a gap in that driver rather than a defect in the release: the
+beta.3 harness does not implement `fieldMatcher.utteranceSpan` at all — it reads `utteranceSpan` only on the inference
+port's input side — so a pinned span reads as absent under it whatever the release mints. The evidence against the
+release there is `bound: false` and `bindingKind: null`.
+
+The other half of the assertion — the same tree against the branch that fixes
+[Sakwala/affiant#123](https://github.com/Sakwala/affiant/issues/123), where all five must pass — belongs to the
+implementation repository, and so does the published run document: a result document names the protocol tag from the
+`PROTOCOL_PIN` an implementation vendors, and this repository holds none. It is published from `Sakwala/affiant` with the
+`1.0.0-beta.3.1` release, from the vendored copy of the `v0.1.3` tag.
+
+**verified by:** the run of 2026-09-08 described above — `Affiant.Testing.ComplianceHarness` `1.0.0-beta.3` and its four
+sibling packages from nuget.org, an isolated `NUGET_PACKAGES`, this branch's fixture tree, implementation commit
+`436c5e23822b44a2857fb2a0232df900545a72f8`: 62 passed, 3 failed, 2 could not load, and every one of the five listed here
+did not pass.
 
 ## The run
 

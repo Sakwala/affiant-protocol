@@ -173,11 +173,17 @@ else:
 `affidavit` and `amendedAffidavit` take a partial Affidavit matcher: `operationType` (`create` \| `update`),
 `entityType`, `entityId`, `aggregateConfidence`, `populatedConfidence`, `emptyFieldCount`, and `fields`. **Stating
 `fields` asserts the field list exactly, in order** (AF-1) — that is the whole point of the clause. Each field entry is
-`{ name, value?, previousValue?, kind?, isMandatory?, source?, bound?, bindingKind?, confidence?, priorSources? }`, where
-`source`, `bound`, `bindingKind`, `confidence` and `priorSources` are projections of the field's provenance chain:
-`source` and `confidence` are the tag **in force**, `bound` is whether that tag points at something checkable (PV-2,
-PV-4), `bindingKind` is which kind it points with, and `priorSources` is the grades the chain displaced, **newest
-first** — nothing is ever dropped from a chain.
+`{ name, value?, previousValue?, kind?, isMandatory?, source?, bound?, bindingKind?, utteranceSpan?, confidence?,
+priorSources? }`, where `source`, `bound`, `bindingKind`, `utteranceSpan`, `confidence` and `priorSources` are projections
+of the field's provenance chain: `source` and `confidence` are the tag **in force**, `bound` is whether that tag points at
+something checkable (PV-2, PV-4), `bindingKind` is which kind it points with, and `priorSources` is the grades the chain
+displaced, **newest first** — nothing is ever dropped from a chain.
+
+`utteranceSpan` states the `utterance-span` binding itself, exactly (PV-3, `v0.1.3`): `offset` and `length` in **UTF-16
+code units of `given.ctx.utterance`**, and `hash` the SHA-256 of the UTF-8 bytes of the **utterance's own substring** at
+that span, as 64 lowercase hexadecimal characters. A fixture states it to pin *which* occurrence the finder found and that
+the digest is taken over the utterance rather than over the value the port reported; stating nothing asserts nothing about
+the span.
 
 `amendedAffidavit: null` is itself a statement: "no amendment has been accepted" (AF-4).
 

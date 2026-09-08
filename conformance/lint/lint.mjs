@@ -919,23 +919,24 @@ function checkRuleCoverage(section) {
 
 /**
  * PV-3's finder (INVARIANTS.md, PV-3, "The finder"), in the one place this repository
- * can run it. It is stated over code points, folded by SIMPLE uppercase mapping only,
- * so that this lint, the .NET step and the TypeScript pipeline all settle on the same
- * hit for the same fixture. Every departure from the plain JavaScript idiom below is
- * there because the idiom diverges from .NET on a real input:
+ * can run it. It is stated over code points and folds ASCII case and nothing else, so
+ * that this lint, the .NET step and the TypeScript pipeline settle on the same hit for
+ * the same fixture without any of them consulting its runtime's Unicode data — no two
+ * of which agree. Two departures from the plain JavaScript idiom are load-bearing:
  *
- *   - `toLowerCase()` over the whole string is not length-preserving (U+0130 lowercases
- *     to two UTF-16 units), so an index taken in the folded string does not address the
- *     original. Folding is per code point instead, and the offsets are the original's.
- *   - `toUpperCase()` applies FULL case mappings (ß→SS, ﬁ→FI), which .NET's
- *     `OrdinalIgnoreCase` does not. A fold whose result is not a single code point is
- *     discarded and the code point kept as it is.
+ *   - `toLowerCase()` / `toUpperCase()` over the whole string is not length-preserving
+ *     (U+0130 lowercases to two UTF-16 units), so an index taken in the folded string
+ *     does not address the original. Folding is per code point, and the offsets are the
+ *     original's.
+ *   - No runtime case mapping is used at all. `toUpperCase()` applies FULL mappings
+ *     (ß→SS, ﬁ→FI) that .NET's `OrdinalIgnoreCase` does not, and the two runtimes' simple
+ *     mappings disagree over U+0131 and over 28 Greek code points with ypogegrammeni
+ *     besides. A non-ASCII case variant is therefore not a hit.
  */
 
-/** A code point's simple uppercase mapping, or the code point itself where there is none. */
+/** A code point folded to upper case where it is an ASCII letter, and left alone otherwise. */
 function foldCodePoint(point) {
-  const folded = [...String.fromCodePoint(point).toUpperCase()];
-  return folded.length === 1 ? folded[0].codePointAt(0) : point;
+  return point >= 0x61 && point <= 0x7a ? point - 0x20 : point;
 }
 
 /** A string as code points, each with the UTF-16 offset it begins at. */
@@ -1102,6 +1103,16 @@ function expectedMattersOf(document, fieldName) {
 }
 
 /**
+ * A matcher that pins a source the inference step cannot mint — an interceptor's `External`
+ * or `Computed`, a reviewer's `UserStated` — is about a tag that displaced inference's in the
+ * same chain, so nothing PV-3's finder says applies to it. Only that matcher is displaced:
+ * another matcher for the same field name, in the same entry or another, is still inference's.
+ */
+function displacesInference(matcher) {
+  return typeof matcher.source === 'string' && matcher.source !== 'Conversation' && matcher.source !== 'Inferred';
+}
+
+/**
  * (f) Every fixture's scripted inference against PV-3's finder, over its own utterance.
  *
  * PV-3 at v0.1.3 puts presence in the implementation's hands: it finds the value text in
@@ -1111,10 +1122,10 @@ function expectedMattersOf(document, fieldName) {
  *
  * So this runs the finder over every proposed inferred field — hint or no hint — and holds
  * the fixture's own expectations to it: the grade where a `source` is pinned, `bound`, and
- * the span where one is pinned, digest recomputed over the utterance. A field whose
- * expectation pins a source inference cannot mint (an interceptor's `External`, a
- * reviewer's `UserStated`) is displaced: the tag in force is not inference's and nothing
- * here is about it.
+ * the span where one is pinned, digest recomputed over the utterance. An expectation that
+ * pins a source inference cannot mint (a reviewer's `UserStated`) is displaced — the tag it
+ * is about is not inference's — and that matcher alone is skipped; a field an interceptor
+ * sets is displaced whole, because the wiring displaces every expectation of it.
  *
  * A scripted hint that contradicts the finder is legal — `gate/inference-port-literal-unconfirmed`
  * and `gate/inference-port-span-fails-the-boundary` exist to prove a port's claim loses —
@@ -1122,9 +1133,10 @@ function expectedMattersOf(document, fieldName) {
  * pinned is refused, because such a document passes whether an implementation reads the
  * port or the text.
  *
- * A fixture whose caller supplies no utterance at all is PV-3's no-utterance path: the
- * port's report stands and there is nothing here to check. An EMPTY utterance is an
- * utterance, and is checked like any other.
+ * PV-3's no-utterance path is not reachable from a fixture: a conforming driver passes
+ * `given.ctx.utterance`, and `""` where the fixture states none (`DRIVER.md`). A fixture
+ * that omits the key is therefore checked as the empty utterance it will be run with —
+ * where nothing hits — rather than skipped.
  */
 function checkInferencePresence(section) {
   let checkedFields = 0;
@@ -1141,7 +1153,8 @@ function checkInferencePresence(section) {
     if (document === null) continue;
     const scripted = document.given?.gate?.inference;
     if (scripted === null || scripted === undefined || typeof scripted !== 'object') continue;
-    const utterance = document.given?.ctx?.utterance;
+    const stated = document.given?.ctx?.utterance;
+    const utterance = typeof stated === 'string' ? stated : '';
     const { names: proposed, shaped } = proposedFieldNames(document);
     const intercepted = interceptedFieldNames(document);
 
@@ -1151,22 +1164,19 @@ function checkInferencePresence(section) {
         notProposed += 1;
         continue;
       }
-      if (typeof utterance !== 'string') {
-        noUtterance += 1;
-        continue;
-      }
+      if (typeof stated !== 'string') noUtterance += 1;
 
-      const matchers = expectedMattersOf(document, name);
-      const displaced =
-        intercepted.has(name) ||
-        matchers.some(
-          (matcher) =>
-            typeof matcher.source === 'string' && matcher.source !== 'Conversation' && matcher.source !== 'Inferred',
-        );
-      if (displaced) {
-        displacedCount += 1;
+      const allMatchers = expectedMattersOf(document, name);
+      if (intercepted.has(name)) {
+        displacedCount += allMatchers.length || 1;
         continue;
       }
+      // Only the matcher that pins a source inference cannot mint is displaced: it is
+      // about a later tag in the same chain, not about the grade inference gave. Every
+      // other matcher for that field name — in this entry or another — is inference's
+      // and is checked below.
+      const matchers = allMatchers.filter((matcher) => !displacesInference(matcher));
+      displacedCount += allMatchers.length - matchers.length;
 
       const { valueText, hit, grade } = finderVerdict(utterance, field);
       checkedFields += 1;
@@ -1248,9 +1258,9 @@ function checkInferencePresence(section) {
     `OK    presence: ${checkedFields} inferred field(s) checked against PV-3's finder over their own utterance ` +
       `(${checkedHints} carrying a port hint, ${pinnedSpans} with the span and its digest pinned)` +
       (deliberate === 0 ? '' : `; ${deliberate} deliberate contradiction(s) with the grade pinned`) +
-      (displacedCount === 0 ? '' : `; ${displacedCount} displaced by an interceptor or a reviewer's act`) +
+      (displacedCount === 0 ? '' : `; ${displacedCount} expectation(s) displaced by an interceptor or a reviewer's act`) +
       (notProposed === 0 ? '' : `; ${notProposed} reported for a field the operation does not propose`) +
-      (noUtterance === 0 ? '' : `; ${noUtterance} on a fixture with no utterance (the port's report stands)`),
+      (noUtterance === 0 ? '' : `; ${noUtterance} on a fixture that states no utterance, checked as the empty one`),
   );
 }
 

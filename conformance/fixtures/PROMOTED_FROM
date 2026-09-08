@@ -107,11 +107,12 @@ rule it checks, and cited back from that rule's *Checked by* line. What it canno
 the thing promotion buys — that a working implementation is green against these exact bytes
 — which is why the oracle rows matter more here, not less.
 
-Byte-identical, and deliberately so. A parity manifest cites a fixture by its id, so a
-rename silently changes what a published document refers to; and a fixture edited on
-the way in would no longer be the document the reference implementation is green
-against, which is the only thing that makes "this implementation passes it and that one
-does not" a comparison rather than an opinion.
+Byte-identical, and deliberately so — the one amendment above aside. A parity
+manifest cites a fixture by its id, so a rename silently changes what a
+published document refers to; and a fixture edited on the way in would no longer
+be the document the reference implementation is green against, which is the only
+thing that makes "this implementation passes it and that one does not" a
+comparison rather than an opinion.
 
 The format these documents are written in is conformance/RUNNER.md; the schema they are
 checked against is conformance/fixture.schema.json; the index that says which rules each
