@@ -456,6 +456,19 @@ if (!conformance || !Array.isArray(conformance.fixtures)) {
 }
 
 /**
+ * Whether a manifest's `protocolTag` names `v0.1.3` or a later rulebook. The tag is a free
+ * string in the schema, so a tag this cannot read is not held to the v0.1.3 requirement:
+ * the requirement is on runs that read at the amended rulebook, and a tag nobody can order
+ * is not evidence that this is one of them.
+ */
+function atLeastV013(protocolTag) {
+  const parsed = /^v(\d+)\.(\d+)\.(\d+)$/.exec(String(protocolTag ?? ''));
+  if (parsed === null) return false;
+  const [major, minor, patch] = parsed.slice(1).map(Number);
+  return major > 0 || minor > 1 || (minor === 1 && patch >= 3);
+}
+
+/**
  * (e) Every published parity manifest and every published run, against their own schemas.
  *
  * A parity manifest is the one document a reader deciding whether to adopt an implementation is
@@ -464,9 +477,13 @@ if (!conformance || !Array.isArray(conformance.fixtures)) {
  * against `parity/MANIFEST.schema.json`, `results/<implementation>-<version>/results.json` against
  * `results.schema.json`.
  *
- * Beyond the schemas, three things no schema can state:
+ * Beyond the schemas, four things no schema can state:
  *   - every fixture id either document names is one the conformance index lists, so a rename or a
  *     typo cannot leave a published claim pointing at nothing;
+ *   - every runtime in a manifest read at `v0.1.3` or later states its `unicodeVersion`. PV-3's
+ *     neighbour test reads General_Category from the runtime's own Unicode database, so a run that
+ *     does not say which database it used cannot be compared with another run; the key is optional
+ *     in the schema only because the manifests published against earlier tags predate it;
  *   - a published run directory carries a README, because a run with no provenance — which driver,
  *     which release, which protocol ref, when — is not evidence a reader can use;
  *   - where a run and a manifest are about the same implementation and version, the run's
@@ -510,6 +527,17 @@ function checkPublished(section) {
       for (const row of document.failing ?? []) {
         if (!fixtureIds.has(row.id)) {
           fail(`parity/${name}: declares a failing fixture the index does not list — ${row.id}`);
+        }
+      }
+      if (atLeastV013(document.protocolTag)) {
+        for (const runtime of document.runtimes ?? []) {
+          if (typeof runtime?.unicodeVersion !== 'string' || runtime.unicodeVersion.trim() === '') {
+            fail(
+              `parity/${name}: runtime ${JSON.stringify(runtime?.name ?? null)} states no unicodeVersion, and this ` +
+                `manifest reads at ${JSON.stringify(document.protocolTag)}. PV-3 reads its boundary categories from ` +
+                `the runtime's own Unicode database, so from v0.1.3 onward a run says which version that was.`,
+            );
+          }
         }
       }
       manifests.push({ name, document });
@@ -1052,6 +1080,33 @@ function verifiedSpan(utterance, span, valueText) {
 }
 
 /**
+ * What a fixture actually wrote for a field's `value`, as a reader will find it in the file.
+ *
+ * `JSON.stringify` renders a non-finite number as `null` — A18's case, a JSON token like
+ * `1e999` the runtime parses to infinity — which would send a fixture author looking for a
+ * `null` the document does not contain. For those the raw token is read back out of the
+ * fixture's own bytes, so the diagnostic names what is on the page. Where the engine does
+ * not expose a parsed number's source text the value's own spelling is printed instead;
+ * either way the message never says `null` about a number.
+ */
+function reportedValueToken(entry, name, value) {
+  if (typeof value !== 'number' || Number.isFinite(value)) return JSON.stringify(value ?? null);
+  let token = null;
+  try {
+    const withTokens = JSON.parse(readFileSync(join(fixturesDir, entry.file), 'utf8'), function (key, parsed, context) {
+      return typeof parsed === 'number' && !Number.isFinite(parsed) && typeof context?.source === 'string'
+        ? context.source
+        : parsed;
+    });
+    const written = withTokens?.given?.gate?.inference?.[name]?.value;
+    if (typeof written === 'string') token = written;
+  } catch {
+    token = null;
+  }
+  return token ?? String(value);
+}
+
+/**
  * What PV-3 makes of one scripted inference field, over one utterance. `reported: false`
  * is the case where the port reported nothing a field can carry: there is no grade to give,
  * because the field is never merged.
@@ -1130,14 +1185,46 @@ function expectedMattersOf(document, fieldName) {
   return found;
 }
 
+/** Whether the fixture's own sequence contains a reviewer's act — a `decide` step (GT-1, DK-1). */
+function hasReviewerAct(document) {
+  let found = false;
+  const walk = (node) => {
+    if (found || node === null || typeof node !== 'object') return;
+    if (Array.isArray(node)) {
+      for (const item of node) walk(item);
+      return;
+    }
+    if (node.kind === 'decide') {
+      found = true;
+      return;
+    }
+    for (const value of Object.values(node)) walk(value);
+  };
+  walk(document.given?.prior);
+  walk(document.given?.step);
+  walk(document.given?.steps);
+  return found;
+}
+
 /**
  * A matcher that pins a source the inference step cannot mint — an interceptor's `External`
  * or `Computed`, a reviewer's `UserStated` — is about a tag that displaced inference's in the
  * same chain, so nothing PV-3's finder says applies to it. Only that matcher is displaced:
  * another matcher for the same field name, in the same entry or another, is still inference's.
+ *
+ * The source name alone is not the escape. The fixture must SHOW what displaced inference on
+ * that field: an `interceptors` entry naming it (handled by the caller, which displaces such a
+ * field whole) or a reviewer's `decide` step in its own sequence. Without one of those, a
+ * fixture could opt any field out of PV-3's finder by pinning a source inference cannot mint,
+ * and no fixture may depend on a port's claim beating the text.
  */
-function displacesInference(matcher) {
-  return typeof matcher.source === 'string' && matcher.source !== 'Conversation' && matcher.source !== 'Inferred';
+function displacesInference(matcher, reviewerActed) {
+  return (
+    reviewerActed &&
+    typeof matcher.source === 'string' &&
+    matcher.source !== 'Conversation' &&
+    matcher.source !== 'Inferred'
+  );
 }
 
 /**
@@ -1152,7 +1239,8 @@ function displacesInference(matcher) {
  * the fixture's own expectations to it: the grade where a `source` is pinned, `bound`, and
  * the span where one is pinned, digest recomputed over the utterance. An expectation that
  * pins a source inference cannot mint (a reviewer's `UserStated`) is displaced — the tag it
- * is about is not inference's — and that matcher alone is skipped; a field an interceptor
+ * is about is not inference's — and that matcher alone is skipped, and only where the fixture
+ * shows the act that displaced it (a `decide` step in its own sequence); a field an interceptor
  * sets is displaced whole, because the wiring displaces every expectation of it.
  *
  * A scripted hint that contradicts the finder is legal — `gate/inference-port-literal-unconfirmed`
@@ -1191,6 +1279,7 @@ function checkInferencePresence(section) {
     const utterance = typeof stated === 'string' ? stated : '';
     const { names: proposed, shaped } = proposedFieldNames(document);
     const intercepted = interceptedFieldNames(document);
+    const reviewerActed = hasReviewerAct(document);
 
     for (const [name, field] of Object.entries(scripted)) {
       if (field === null || typeof field !== 'object') continue;
@@ -1205,11 +1294,11 @@ function checkInferencePresence(section) {
         displacedCount += allMatchers.length || 1;
         continue;
       }
-      // Only the matcher that pins a source inference cannot mint is displaced: it is
-      // about a later tag in the same chain, not about the grade inference gave. Every
-      // other matcher for that field name — in this entry or another — is inference's
-      // and is checked below.
-      const matchers = allMatchers.filter((matcher) => !displacesInference(matcher));
+      // Only the matcher that pins a source inference cannot mint is displaced, and only
+      // where this fixture shows the act that displaced it: it is about a later tag in the
+      // same chain, not about the grade inference gave. Every other matcher for that field
+      // name — in this entry or another — is inference's and is checked below.
+      const matchers = allMatchers.filter((matcher) => !displacesInference(matcher, reviewerActed));
       displacedCount += allMatchers.length - matchers.length;
 
       const { reported, valueText, hit, grade } = finderVerdict(utterance, field);
@@ -1219,8 +1308,8 @@ function checkInferencePresence(section) {
         notReported += 1;
         for (const matcher of matchers) {
           const why =
-            `${entry.id}: field ${name} — the port reports ${JSON.stringify(field.value ?? null)}, which is not a value a ` +
-            `field can carry, so PV-3 merges nothing and the field stays Empty (AF-1)`;
+            `${entry.id}: field ${name} — the port reports ${reportedValueToken(entry, name, field.value)}, which is not ` +
+            `a value a field can carry, so PV-3 merges nothing and the field stays Empty (AF-1)`;
           if (typeof matcher.source === 'string') fail(`${why}; the fixture expects source ${matcher.source}`);
           if (matcher.bound === true) fail(`${why}; the fixture expects it bound`);
           if (matcher.bindingKind !== undefined && matcher.bindingKind !== null) {

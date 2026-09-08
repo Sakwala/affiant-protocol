@@ -83,7 +83,7 @@ instead of being turned into a code, a wiring-time refusal treated like a step-t
 
 Run every entry in [`conformance/fixtures/MANIFEST.json`](conformance/fixtures/MANIFEST.json)'s `"conformance"`
 section — not the fixture files on disk, and not a subset your driver happens to bind first; a listed fixture your
-driver does not run is an `error` outcome, not an absence. Expect to fail some of the 60 declarative fixtures and some
+driver does not run is an `error` outcome, not an absence. Expect to fail some of the 61 declarative fixtures and some
 of the seven canonical byte vectors on your first run. That is normal, and it is exactly what the parity manifest exists
 to record — nobody's first driver run is green, including the reference implementation's.
 
@@ -134,7 +134,7 @@ directory, index or approval step.
 
 ## What you get
 
-The 60 fixtures and seven canonical vectors as a test suite from day one, in a format that assumes nothing about your
+The 61 fixtures and seven canonical vectors as a test suite from day one, in a format that assumes nothing about your
 language. The numbered rules as your design, already argued through and cited against the defects they correct. A row
 in the README table once your manifest lands. And the right to call what you built an "Affiant implementation" alongside
 the two that exist today — a .NET implementation shipped as ten NuGet packages, and a TypeScript implementation complete

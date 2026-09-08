@@ -1,7 +1,7 @@
 # RUNNER — the declarative fixture format
 
 **What this file is.** The complete description of the documents in `fixtures/gate/`, `fixtures/decide/`,
-`fixtures/sequence-a/` and `fixtures/sequence-c/` — 60 JSON files, each one a wiring, a sequence of acts and what must
+`fixtures/sequence-a/` and `fixtures/sequence-c/` — 61 JSON files, each one a wiring, a sequence of acts and what must
 then be true — and of the seven byte vectors in `fixtures/canonical/`. It is written so that somebody implementing Affiant
 in a language nobody has used yet can read this file, write a **driver** (`DRIVER.md`) that binds these documents to their
 own code, and publish a **parity manifest** (`PARITY.md`) saying which of them they pass. Nothing here assumes you have
