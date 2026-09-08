@@ -57,7 +57,7 @@ that they find out by running the suite themselves, or by an outage.
 | `producedAt` | When the run happened. |
 | `runLog` | Where the run that produced this can be read — a path in this repository or a CI run URL. The manifest is the claim; the log is the evidence. |
 | `failing[]` | Every fixture the implementation does not pass. **Exactly these and no others.** |
-| `runtimes[]` | The runtimes this holds for, each `claimed` or not (`DRIVER.md` §6). |
+| `runtimes[]` | The runtimes this holds for, each `claimed` or not (`DRIVER.md` §6), and each stating the `unicodeVersion` its character database carries — PV-3's neighbour test reads General_Category from that database, so two runtimes at two Unicode versions can differ on code points assigned since the older one. |
 | `exemptions[]` | The rulebook exemptions this implementation inherits, copied from [`lint/coverage-exemptions.json`](lint/coverage-exemptions.json), each optionally naming what the implementation checks instead. An implementation may not invent one. |
 
 ### A `failing` row

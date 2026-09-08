@@ -127,6 +127,10 @@
             "description": "Whether the implementation CLAIMS this runtime. A runtime it does not claim is not a gap; a runtime it claims and does not run the suite on is.",
             "type": "boolean"
           },
+          "unicodeVersion": {
+            "description": "The Unicode version the runtime's own character database carries. PV-3's neighbour test reads General_Category from it, so two runtimes at two Unicode versions can differ on code points assigned since the older one; stating the version is how a reader tells which run that is.",
+            "type": "string"
+          },
           "note": { "type": "string" }
         }
       }

@@ -1,7 +1,7 @@
 {
   "id": "gate/inference-presence-computed-from-the-utterance",
   "rules": ["GT-1", "PV-1", "PV-3", "AF-1", "AF-2"],
-  "title": "The port reports value and confidence and says nothing about presence: the implementation establishes it from the utterance itself (PV-3). Two values that are in the turn are Conversation, bound to the span they were read from - the spans are pinned, so the fixture also states WHICH occurrence was found and that the digest is over the utterance own bytes; the estimated hours hit the 6 the person typed and not the 6 inside 2026. A value that occurs only inside a longer number is not present and is Inferred, unbound.",
+  "title": "The port reports value and confidence and says nothing about presence: the implementation establishes it from the utterance itself (PV-3). Two values that are in the turn are Conversation, bound to the span they were read from - the spans are pinned, so the fixture also states WHICH occurrence was found and that the digest is over the utterance's own bytes; the estimated hours hit the 6 the person typed and not the 6 inside 2026. A value that occurs only inside a longer number is not present and is Inferred, unbound.",
   "given": {
     "clock": "2026-09-08T09:00:00.000Z",
     "store": "memory",

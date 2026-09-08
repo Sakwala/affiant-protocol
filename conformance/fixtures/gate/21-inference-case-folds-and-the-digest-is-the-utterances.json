@@ -1,7 +1,7 @@
 {
   "id": "gate/inference-case-folds-and-the-digest-is-the-utterances",
   "rules": ["GT-1", "PV-1", "PV-3", "AF-1", "AF-2"],
-  "title": "The port reports value and confidence only, and the value it reports differs from the utterance in case alone: Client Lunch against a turn that says client lunch. The comparison is case-insensitive, so it is a hit and the grade is Conversation - and the binding is over the UTTERANCE, so the span's digest is the SHA-256 of client lunch as the person typed it, not of the value the port handed back (PV-3, PV-2).",
+  "title": "The port reports value and confidence only, and the value it reports differs from the utterance in case alone: Client Lunch against a turn that says client lunch. The comparison folds ASCII case, so it is a hit and the grade is Conversation - and the binding is over the UTTERANCE, so the span's digest is the SHA-256 of client lunch as the person typed it, not of the value the port handed back (PV-3, PV-2).",
   "given": {
     "clock": "2026-09-08T09:00:00.000Z",
     "store": "memory",
