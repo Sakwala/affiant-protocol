@@ -18,7 +18,7 @@ The numbered rules an implementation must enforce are [`../INVARIANTS.md`](../IN
 | [`DRIVER.md`](DRIVER.md) | **The driver contract.** What an implementation does to run these documents: pin a tag, supply the ports, bind the step kinds, emit the result, assert the parity manifest. |
 | [`PARITY.md`](PARITY.md) | **The parity-manifest format.** How an implementation publishes what it does not pass, and the equality CI asserts. |
 | [`ORACLE.md`](ORACLE.md) | **The negative oracle.** Which fixtures must *fail* against a release known to violate their rule, and the shipped defect each one refutes. |
-| `fixtures/gate/` `fixtures/decide/` `fixtures/sequence-a/` `fixtures/sequence-c/` | **The 56 declarative fixtures**, promoted unchanged from the TypeScript reference implementation ([`fixtures/PROMOTED_FROM`](fixtures/PROMOTED_FROM) names the commit). |
+| `fixtures/gate/` `fixtures/decide/` `fixtures/sequence-a/` `fixtures/sequence-c/` | **The 58 declarative fixtures.** Fifty-six are promoted unchanged from the TypeScript reference implementation ([`fixtures/PROMOTED_FROM`](fixtures/PROMOTED_FROM) names the commit); the two the `v0.1.3` PV-3 amendment arrives with were authored here, because neither implementation had the behaviour to promote from. |
 | `fixtures/canonical/` | **The seven byte vectors** for canonical serialization (SR-1): an input, the amendments accepted on it, and the exact bytes and SHA-256 they produce. |
 | [`fixtures/MANIFEST.json`](fixtures/MANIFEST.json) | **The index**, in three sections: the seed wire examples, the v0.1 schema fixtures, and `"conformance"` — every promoted document with its `id`, `file`, `rules[]`, `set` and `oracle`. A driver runs what this lists. |
 | [`fixture.schema.json`](fixture.schema.json) · [`canonical-vector.schema.json`](canonical-vector.schema.json) | The two document formats as JSON Schema, with the same closed key sets the reference runner enforces. |
@@ -78,7 +78,7 @@ It runs in CI on every push and pull request, over everything in this directory:
 - every fixture file on disk is claimed by the manifest exactly once, no id or file is listed twice, every v0.1 schema
   has a fixture and every v0.1 fixture a schema, and every pinned enum set matches the schema's own `enum` exactly, in
   order;
-- **every promoted document validates against its format** — the 56 against `fixture.schema.json`, the 7 against
+- **every promoted document validates against its format** — the 58 against `fixture.schema.json`, the 7 against
   `canonical-vector.schema.json`;
 - **the oracle is checked both ways**: every fixture `ORACLE.md` lists has a manifest oracle entry carrying one of the
   defect sentences that file states for it, and no manifest entry claims an oracle the table does not list;
@@ -95,7 +95,13 @@ It runs in CI on every push and pull request, over everything in this directory:
 - **the matchers inside the fixtures are checked against the v0.1 wire schemas as partials** — only the keys a matcher
   states, each against that key's own subschema, with requirements relaxed. Most of what this reports is not a defect (a
   matcher key may be a projection, or a reviewer-facing fact the wire does not carry), so those are printed as findings;
-  a *type* mismatch fails, because that is the schemas and the fixtures disagreeing about a shape.
+  a *type* mismatch fails, because that is the schemas and the fixtures disagreeing about a shape;
+- **every scripted `presence` / `utteranceSpan` hint is run against PV-3's finder over the fixture's own utterance.**
+  From `v0.1.3` those two are the inference port's *report*, which an implementation verifies against the utterance, so a
+  fixture that scripts `literal` for a value its utterance does not carry is scripting a claim the rule does not honour.
+  That is legal — `gate/inference-port-literal-unconfirmed` does it to prove the claim loses — but only where the fixture
+  pins that field's expected `source` to the grade the finder gives. A contradiction with no grade pinned is refused,
+  because such a document passes whether an implementation reads the port or the text.
 
 ## How versions work
 

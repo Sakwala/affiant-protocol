@@ -302,12 +302,12 @@
       "description": "One field the scripted inference port reports.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["value", "confidence", "presence"],
+      "required": ["value", "confidence"],
       "properties": {
         "value": { "$ref": "#/$defs/jsonValue" },
         "confidence": { "description": "How confident the port claims to be. Clamped by the pipeline (PV-1).", "type": "number" },
         "presence": {
-          "description": "Literally present in the turn (Conversation) or reasoned to (Inferred).",
+          "description": "The port's HINT about whether the value was literally in the turn. Optional, and never the grade: PV-3 has the implementation establish presence from `given.ctx.utterance` itself and verify this claim the same way, so a `literal` the utterance does not confirm is Inferred and an absent hint over a value the utterance does carry is Conversation.",
           "type": "string",
           "enum": ["literal", "inferred"]
         },
