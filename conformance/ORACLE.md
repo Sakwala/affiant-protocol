@@ -109,12 +109,22 @@ read from.
 
 A table is read off a release's source; it becomes evidence when it is **run**. This one has been run. On 2026-09-08 the
 .NET conformance harness `1.0.0-beta.3`, restored from nuget.org into an isolated package cache by a scratch consumer,
-ran this branch's fixture tree: **62 of the 67 documents passed, none of the five above did, and nothing outside the
-table failed.** Three failed on the grade and the binding — `gate/inference-port-literal-unconfirmed`,
+ran this branch's fixture tree: **62 of the 67 documents the tree held that day passed, none of the five above did,
+and nothing outside the table failed.** Three failed on the grade and the binding —
+`gate/inference-port-literal-unconfirmed`,
 `gate/inference-port-span-fails-the-boundary` and `sequence-a/picker-external-binding`, each with the diff its row
 describes. Two, `gate/inference-presence-computed-from-the-utterance` and
 `gate/inference-case-folds-and-the-digest-is-the-utterances`, errored in the release's fixture loader before the gate ran,
 for the reason their row gives; the probe that row describes supplies the missing key and shows the grading defect itself.
+
+One fixture in the tree today was not in that run. `gate/inference-empty-value-is-nothing-reported` was authored after
+it, and it is listed against no release: `1.0.0-beta.3` skips a port's empty value before it grades anything —
+`src/Affiant.Core/Filters/TaskInferenceStep.cs` at `v1.0.0-beta.3` reads the value's text and continues past an empty
+one — so the field stays `Empty` and the release refuses the proposal exactly as the fixture expects. A fixture not
+listed against a release MAY pass or fail on it, as the procedure above says; this one is expected to pass. The
+implementation it separates is the TypeScript core at `0.1.0-alpha.0`, which admits a port's empty string as
+`Inferred` at the port's confidence (`packages/core/src/gate/pipeline.ts`), and this file lists .NET releases, so that
+is written here as a fact about the fixture rather than as a table row.
 
 One line of the `sequence-a/picker-external-binding` diff is a gap in that driver rather than a defect in the release: the
 beta.3 harness does not implement `fieldMatcher.utteranceSpan` at all — it reads `utteranceSpan` only on the inference
@@ -129,8 +139,8 @@ implementation repository, and so does the published run document: a result docu
 
 **verified by:** the run of 2026-09-08 described above — `Affiant.Testing.ComplianceHarness` `1.0.0-beta.3` and its four
 sibling packages from nuget.org, an isolated `NUGET_PACKAGES`, this branch's fixture tree, implementation commit
-`436c5e23822b44a2857fb2a0232df900545a72f8`: 62 passed, 3 failed, 2 could not load, and every one of the five listed here
-did not pass.
+`436c5e23822b44a2857fb2a0232df900545a72f8`, over the 67 documents the tree held that day: 62 passed, 3 failed, 2 could
+not load, and every one of the five listed here did not pass.
 
 ## The run
 
