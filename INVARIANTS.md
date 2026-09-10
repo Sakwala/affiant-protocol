@@ -14,9 +14,10 @@ durable store of pending review entries) and shown as an **Evidence Card** a per
 host writes. A **Standing Order** is a policy verdict that approves a write with no person present. There are two
 implementations: .NET ([Sakwala/affiant](https://github.com/Sakwala/affiant), ten NuGet packages, shipped at
 `1.0.0-beta.1`) and TypeScript ([Sakwala/affiant-ts](https://github.com/Sakwala/affiant-ts), `@affiant/core`, complete in the
-repository for the two sequences below and not yet on npm). This file is what makes them the *same* framework: each numbered
-rule is a statement both must satisfy, checked by the fixtures in `conformance/`, with a published **parity manifest** per
-implementation naming exactly which fixtures it does not yet pass and why.
+repository for the two sequences below and on npm at `0.1.0-alpha.1` under the `alpha` tag). This file is what makes
+them the *same* framework: each numbered rule is a statement both must satisfy, checked by the fixtures in
+`conformance/`, with a published **parity manifest** per implementation naming exactly which fixtures it does not yet
+pass and why.
 
 **How to read a rule.** `<AREA>-<n>` is the id (areas below). **MUST** / **MUST NOT** / **SHOULD** / **MAY** are RFC 2119
 words. *Why:* one line where the reason is not obvious. *Checked by:* the conformance fixture ids (`gate/…`, `decide/…`,
