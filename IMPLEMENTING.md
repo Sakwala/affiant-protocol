@@ -138,8 +138,7 @@ The 61 fixtures and seven canonical vectors as a test suite from day one, in a f
 language. The numbered rules as your design, already argued through and cited against the defects they correct. A row
 in the README table once your manifest lands. And the right to call what you built an "Affiant implementation" alongside
 the two that exist today — a .NET implementation shipped as ten NuGet packages, and a TypeScript implementation complete
-in its own repository for two of the rulebook's sequences and published to npm under the `alpha` tag. Neither has a
-driver run yet either: the first parity manifests, for both of them, are being produced.
+in its own repository for two of the rulebook's sequences and published to npm under the `alpha` tag.
 
 Contributing back to the rulebook itself — a new fixture, a sharpened rule — goes through a pull request here like
 everything else, and must pass the lint (below). A new fixture is accepted only through the negative oracle: there must
