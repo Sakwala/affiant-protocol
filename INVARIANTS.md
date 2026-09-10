@@ -294,7 +294,8 @@ inference silently. One class of bug at the host-wiring level, designed out here
 with the code `substance-refused` and an observable event (TL-1). A non-empty value under `Empty` provenance is *hollow* and
 is refused the same way. "Empty value" means `null` or a blank string; `0`, `false`, an empty array and an empty object are
 values. The refusal is raised before the policy chain runs, so no Standing Order ever sees a hollow proposal.
-*Why:* the empty-Affidavit regression of 2026-04-30 (`b72c1fa`: every Affidavit shipped empty while the suite stayed green, because no test exercised the path) — the .NET
+*Why:* the empty-Affidavit regression of 2026-04-30 (`b72c1fa`: every Affidavit shipped empty; that day's suite was 41 tests with
+three failures unrelated to the affected path and none exercising it; the regression was found 2026-05-05 by an empty card) — the .NET
 ComplianceHarness checks this at test time only; the runtime must too. *Checked by:* `gate/substance-hollow-refused`,
 `gate/substance-zero-field-refused`. *Source:* `ComplianceHarness.AssertProvenanceIsSubstantive`; the runtime emits an event
 and continues in `src/Affiant.Core/Services/SchemaDrivenAffidavitProjection.cs`.
