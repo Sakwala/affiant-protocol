@@ -21,7 +21,7 @@ Versions are git tags. Each implementation pins a tag and bumps it in its own pu
 | Language | Repository | Status |
 |---|---|---|
 | .NET | [Sakwala/affiant](https://github.com/Sakwala/affiant) | shipped — ten NuGet packages at `v1.0.0-beta.3.1`. Conformant: 68 of 68 fixtures at `v0.1.3`, read 2026-09-09, with an empty failing set in [`conformance/parity/dotnet-v0.1.json`](conformance/parity/dotnet-v0.1.json) |
-| TypeScript | [Sakwala/affiant-ts](https://github.com/Sakwala/affiant-ts) | building in public — the reference implementation. Conformant: 68 of 68 fixtures at `v0.1.3` on Node, Bun and workerd, read 2026-09-09, with an empty failing set in [`conformance/parity/typescript-v0.1.json`](conformance/parity/typescript-v0.1.json). The reading is `main` at `0.1.0-alpha.1`, which npm has carried under the `alpha` tag since 2026-09-10; the `latest` tag is still `0.1.0-alpha.0`, which predates the presence change |
+| TypeScript | [Sakwala/affiant-ts](https://github.com/Sakwala/affiant-ts) | building in public — the reference implementation. Conformant: 68 of 68 fixtures at `v0.1.3` on Node, Bun and workerd, read 2026-09-09, with an empty failing set in [`conformance/parity/typescript-v0.1.json`](conformance/parity/typescript-v0.1.json). The reading is `main` at `0.1.0-alpha.1`, which npm has carried under the `alpha` tag since 2026-09-10. `latest` and `alpha` both point at `0.1.0-alpha.1` |
 
 ## Status
 
