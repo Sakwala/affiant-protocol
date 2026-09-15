@@ -163,9 +163,14 @@ every adapter its implementation ships and declares**, and an implementation tha
 3. An `exemptions[]` that **equals** [`lint/coverage-exemptions.json`](lint/coverage-exemptions.json) as of the
    manifest's own `protocolTag` — which at `v0.2.0` means without CV-2, CV-3 and CV-5. Those three carried
    `until: "0.2.0"` and were removed when the first adapter arrived; a driver builds its list from that file rather
-   than retyping it, so they disappear in the same pull request that moves the pin. The rulebook's lint checks this
-   equality for every manifest read at `v0.2.0` or later and leaves the earlier ones alone, because a manifest is a
-   claim about its own tag: the two `v0.1` manifests list all three and are correct to.
+   than retyping it, so they disappear in the same pull request that moves the pin.
+
+   **Which manifests are held to this**, and to `adapters[]`: every one whose `protocolTag` is **not a `v0.1.x` tag**.
+   Stated that way round rather than as "at least `v0.2.0`", because a driver pins a **commit** while a version's text
+   is on a branch and its tag has not been cut — which is the state the first `v0.2` manifest is published in, and a
+   rule that only understood `v<major>.<minor>.<patch>` would skip every check on the one manifest that needs them. A
+   `v0.1.x` tag gets the `v0.1` treatment; everything else, commits included, is read forward. The two `v0.1` manifests
+   list CV-2, CV-3 and CV-5 and are correct to: a manifest is a claim about its own ref.
 
 The manifest **format** is unchanged at `schemaVersion: "0.1.0"`: `adapters[]` is an added optional property and every
 document published against an earlier tag still validates. What tells a reader which fields to expect is `protocolTag`,

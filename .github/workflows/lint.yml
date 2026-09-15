@@ -31,6 +31,13 @@ jobs:
       - name: Lint fixtures
         run: node conformance/lint/lint.mjs
 
+      # The three decisions in that file that are not about a document — whether a
+      # workflow runs a cited script, whether a manifest is held to the v0.2
+      # requirements, and whether its exemptions are the exemption file's — with the
+      # mutation that caught each one written down beside it.
+      - name: Fixture lint, its own decisions
+        run: node conformance/lint/lint.mjs --self-test
+
       # CV-5's check, against its own corpus in `conformance/lint/adapter-claims.test/`
       # — a package per case and what the lint must say about it. It needs no network.
       #

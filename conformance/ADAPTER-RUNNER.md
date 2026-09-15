@@ -1,7 +1,7 @@
 # ADAPTER-RUNNER — the adapter fixture format
 
-**What this file is.** The complete description of the documents in `fixtures/adapter/` — ten JSON files, each one a
-wiring, a tool set an adapter built, a call through it, and what must then be true. It is written so that somebody who
+**What this file is.** The complete description of the documents in `fixtures/adapter/` — twelve JSON files, each one
+a wiring, a tool set an adapter built, a call through it, and what must then be true. It is written so that somebody who
 has written an Affiant adapter for a framework nobody here has used can read this file, bind these documents to their
 own adapter, and publish what the run said in their implementation's parity manifest.
 
@@ -66,8 +66,11 @@ Everything in `RUNNER.md` that the two extra step kinds do not replace:
   bound is an `error` outcome and it counts against the implementation exactly like a failure (`RUNNER.md` §8), in the
   step under test and in any `prior` step alike. Never a pass, and never a silent skip — a document whose scene was
   never set is a document whose expectations mean nothing;
-- every `expect` clause of §4, including `entry`, `card`, `store`, `found`, `telemetry` and `canonicalHash`, with the
-  matcher semantics of §5;
+- **six** of `RUNNER.md` §4's clauses, with its matcher semantics: `error`, `entry`, `found`, `store`, `telemetry` and
+  `telemetryAbsent`. **`card` and `canonicalHash` are not among them, and neither are `superseded`, `expired` and
+  `page`.** An Evidence Card and a canonical hash are the gate's own artefacts, produced by the gate's own entry points;
+  a document about either belongs in the conformance section, and one stated here would be stating a fact this
+  section's runner has no way to produce. The schema refuses them, so the question never reaches a driver;
 - the strictness of §6 — an unknown key anywhere fails the fixture, an `expect` that states no fact fails as vacuous, a
   refusal on the final step is compared, and a failed expectation is reported rather than thrown.
 
@@ -187,15 +190,17 @@ maps it to its own framework's shape and passes it through whatever channel that
 SDK's driver builds a `tool-approval-response` part and hands it to the call as the SDK would. Naming that shape in the
 fixture would make the document about one framework; naming the artefact makes it about the rule.
 
-**An implementation whose framework has no such channel** cannot replay an artefact at all, and says so — in the
-conformance note of its own driver, and in its parity manifest's `adapters[].note`. The fixture is then answered by its
-**replay half** only: the call is made without the artefact, and the assertions about the Docket row and about the
-model-facing output still hold, because a seam that cannot be handed an approval cannot read one either. What it may
-**not** do is state that the fixture passed with the artefact half unrun and say nothing.
+**Every binding delivers the artefact**, and it delivers it **through the channel its own seam reads history from**.
+That is the whole content of this clause: a fixture that handed the artefact somewhere the seam never looks would be a
+fixture no seam could fail, and the mapping — not the fixture — is where the fact lives. A framework with a history
+channel gets the artefact in that framework's own shape; a framework with **no** history channel gets it as the
+abstract `messages` array on the seam's own options, so that a seam which grew a way to read one would be caught the
+day it did.
 
-The `modelOutput` assertion holds either way, and it is the half that matters: a seam that read an approval out of the
-history and told the model the row was `approved` would leave the Docket row untouched and still be exactly what AZ-5
-forbids. §5.3's `status` is what sees it.
+There is no declaring your way out of it. An implementation that cannot deliver the artefact cannot claim this document,
+and a driver that quietly dropped it would report a pass for the one seam AZ-5 exists to close: a seam that read an
+approval out of the history and told the model the row was `approved` leaves the Docket row untouched, so every
+assertion about the row still holds. §5.3's `status` is what sees it, and only if the artefact arrived.
 
 ## 5. The `expect` clauses of this section
 
@@ -308,7 +313,7 @@ failing fixture like any other: it is listed, with a disposition and a detail a 
 
 ## 7. The index
 
-[`fixtures/MANIFEST.json`](fixtures/MANIFEST.json), section `"adapter"`, lists all ten documents with its `id`, its
+[`fixtures/MANIFEST.json`](fixtures/MANIFEST.json), section `"adapter"`, lists all twelve documents with its `id`, its
 `file`, the `rules` it checks, the `set` it belongs to, and its `oracle` — `null` on every row here, with
 `acceptedOnReview: true` beside it. There is no negative oracle for this section: the fixtures were authored with the
 first adapter, so there is no earlier release of an adapter whose recorded defect they refute. They are accepted on

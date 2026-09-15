@@ -385,10 +385,8 @@ the entry it supersedes, prefilled from the preserved amendments (each prefilled
 superseded entry keeps its terminal state and records its successor; an entry that is not `expired` cannot be resubmitted.
 The row keeps the Affidavit **as proposed** (never edited) and, once an amendment is accepted, the accepted state as a separate
 `amendedAffidavit`, plus the name of the tool that proposed it. **A successor and a preserved late amendment are each
-recorded once**: a second record, *whatever it carries*, changes nothing and returns the entry as it stands. The point is
-not that the second record repeats the first — a second late decision carries different amendments, and a second
-supersession would name a different successor — but that the first one is the record and a later one does not displace
-it (DK-4: a recorded fact is never edited in place). `deferred` and the referral outcome (an entry handed to
+recorded once**: a second record, *whatever it carries*, changes nothing and returns the entry as it stands — the first
+one is the record, and a later one does not displace it (DK-4: a recorded fact is never edited in place). `deferred` and the referral outcome (an entry handed to
 another reviewer) are **reserved**: `ReferralRequired` and `MultiParty` verdicts file `pending` with a `blocked` marker
 (AZ-4) in v0.1. This clause is the design authority the next .NET release adopts, not a description of it; the reservation
 exists because those transitions have not run anywhere yet, and any fixture that names one is deleted back to *reserved* if
@@ -717,12 +715,14 @@ holding the fixtures back for work nobody has scheduled.
 ## Changelog
 
 - 2026-09-15 — **v0.2.0: the first adapter, and the three coverage rules it was owed.** `conformance/fixtures/adapter/`
-  carries ten fixtures in a manifest section of its own, authored here against the first adapter
-  (`@affiant/adapter-ai-sdk`, `Sakwala/affiant-ts`): seven for CV-2's fail-closed call site — a write tool called with an
+  carries twelve fixtures in a manifest section of its own, authored here against the first adapter
+  (`@affiant/adapter-ai-sdk`, `Sakwala/affiant-ts`): nine for CV-2's fail-closed call site — a write tool called with an
   explicit context files `pending`; the same call with no context is refused `wireup-invalid`, files nothing and hands
   the framework nothing; a **second** call with no context, on a set whose first call succeeded, is refused the same way;
-  a **malformed** context is refused as a missing one is; a write and a read against a gate that cannot be reached each
-  throw; and a read with no context is refused before the host's own function runs — and three for CV-3's delegation
+  a **malformed** context is refused as a missing one is, and so is one that is a complete turn context in the wrong
+  shape, which is what pins that the value is passed through rather than repaired; a write and a read against a gate that
+  cannot be reached each throw; a read with a context reaches the host's own function and returns what it answered; and a
+  read with no context is refused before that function runs — and three for CV-3's delegation
   clause: the model-facing output of a filing carries an entry id and field *names* and no sworn value anywhere in its
   text, the Docket row read back with nothing from the framework in hand still carries the Affidavit, and a framework
   approval artefact replayed at the seam changes nothing and is told to nobody. Every one is model-free and
