@@ -1,0 +1,5 @@
+{
+  "outcome": "fail",
+  "why": "a package with no documentation cannot state the boundary",
+  "mentions": "no README.md"
+}

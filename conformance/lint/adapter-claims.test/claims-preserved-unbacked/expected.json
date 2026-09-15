@@ -1,0 +1,5 @@
+{
+  "outcome": "fail",
+  "why": "'preserved ... redeploys' is a durability claim about rows",
+  "mentions": "durability claim"
+}

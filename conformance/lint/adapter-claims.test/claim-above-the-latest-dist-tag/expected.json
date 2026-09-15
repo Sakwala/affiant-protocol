@@ -1,0 +1,5 @@
+{
+  "outcome": "fail",
+  "why": "the claim rests on a version `latest` has not reached",
+  "mentions": "dist-tag"
+}

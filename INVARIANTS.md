@@ -1,6 +1,7 @@
 # INVARIANTS — the rules every Affiant implementation enforces
 
-**Status: v0.1 text** (2026-09-04), written against a working implementation. Every rule has a permanent id, a full
+**Status: v0.2 text** (the v0.1 text of 2026-09-04, amended 2026-09-15 — see the changelog), written against a working
+implementation. Every rule has a permanent id, a full
 statement in RFC 2119 words, the reason where it is not obvious, and a *Checked by* line naming the fixtures, suites or lints
 that fail when the rule is broken. The skeleton of 2026-09-04 carried the same ids as one-liners; nothing was renumbered.
 This text lands **ahead of** the v0.1 schemas and the `conformance/` suite; where a rule says "until the v0.1 schema …" it
@@ -21,9 +22,10 @@ pass and why.
 
 **How to read a rule.** `<AREA>-<n>` is the id (areas below). **MUST** / **MUST NOT** / **SHOULD** / **MAY** are RFC 2119
 words. *Why:* one line where the reason is not obvious. *Checked by:* the conformance fixture ids (`gate/…`, `decide/…`,
-`sequence-a/…`, `sequence-c/…`, `canonical/…`) that fail when the rule is broken, and — beside them, never instead of them —
-the hand-written suites (`suite:`), lints (`lint:`) or guards (`guard:`) of the reference implementation that check what a
-declarative fixture cannot. *Constrains:* a `wire/` seed example whose *shape* the rule governs (a `wire/` citation never
+`sequence-a/…`, `sequence-c/…`, `canonical/…`) and, from v0.2.0, the adapter fixture ids (`adapter/…`, run only by an
+implementation that ships and declares an adapter — `conformance/ADAPTER-RUNNER.md`) that fail when the rule is broken, and —
+beside them, never instead of them — the hand-written suites (`suite:`), lints (`lint:`) or guards (`guard:`) of the
+reference implementation that check what a declarative fixture cannot. *Constrains:* a `wire/` seed example whose *shape* the rule governs (a `wire/` citation never
 means "checked here"). *Source:* where the rule was decided or where the shipped .NET behaviour it corrects lives, for a
 reader who wants to check.
 
@@ -39,13 +41,19 @@ the fixtures that must fail on each, and the shipped defect each refutes, are li
 before it is accepted — a fixture a broken implementation passes is not a test. A fixture no known release violates (the
 canonical vectors, the relay sequences) is accepted on review and named as such in the manifest.
 
-**Coverage lint (runs both ways, from v0.1):** a rule with zero conformance fixtures fails the lint; a fixture citing a rule
-id that does not exist fails the lint. A `suite:` / `lint:` / `guard:` entry does **not** satisfy the lint — it is a
-supplement. A rule may be exempt only by name in the lint's exemption file (`conformance/lint/coverage-exemptions.json`)
-with a version and a reason. The v0.1 exemptions: SR-5 (exempt by construction); CV-2, CV-3, CV-5 (text complete at v0.1;
-their fixtures arrive with the first adapter at v0.2); AF-5, SR-3 (schema-level rules — checked by the schema lint over the
-fixtures, not by a declarative gate fixture); RT-1, RT-2, RT-3 (runtime rules — checked by the CI matrix, a budget suite and a
-source lint); TL-1, TL-2 (registry rules — checked by the registry suites). Nothing else is exempt.
+**Coverage lint (runs both ways, from v0.1):** a rule with zero fixtures fails the lint; a fixture citing a rule
+id that does not exist fails the lint. A `suite:` or `guard:` entry does **not** satisfy the lint — it names something in an
+implementation's own repository, which this lint can neither run nor see, so it is a supplement. A `lint:` entry naming a
+script **under `conformance/lint/` in this repository** does satisfy it, and nothing else does: that script runs in this
+repository's CI beside the coverage lint itself. CV-5 is the rule that needs it — a statement about an adapter package's
+documentation and its declared dist-tags is not a thing a fixture can observe — and the alternative would be exempting it for
+good and calling that coverage. A rule may be exempt only by name in the lint's exemption file
+(`conformance/lint/coverage-exemptions.json`) with a version and a reason. The exemptions from v0.2.0: SR-5 (exempt by
+construction); AF-5, SR-3 (schema-level rules — checked by the schema lint over the fixtures, not by a declarative gate
+fixture); RT-1, RT-2, RT-3 (runtime rules — checked by the CI matrix, a budget suite and a source lint); TL-1, TL-2 (registry
+rules — checked by the registry suites). Nothing else is exempt. CV-2, CV-3 and CV-5 were exempt at v0.1 with
+`until: "0.2.0"` and are not exempt from v0.2.0: the adapter fixtures and the adapter claims lint arrived with the first
+adapter, which is what those rows promised.
 
 **Areas.** `AF` Affidavit shape · `PV` provenance and bindings · `GT` the gate pipeline · `DK` the Docket, states and expiry ·
 `AZ` authorization, attestation and requirement levels · `SR` serialization and the wire · `RT` runtime neutrality and the
@@ -376,7 +384,9 @@ the entry it supersedes, prefilled from the preserved amendments (each prefilled
 `reviewer-act` binding to that act), with an id derived from the superseded entry's id so a repeated resubmit replays; the
 superseded entry keeps its terminal state and records its successor; an entry that is not `expired` cannot be resubmitted.
 The row keeps the Affidavit **as proposed** (never edited) and, once an amendment is accepted, the accepted state as a separate
-`amendedAffidavit`, plus the name of the tool that proposed it. `deferred` and the referral outcome (an entry handed to
+`amendedAffidavit`, plus the name of the tool that proposed it. **A successor and a preserved late amendment are each
+recorded once**: a second record, *whatever it carries*, changes nothing and returns the entry as it stands — the first
+one is the record, and a later one does not displace it (DK-4: a recorded fact is never edited in place). `deferred` and the referral outcome (an entry handed to
 another reviewer) are **reserved**: `ReferralRequired` and `MultiParty` verdicts file `pending` with a `blocked` marker
 (AZ-4) in v0.1. This clause is the design authority the next .NET release adopts, not a description of it; the reservation
 exists because those transitions have not run anywhere yet, and any fixture that names one is deleted back to *reserved* if
@@ -389,7 +399,10 @@ be flipped after the fact is an audit record that lies. *Checked by:* `decide/ap
 `decide/execution-recorded-once`, `decide/execution-second-report-refused`, `decide/resubmit-prefills`,
 `sequence-a/approve-round-trip`, `sequence-a/reject-round-trip`, `sequence-a/expiry-then-resubmit`,
 `sequence-a/late-amendments-preserved`, `sequence-a/replay-keeps-the-deadline`,
-`sequence-a/mandatory-field-reviewer-approves`. *Constrains:* `wire/docket-expiring`,
+`sequence-a/mandatory-field-reviewer-approves`; the once-only sentence by the store contract's cases
+`deadline/preserves-the-first-record-not-the-second` and `lineage/keeps-the-first-successor-not-the-second`
+(`suite: @affiant/core/testing` store contract), each of which files a *second, different* record and asserts the first
+one stands. *Constrains:* `wire/docket-expiring`,
 `wire/docket-expired` (notification shapes). *Source:* `ReviewStatus` and `DocketEntry` in `Affiant.Abstractions`; the host
 vocabulary `approved | rejected | expired | resubmitted` in `wire/action-decision-result` (a host payload).
 
@@ -414,10 +427,21 @@ paging`; `suite: docket/runtime (the core owns no timer)`.
 stream; the portable document shape is reserved for v0.2 — see *Reserved*) operations the host implements. A recorded fact
 is never edited in place — later facts are appended: the accepted amendment state, the execution outcome, a preserved late
 amendment, supersession. **Retention never ages out an `approved` + `unexecuted` row**, however old: it is the only record
-that a write was authorised and has not happened (AZ-5). No field of an Affidavit is redacted by the framework; a host that
-must redact does so before filing and the tag records it.
+that a write was authorised and has not happened (AZ-5). **Retention removes a terminal row — other than an `approved` +
+`unexecuted` row, which the sentence before this one keeps however old — whose terminal instant is strictly before
+`olderThan`; a row whose terminal instant equals `olderThan` is kept.** A row's **terminal instant** is the instant it
+left `pending`: the decision instant for a row a person or a policy decided, and `expiresAt` for a row that expired,
+swept or not (DK-1 reads expiry as a state, so a row that nobody swept has the same terminal instant as one that was
+swept late). No field of an Affidavit is redacted by the framework; a host that must redact does so before filing and
+the tag records it.
+*Why (the boundary):* "older than" excludes the instant itself, and a boundary nobody wrote down is a boundary two
+implementations settle differently. The carve-out is named inside the sentence rather than left to the reader because
+an `approved` + `unexecuted` row *is* terminal and *is* eventually older than any cut, so a rule stated over "a terminal
+row" alone would contradict the clause above it.
 *Checked by:* `decide/amend-recompute`, `decide/execution-recorded-once`, `decide/execution-second-report-refused`;
-`suite: docket/memory retention keeps approved-unexecuted, purge, export order`.
+`suite: docket/memory retention keeps approved-unexecuted, purge, export order`; the retention boundary by the store contract
+in `@affiant/core/testing`, which every store implementation runs (`suite: @affiant/core/testing` store contract,
+`retention/keeps-a-row-whose-terminal-instant-is-the-cut`).
 
 ### DK-5 — Rehydration order is fixed *(v0.1)*
 **MUST.** A session store rehydrates `pending` entries first, then `approved` + `unexecuted` entries, each in filing order and
@@ -616,15 +640,17 @@ filter; it calls the gate directly with an explicit turn context (GT-2) and thro
 silently returns the raw proposal as the tool result when the gate is absent is non-conformant. The reference implementation
 exposes nothing ambient for a seam to reuse.
 *Why:* the shipped .NET filter returns at debug-log level in three branches, leaving the model free to report an unfiled
-write as done (`src/Affiant.Core/Filters/ReviewGateFilter.cs`). *Checked by:* exempt by name until v0.2 (the adapter fixtures
-arrive with the first adapter); today `suite: the published surface exports no executor` shows the reference implementation
-exposes no ambient accessor.
+write as done (`src/Affiant.Core/Filters/ReviewGateFilter.cs`). *Checked by:* `adapter/cv2-write-with-context-files`,
+`adapter/cv2-write-without-context-refuses`, `adapter/cv2-gate-absent-throws`,
+`adapter/cv2-read-without-context-never-runs`; `suite: the published surface exports no executor` shows the reference
+implementation exposes no ambient accessor.
 
 ### CV-3 — The delegation clause: what a host framework may own *(v0.1)*
 **MAY / MUST NOT.** An implementation may delegate turn durability and transport rendezvous to a host framework; it never
 delegates entry identity, the guarded compare-and-set (DK-1), expiry-as-queryable-state, or resubmission lineage. A framework
 checkpoint may carry an `entryId` and nothing else; the Affidavit is never read back out of a checkpoint; the Docket row is
-the source of truth. *Checked by:* exempt by name until v0.2 (adapter fixtures, with the first adapter). *Note:* DK-5's
+the source of truth. *Checked by:* `adapter/cv3-model-output-carries-no-values`,
+`adapter/cv3-docket-row-survives-history`, `adapter/cv3-replayed-approval-changes-nothing`. *Note:* DK-5's
 fixture shows rehydration reads the store, not a checkpoint.
 
 ### CV-4 — Coverage refusal *(v0.1)*
@@ -640,8 +666,11 @@ proposed it so coverage can be re-assessed on resubmission.
 ### CV-5 — No durability claim rests on a non-`latest` dist-tag of a third-party runtime *(v0.1)*
 **MUST NOT.** An adapter may surface a pending entry through a runtime's approval mechanism, but any claim that a pause
 survives a process restart rests only on runtime features published under the `latest` dist-tag with the provider pinned at
-build time; otherwise the Docket row alone is the durable state. *Checked by:* exempt by name until v0.2 (an adapter
-documentation lint, with the first adapter).
+build time; otherwise the Docket row alone is the durable state. *Checked by:* `lint:
+conformance/lint/adapter-claims.mjs` — the adapter documentation lint of `conformance/ADAPTER-CLAIMS.md`, which reads an
+adapter package's declared claims and its README against the runtime's published dist-tags. No fixture can observe a
+statement about documentation and packaging, which is why this rule's check is a lint and why the coverage lint accepts one
+that lives in this repository.
 
 ---
 
@@ -668,21 +697,57 @@ to exist is corrected here, never invented on the wire. *Checked by:* `suite: te
 
 ---
 
-## Reserved for v0.2 and later
+## Reserved for v0.3 and later
 
-- **Attestation export** — the portable document shape (a file an adopter hands to an auditor), PROV-O aligned (v0.2).
-- **`MultiParty` and multi-step review semantics**, and the referral outcome — taken from a running host, not a whiteboard
-  (v0.2).
-- **Adapter fixtures** (CV-2, CV-3, CV-5) — with the first adapter (v0.2).
-- **The queued-inference fixture** (AZ-6) (v0.2).
-- **`binding` promoted from SHOULD to MUST** (PV-2, v0.2).
+Every item here was reserved "for v0.2 and later" at v0.1. The one with an adapter dependency — the adapter fixtures —
+arrived at v0.2.0 and left this list; the rest have none, and no consumer is waiting on them, so they moved rather than
+holding the fixtures back for work nobody has scheduled.
+
+- **Attestation export** — the portable document shape (a file an adopter hands to an auditor), PROV-O aligned.
+- **`MultiParty` and multi-step review semantics**, and the referral outcome — taken from a running host, not a whiteboard.
+- **The queued-inference fixture** (AZ-6).
+- **`binding` promoted from SHOULD to MUST** (PV-2).
 - **The `ErrorCode` registry schema** (fixes the three provisional names) and **the telemetry-key registry schema** (with
   the v0.1 schemas).
 - **The two confidence companions on the Affidavit schema** and **the `$type` → `kind` rename** (with the v0.1 schemas).
-- **Declarative policy schema** (v0.3).
+- **Declarative policy schema**.
 
 ## Changelog
 
+- 2026-09-15 — **v0.2.0: the first adapter, and the three coverage rules it was owed.** `conformance/fixtures/adapter/`
+  carries twelve fixtures in a manifest section of its own, authored here against the first adapter
+  (`@affiant/adapter-ai-sdk`, `Sakwala/affiant-ts`): nine for CV-2's fail-closed call site — a write tool called with an
+  explicit context files `pending`; the same call with no context is refused `wireup-invalid`, files nothing and hands
+  the framework nothing; a **second** call with no context, on a set whose first call succeeded, is refused the same way;
+  a **malformed** context is refused as a missing one is, and so is one that is a complete turn context in the wrong
+  shape, which is what pins that the value is passed through rather than repaired; a write and a read against a gate that
+  cannot be reached each throw; a read with a context reaches the host's own function and returns what it answered; and a
+  read with no context is refused before that function runs — and three for CV-3's delegation
+  clause: the model-facing output of a filing carries an entry id and field *names* and no sworn value anywhere in its
+  text, the Docket row read back with nothing from the framework in hand still carries the Affidavit, and a framework
+  approval artefact replayed at the seam changes nothing and is told to nobody. Every one is model-free and
+  network-free. The adapter documents are a **separate variant** of `conformance/fixture.schema.json` from the
+  conformance ones, so neither section can state the other's step kinds or clauses: a key a section's own runner does
+  not read is a key nobody checks.
+  `conformance/ADAPTER-RUNNER.md` is the contract a driver implements for them: the conformance fixture format with two
+  step kinds of its own, `adapter-build` and `adapter-call`, and matchers over the call's outcome, the Docket afterwards
+  and what the framework was handed. `conformance/DRIVER.md` and `conformance/PARITY.md` scope the section at the section
+  level — a driver runs it once for every adapter its implementation ships and declares, and an implementation that ships
+  none runs none and declares `adapters: []` — and `conformance/parity/MANIFEST.schema.json` gains that optional
+  `adapters[]`. CV-5 is a lint rather than a fixture, because no fixture can observe a statement about documentation and
+  packaging: `conformance/lint/adapter-claims.mjs` and `conformance/ADAPTER-CLAIMS.md` read an adapter package's declared
+  durability claims and its README against the runtime's published dist-tags, and the coverage lint now accepts a `lint:`
+  citation naming a script in this repository — **and only where a workflow under `.github/workflows/` actually invokes
+  it**, because a script nobody runs checks nothing. That lint carries a corpus of its own
+  (`conformance/lint/adapter-claims.test/`) which this repository's CI runs with `--self-test`. The three exemptions that
+  read `until: "0.2.0"` — CV-2, CV-3, CV-5 — are removed from `conformance/lint/coverage-exemptions.json`, and a parity
+  manifest read at v0.2.0 or later must carry an `exemptions[]` equal to that file as of its own tag. Two sentences were
+  added to rules the store work found silent: DK-4 says retention removes a terminal row — other than an `approved` +
+  `unexecuted` one — whose terminal instant is strictly before `olderThan` and keeps one whose instant equals it, and
+  defines the terminal instant; and DK-1 says a successor and a preserved late amendment are each recorded once, a
+  second record changing nothing whatever it carries. The remaining "Reserved for v0.2 and later" items moved
+  to a new "Reserved for v0.3 and later" heading. **No wire shape, no schema under `schemas/0.1.0/`, no canonical vector
+  and no existing conformance fixture changed**, and `protocolVersion` stays `"0.1.0"`.
 - 2026-09-04 — skeleton opened: every decided clause as a one-liner with a permanent id; GT-2, DK-1, SR-1, SR-2 written in full.
 - 2026-09-04 — GT-5 gains the mandatory-`Empty` clause (a Standing Order never fires over a required field with unknown
   provenance), found necessary by the TypeScript core's Sequence A fixtures.

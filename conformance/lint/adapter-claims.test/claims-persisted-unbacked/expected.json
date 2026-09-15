@@ -1,0 +1,5 @@
+{
+  "outcome": "fail",
+  "why": "'persisted' is a durability word the first phrase list missed",
+  "mentions": "durability claim"
+}

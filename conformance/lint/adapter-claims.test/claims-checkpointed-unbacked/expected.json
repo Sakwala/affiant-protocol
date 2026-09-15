@@ -1,0 +1,5 @@
+{
+  "outcome": "fail",
+  "why": "'checkpointed' is a durability word the first phrase list missed",
+  "mentions": "durability claim"
+}

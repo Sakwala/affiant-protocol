@@ -1,0 +1,5 @@
+{
+  "outcome": "fail",
+  "why": "an unbacked 'survives a restart' claim",
+  "mentions": "durability claim"
+}

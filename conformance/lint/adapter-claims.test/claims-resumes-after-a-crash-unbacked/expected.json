@@ -1,0 +1,5 @@
+{
+  "outcome": "fail",
+  "why": "'resumes ... crash' is a durability claim about work",
+  "mentions": "durability claim"
+}
