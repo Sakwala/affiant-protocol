@@ -143,8 +143,8 @@ directory, index or approval step.
 
 ## What you get
 
-The 61 fixtures and seven canonical vectors as a test suite from day one, in a format that assumes nothing about your
-language. The numbered rules as your design, already argued through and cited against the defects they correct. A row
+The 61 fixtures and seven canonical vectors as a test suite from day one — and, if you ship an adapter, the ten of the
+adapter section as well — in a format that assumes nothing about your language. The numbered rules as your design, already argued through and cited against the defects they correct. A row
 in the README table once your manifest lands. And the right to call what you built an "Affiant implementation" alongside
 the two that exist today — a .NET implementation shipped as ten NuGet packages, and a TypeScript implementation complete
 in its own repository for two of the rulebook's sequences and published to npm under the `alpha` tag.

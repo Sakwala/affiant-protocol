@@ -149,9 +149,9 @@ every adapter its implementation ships and declares**, and an implementation tha
 | `package` | The adapter package, by the name a reader installs it under. |
 | `version` | The version of it the run exercised — one a reader can install and reproduce this against. |
 | `runtime` | The host framework it is for, by the name its own registry knows it by: the `affiant.adapter.runtime` of the adapter's own `package.json` ([`ADAPTER-CLAIMS.md`](ADAPTER-CLAIMS.md)). |
-| `runtimeVersion` | The version of that framework the run resolved and ran against. CV-5 is about a claim resting on a version pinned at build time, so the version a run *measured* is worth more than the range a package declares. |
+| `runtimeVersion` | **Required.** The version of that framework the run resolved and ran against. CV-5 is about a claim resting on a version pinned at build time, so the version a run *measured* is worth more than the range a package declares — and a row naming none is a claim nobody can reproduce. |
 | `fixtures` | How many documents of the adapter section this adapter's run covered. |
-| `claimsLint` | What [`lint/adapter-claims.mjs`](lint/adapter-claims.mjs) said about the package — `"pass"`, `"fail"`, or `"skipped"` for a run made with `--offline`, which verifies the declaration and the README but checks no claim against a published dist-tag. The lint needs the registry, so it runs in the adapter's own continuous integration and its verdict is carried here. |
+| `claimsLint` | **Required.** What [`lint/adapter-claims.mjs`](lint/adapter-claims.mjs) said about the package — `"pass"`, `"fail"`, or `"skipped"` for a run made with `--offline`, which verifies the declaration and the README but checks no claim against a published dist-tag. The lint needs the registry, so it runs in the adapter's own continuous integration and its verdict is carried here. A row that answered nothing about CV-5 would leave a reader to assume it passed. |
 
 **What a `v0.2` manifest must carry.** A manifest whose `protocolTag` reads `v0.2.0` or later is named
 `parity/<implementation>-v0.2.json`, and beside everything a `v0.1` manifest carries it states:
@@ -160,9 +160,12 @@ every adapter its implementation ships and declares**, and an implementation tha
    manifest read at `v0.2.0` or later; silence is not the same statement as `[]`.
 2. A `failing[]` that is the **union** over the sections the run covered. An adapter fixture that fails is a failing
    fixture like any other, listed by id with a disposition and a detail.
-3. `exemptions[]` **without** CV-2, CV-3 and CV-5. Those three carried `until: "0.2.0"` and were removed from
-   [`lint/coverage-exemptions.json`](lint/coverage-exemptions.json) when the first adapter arrived; a driver builds its
-   list from that file rather than retyping it, so they disappear in the same pull request that moves the pin.
+3. An `exemptions[]` that **equals** [`lint/coverage-exemptions.json`](lint/coverage-exemptions.json) as of the
+   manifest's own `protocolTag` — which at `v0.2.0` means without CV-2, CV-3 and CV-5. Those three carried
+   `until: "0.2.0"` and were removed when the first adapter arrived; a driver builds its list from that file rather
+   than retyping it, so they disappear in the same pull request that moves the pin. The rulebook's lint checks this
+   equality for every manifest read at `v0.2.0` or later and leaves the earlier ones alone, because a manifest is a
+   claim about its own tag: the two `v0.1` manifests list all three and are correct to.
 
 The manifest **format** is unchanged at `schemaVersion: "0.1.0"`: `adapters[]` is an added optional property and every
 document published against an earlier tag still validates. What tells a reader which fields to expect is `protocolTag`,

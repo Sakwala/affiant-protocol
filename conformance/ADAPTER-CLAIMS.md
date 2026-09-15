@@ -41,21 +41,42 @@ In its `package.json`:
 |---|---|
 | `runtime` | The npm package name of the framework this adapter is for. It **must** be one of the package's own `peerDependencies`: CV-5 is about a claim resting on a version the package pins at build time, and a runtime the package does not depend on pins nothing. |
 | `surfaces` | The framework surfaces the adapter supports, by the framework's own names. At least one — an adapter that supports no surface is not an adapter. This is a published fact about the package, so a reader can see what it covers before installing it; the lint checks the shape and not the names, which only the framework can settle. |
-| `durabilityClaims` | Every durability claim the package makes, each `{ feature, since }`: what the claim rests on, and the **runtime version the feature arrived in**. |
+| `durabilityClaims` | Every durability claim the package makes, each `{ feature, since }`: what the claim rests on, and the **runtime version the feature arrived in**. `feature` is not a free string — see §1.1. |
 
 `"durabilityClaims": []` is a complete and ordinary declaration. It says the package claims no durability beyond the
 Docket row — which is what AZ-5 says is true anyway — and it is what the first adapter declares.
+
+### 1.1 The feature names a claim may use
+
+A `feature` is one of two things and nothing else: one of the package's own declared `surfaces`, or one of the runtime
+durability mechanisms below. A free string would make `feature` worthless — an author writes one claim, names it
+anything, and every durability sentence in the README is backed by it — so the list is closed, and the lint reads it
+out of this file, which is why it is data as well as prose.
+
+- `durable-execution` — the runtime persists a suspended run and resumes it in a new process, so a pause outlives the
+  process it began in.
+- `approval-checkpoint` — the runtime persists a pending tool approval on its own side, rather than reconstructing it
+  from a client's message history.
+- `resumable-stream` — the runtime resumes a stream after a disconnect, so a call in flight is not lost with the
+  connection.
+
+A mechanism a runtime offers that this list does not name is added here, with a sentence, in the same pull request that
+declares a claim on it. That is the point of the list: the vocabulary is reviewed once, in the open, rather than a
+sentence at a time in a package nobody reads.
 
 ## 2. What the lint checks
 
 ```
 node conformance/lint/adapter-claims.mjs <package directory>
 node conformance/lint/adapter-claims.mjs <package directory> --offline
+node conformance/lint/adapter-claims.mjs --self-test
 ```
 
 **One: every declared claim, against the runtime's published `latest`.** For each `durabilityClaims` entry the lint
-reads the runtime's dist-tags from the registry (`npm view <runtime> dist-tags --json`) and checks two things:
+reads the runtime's dist-tags from the registry (`npm view <runtime> dist-tags --json`) and checks three things:
 
+- `feature` is one of the names §1.1 allows — one of the package's own declared `surfaces`, or one of the runtime
+  durability mechanisms. A free string is one claim that backs every sentence in the README.
 - `since` is inside the package's own declared peer range. A claim resting on a version a host installing the package
   may not get is a claim the packaging does not support.
 - `since` is at or below the runtime's `latest`. A claim resting on a feature only a `beta`, a `next` or a `canary` tag
@@ -65,49 +86,64 @@ The peer-range forms the lint reads are `^x.y.z`, `~x.y.z`, `>=x.y.z` and an exa
 **failure**, not a pass: a lint that shrugged at a range it did not understand would report "no problems" about a claim
 it never checked.
 
-**Two: the README, against the declared claims.** The lint finds the sentences in the package's `README.md` that claim
-durability, using the fixed phrase list of §3, and fails on any occurrence where `durabilityClaims` is empty. A package
-that claims nothing and says nothing passes; a package that claims something and declares it passes if check one
-passes; a package that *says* it and declares nothing fails, with the sentence quoted and its line named.
+**Two: the README, against the declared claims.** The lint reads the package's `README.md` sentence by sentence (§3) and
+fails on any sentence that reads as a durability claim and names no declared `feature`.
 
-**Exit codes.** `0` when every check passed, `1` when a check failed, and **`2` when the registry could not be read at
-all**. The third is what lets a continuous-integration job fall back to `--offline` on a runner with no route to the
-registry without also swallowing the one failure that fallback cannot see: a claim resting on a version `latest` has not
-reached is precisely what the registry half checks, and a job that retried offline on *any* failure would report CV-5
-green for it.
+**Exit codes.** `0` when every check passed, `1` when a check failed, and **`2` when the registry could not be
+REACHED** — and only then. The third code is what lets an adapter package's continuous integration fall back to
+`--offline` on a runner with no route to the registry without also swallowing the one failure that fallback cannot see:
+a claim resting on a version `latest` has not reached is precisely what the registry half checks. It is a **network
+class** and nothing else — `ENOTFOUND`, `ECONNREFUSED`, `ETIMEDOUT` and their kin. A `404` or a `403` is the registry
+*answering*: the declared runtime is named wrong, or nobody may read it, and either way the declaration is the defect,
+so those exit `1` and no fallback hides them.
 
 **`--offline`** skips the registry read, prints why, and runs everything that needs no network — the declaration's
-shape, the peer-range check and the whole README check. A run that used it has **not** verified any declared claim
-against a published dist-tag, and it says so on the last line, so a result recorded from an offline run is recorded
-honestly. Where a package declares no claims there is nothing the registry half could have checked, and the two runs
-say the same thing.
+shape, the feature names, the peer-range check and the whole README check. A run that used it has **not** verified any
+declared claim against a published dist-tag, and it says so on the last line, so a result recorded from an offline run
+is recorded honestly. Where a package declares no claims there is nothing the registry half could have checked, and the
+two runs say the same thing.
 
-## 3. The phrase list
+**`--self-test`** runs the lint's own corpus in [`lint/adapter-claims.test/`](lint/adapter-claims.test/) — one directory
+per case, each a `package.json`, a `README.md` and an `expected.json` saying what the lint must say about it — and the
+registry classifier's cases beside it. It needs no network, and it is what this repository's CI runs on every push.
+That is not decoration: `INVARIANTS.md` cites this script as CV-5's coverage, and the coverage lint accepts a `lint:`
+citation only where a workflow actually invokes the script. A lint nobody runs checks nothing.
 
-Fixed, and documented here so an adapter author can write to it. A lint over prose that grew a new rule whenever
-somebody found a phrasing it missed would be a lint nobody could predict.
+Every ruling that widened the detector is a case in that corpus, so a later narrowing that would let one of them back
+through turns CI red rather than quietly reducing what CV-5 means.
 
-Every pattern is an **affirmative** form — a subject claiming the thing — rather than the bare words *durable* and
-*survives*:
+## 3. How a sentence is read
 
-| Phrase | What it reads as | Example it catches |
-|---|---|---|
-| `survives … restart / reboot / crash / redeploy / cold start / failover` | that something survives a restart | "a pending approval survives a process restart" |
-| `is / are / stays / remains / becomes durable` | that something is durable | "the paused call is durable" |
-| `durable pause / checkpoint / approval / resumption` (also *durably persisted*, *durably stored*) | that a pause or a checkpoint is a durable one | "a durable checkpoint holds the approval" |
-| `resumes … after a restart / reboot / crash / redeploy` | that something resumes after a restart | "the workflow resumes after a redeploy" |
+A sentence is a **durability claim** when it carries a **durability word** and a **subject word** together, and it is
+**backed** only when it also names a declared claim's `feature` verbatim.
 
-**An occurrence is discounted where the same sentence denies or quotes it first.** The lint looks in the text *before*
-the phrase, in the same sentence, for one of: *no*, *not*, *never*, *cannot*, *can't*, *without*, *nothing*, *neither*,
-*nor*, *unsupported*, *rather than*, *instead of*, *would have to*. Every discounted occurrence is printed with the
-sentence, so a reader checks the discount rather than taking it.
+| | |
+|---|---|
+| **Durability words** | `persist`·, `durable`, `durably`, `durability`, `survive`·, `checkpoint`·, `resume`·, `resumption`, `restore`·, `outlive`·, `preserved`, `restart`(s), `reboot`(s), `crash`(es), `failover`, `cold start`(s), `deploy`(s), `redeploy`(s) |
+| **Subject words** | `pause`(d/s), `pending`, `entry` / `entries`, `approval`(s), `turn`(s), `call`(s), `work`, `row`(s) |
+| **Denials and limits** | `no`, `not`, `never`, `cannot`, `can't`, `without`, `nothing`, `neither`, `nor`, `unsupported`, `rather than`, `instead of`, `would have to`, `does not`, `is not`, `are not`, `alone`, `only` |
 
-That is the whole of the lint's reading of prose, and it is deliberately blunt. It means a README may state the rule —
-"CV-5 says no claim that a pause survives a process restart may rest on a feature that is not published under `latest`"
-— or name a framework's durability as the reason a host would want it, or say that the Docket row is the durable state,
-without any of those reading as a promise. It also means a sentence could be written to slip through. The answer to
-that is that such a sentence would be a false claim somebody put there on purpose, which is not what a lint is for; what
-a lint is for is the sentence written in good faith on a Friday that nobody notices is a promise.
+A sentence carrying one of the third group **before** the durability word is discounted, and every discounted sentence
+is printed with its line and the word that triggered it, so a reader checks the discount rather than taking it. Two
+classes live in that group and both are needed. The **denials** are obvious: a README that states the rule says "no
+claim that a pause survives a process restart may rest on …", which is CV-5 being quoted rather than promised. The
+**limits**, `alone` and `only`, are the other half of the same rule — "the Docket row alone is the durable state" is
+CV-5's own conclusion, and a lint that refused it would force every honest adapter to stop saying the one thing the
+rule wants said.
+
+**Why it is this blunt.** The first version of this lint matched affirmative phrases — "survives a restart", "is
+durable" — and five of six ordinary sentences a real README would carry walked straight past it: *the pause is
+persisted across deploys*, *a pending entry is checkpointed by the runtime*, *an approval outlives the process*,
+*pending rows are preserved across redeploys*, *work resumes after a crash*. A phrase list that has to guess the shape
+of a sentence will always lose that race. This one asks a much blunter question and leans on `feature` to keep it
+honest: **false positives are expected and acceptable**, because the cost of one is a sentence an author rewords or a
+feature an author declares, and the cost of a miss is an adopter told their approval queue is durable on the strength
+of a dist-tag nobody will install.
+
+The cost of the bluntness is stated too: a sentence *could* be written to slip through — "there is no question that a
+pause survives a process restart" — and the answer is that such a sentence would be a false claim somebody put there on
+purpose, which is not what a lint is for. What a lint is for is the sentence written in good faith on a Friday that
+nobody notices is a promise.
 
 ## 4. Where the result is recorded
 
@@ -128,5 +164,9 @@ README's CV-5 paragraph is the other half of the answer: it says that `WorkflowA
 supported, that the durability a workflow offers is the reason a host would reach for it, and that
 `@ai-sdk/workflow`'s own `latest` release requires a peer range only a `beta` dist-tag satisfies — so until a run
 proves otherwise, the Docket row alone is the durable state. Those sentences are the rule being stated, and the lint
-discounts them as such; the empty `durabilityClaims` is the packaging half, and it has nothing for the registry to
-refuse.
+discounts them as such by name and line; the empty `durabilityClaims` is the packaging half, and it has nothing for the
+registry to refuse.
+
+It is also the detector's first real test, and it was run as one: four sentences of that README trip the durability and
+subject words, and all four are discounted with the word and the line printed. A detector that could not read the
+honest README of the first adapter would be a detector nobody could adopt.

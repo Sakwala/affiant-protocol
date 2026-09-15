@@ -15,17 +15,20 @@ The numbered rules an implementation must enforce are [`../INVARIANTS.md`](../IN
 | | |
 |---|---|
 | [`RUNNER.md`](RUNNER.md) | **The fixture format.** Every key, every step kind, every matcher, the strictness rules, the four ports a fixture assumes, and what a run must report. Read this first. |
+| [`ADAPTER-RUNNER.md`](ADAPTER-RUNNER.md) | **The adapter fixture format** (from `v0.2.0`). The same document with two step kinds of its own — `adapter-build`, `adapter-call` — and five matchers over what a call did and what the host framework was handed. Who runs it: an implementation that ships and declares an adapter, once per adapter, and nobody else. |
+| [`ADAPTER-CLAIMS.md`](ADAPTER-CLAIMS.md) | **CV-5's check** (from `v0.2.0`). What an adapter package declares about durability in its own `package.json`, the closed list of feature names a claim may use, and the lint that reads both against the runtime's published dist-tags. |
 | [`DRIVER.md`](DRIVER.md) | **The driver contract.** What an implementation does to run these documents: pin a tag, supply the ports, bind the step kinds, emit the result, assert the parity manifest. |
 | [`PARITY.md`](PARITY.md) | **The parity-manifest format.** How an implementation publishes what it does not pass, and the equality CI asserts. |
 | [`ORACLE.md`](ORACLE.md) | **The negative oracle.** Which fixtures must *fail* against a release known to violate their rule, and the shipped defect each one refutes. |
 | `fixtures/gate/` `fixtures/decide/` `fixtures/sequence-a/` `fixtures/sequence-c/` | **The 61 declarative fixtures.** Fifty-six are promoted from the TypeScript reference implementation ([`fixtures/PROMOTED_FROM`](fixtures/PROMOTED_FROM) names the commit, and the one of them the `v0.1.3` PV-3 amendment changed); the five the amendment arrives with were authored here, because neither implementation had the behaviour to promote from. |
-| `fixtures/canonical/` | **The seven byte vectors** for canonical serialization (SR-1): an input, the amendments accepted on it, and the exact bytes and SHA-256 they produce. |
-| [`fixtures/MANIFEST.json`](fixtures/MANIFEST.json) | **The index**, in three sections: the seed wire examples, the v0.1 schema fixtures, and `"conformance"` — every promoted document with its `id`, `file`, `rules[]`, `set` and `oracle`. A driver runs what this lists. |
+| `fixtures/canonical/` | **The seven byte vectors** for canonical serialization (SR-1): an input, the amendments accepted on it, and the exact bytes and SHA-256 they produce. These are rows of the `"conformance"` section too, so that section is **68 documents**: 61 declarative and 7 vectors. |
+| `fixtures/adapter/` | **The ten adapter fixtures** (from `v0.2.0`), for the three rules that are about an adapter's seam and could not be checked before an adapter existed: seven for CV-2's fail-closed call site and three for CV-3's delegation clause. Model-free and network-free, every one. |
+| [`fixtures/MANIFEST.json`](fixtures/MANIFEST.json) | **The index.** Two sections a driver runs — `"conformance"` (68 documents: 61 declarative and 7 canonical vectors) and `"adapter"` (10) — each row carrying its `id`, `file`, `rules[]`, `set` and `oracle`; and two shape sets that came before the suite, the seed wire examples and the v0.1 schema fixtures. A driver runs every row of `"conformance"`, and every row of `"adapter"` once per adapter it ships and declares. **78 documents in all.** |
 | [`fixture.schema.json`](fixture.schema.json) · [`canonical-vector.schema.json`](canonical-vector.schema.json) | The two document formats as JSON Schema, with the same closed key sets the reference runner enforces. |
 | [`results.schema.json`](results.schema.json) | What a run emits: per fixture an `id`, an `outcome` (`pass` \| `fail` \| `error` \| `skipped`), a `diff` and a duration, plus a summary and the implementation and tag under test. |
 | [`parity/`](parity/) | One parity manifest per implementation, and [`parity/MANIFEST.schema.json`](parity/MANIFEST.schema.json). **The first .NET parity manifest is published: [`parity/dotnet-v0.1.json`](parity/dotnet-v0.1.json)** — 60 failing rows of 63 fixtures run against the shipped packages at `1.0.0-beta.1`, 49 `planned`, 10 `fenced`, 1 `fixed`. |
 | [`results/`](results/) | The runs those manifests are claims about, one directory per implementation and version: [`results/dotnet-1.0.0-beta.1/`](results/dotnet-1.0.0-beta.1/) holds the machine-readable run, the oracle reading of it, and its provenance. |
-| [`lint/`](lint/) | The lint that runs over all of it in CI. |
+| [`lint/`](lint/) | **Two lints, and both run in this repository's CI.** [`lint/lint.mjs`](lint/lint.mjs) runs over everything in this directory on every push — the schemas, both fixture sections, the oracle, rule coverage, the published manifests and runs. [`lint/adapter-claims.mjs`](lint/adapter-claims.mjs) is CV-5's check over an adapter package; it reads the npm registry, so an adapter's *own* CI runs it against that package, and this repository's CI runs it against the corpus in [`lint/adapter-claims.test/`](lint/adapter-claims.test/) with `--self-test`. The coverage lint accepts a `lint:` citation only where a workflow actually runs the script. |
 | `fixtures/wire/` · `fixtures/v0.1/` · `fixtures/enum-values.json` | The two **shape** sets that came before the suite. `wire/` are hand-authored examples of the wire one shipped implementation sends today, whose key sets are asserted against that implementation's own serializer; `v0.1/` is at least one positive and at least one negative per v0.1 schema, derived from the reference implementation's output; `enum-values.json` pins the closed string sets as data. They pin shapes, not behaviour. |
 
 ## How a second implementer starts
@@ -78,22 +81,31 @@ It runs in CI on every push and pull request, over everything in this directory:
 - every fixture file on disk is claimed by the manifest exactly once, no id or file is listed twice, every v0.1 schema
   has a fixture and every v0.1 fixture a schema, and every pinned enum set matches the schema's own `enum` exactly, in
   order;
-- **every promoted document validates against its format** — the 61 against `fixture.schema.json`, the 7 against
-  `canonical-vector.schema.json`;
+- **every document validates against its own format variant** — the 61 declarative against
+  `fixture.schema.json#/$defs/conformanceFixture`, the 10 adapter fixtures against
+  `#/$defs/adapterFixture`, the 7 vectors against `canonical-vector.schema.json`. Each section against its own variant
+  and not against the union, because a conformance fixture stating an adapter clause would be stating a key the
+  reference runner never reads — the document would assert nothing about that fact and every implementation would pass
+  it;
 - **the oracle is checked both ways**: every fixture `ORACLE.md` lists has a manifest oracle entry carrying one of the
   defect sentences that file states for it, and no manifest entry claims an oracle the table does not list;
 - **rule coverage runs both ways**: every rule in `INVARIANTS.md` must be checked by at least one promoted fixture that
   exists and whose own `rules[]` names it back, and every rule id a fixture names must be a rule that exists. A rule may
   be excused only by name in [`lint/coverage-exemptions.json`](lint/coverage-exemptions.json), with a version and a
-  reason; a `suite:` / `lint:` / `guard:` citation is a supplement and never a substitute. The lint prints the full
-  rule-by-rule report, so what is covered and what is merely claimed is visible in every CI log;
+  reason. A `suite:` or `guard:` citation is a supplement and never a substitute, because it names something in an
+  implementation's own repository that this lint can neither run nor see. A `lint:` citation naming a script under
+  `lint/` **does** count — but only where a workflow under `.github/workflows/` invokes it, because a script nobody
+  runs checks nothing. Fixtures and lints are counted apart in the summary, so how much of the rulebook rests on which
+  is visible rather than folded together. The lint prints the full rule-by-rule report in every CI log;
 - **every published parity manifest and every published run is validated** — `parity/*.json` against
   [`parity/MANIFEST.schema.json`](parity/MANIFEST.schema.json), `results/*/results.json` against
   [`results.schema.json`](results.schema.json) — every fixture id either one names is checked to be one the index lists,
   and where a run and a manifest are about the same implementation and version the run's fail-or-error set must equal
   the manifest's `failing[]` exactly, which is the rule [`PARITY.md`](PARITY.md) states. A manifest whose `protocolTag`
   reads `v0.1.3` or later must also state a `unicodeVersion` on every runtime, because PV-3's neighbour test reads its
-  categories from that runtime's own Unicode database;
+  categories from that runtime's own Unicode database; and one read at `v0.2.0` or later must state `adapters[]` — `[]`
+  where it ships none — and an `exemptions[]` that **equals** [`lint/coverage-exemptions.json`](lint/coverage-exemptions.json)
+  as of its own tag, since an implementation may neither invent an exemption nor keep one the rulebook has lifted;
 - **the matchers inside the fixtures are checked against the v0.1 wire schemas as partials** — only the keys a matcher
   states, each against that key's own subschema, with requirements relaxed. Most of what this reports is not a defect (a
   matcher key may be a projection, or a reviewer-facing fact the wire does not carry), so those are printed as findings;

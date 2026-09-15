@@ -126,9 +126,17 @@ fixture, each with a version and a reason — schema-level rules checked by the 
 CI matrix and a source lint, registry rules checked by registry suites. A driver **copies** those entries into
 `exemptions[]` in its manifest, so a reader of that document alone knows which rules no fixture in the run covers, and
 adds `checkedInstead` naming what it does instead. An implementation may not invent an exemption: exempting yourself
-from a rule is not a parity report, it is a press release. A driver builds the list from the file rather than retyping
-it, so a rule the rulebook stops excusing stops appearing in the same pull request that moves the pin — which is what
-happened at v0.2.0 to CV-2, CV-3 and CV-5.
+from a rule is not a parity report, it is a press release. And it may not keep one either.
+
+**The rule, and what it is measured against.** A manifest's `exemptions[]` must equal
+[`lint/coverage-exemptions.json`](lint/coverage-exemptions.json) **as of the manifest's own `protocolTag`** — not as of
+today. A manifest is a claim about one tag, so a manifest read at `v0.1.3` listing CV-2, CV-3 and CV-5 is *correct*:
+those rows were in the file at that tag, and they were lifted at `v0.2.0`. The rulebook's lint compares the two for
+every manifest read at `v0.2.0` or later, and leaves the earlier ones alone for that reason.
+
+The practical form of the rule is one line: a driver **builds** the list from the vendored file rather than retyping it,
+so a rule the rulebook stops excusing stops appearing in the same pull request that moves the pin. That is what happened
+at `v0.2.0` to CV-2, CV-3 and CV-5.
 
 ---
 

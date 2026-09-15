@@ -25,6 +25,20 @@ jobs:
 
       # Both fixture sets, both schema directories: the seed examples against
       # `schemas/`, and the v0.1 fixtures against `schemas/0.1.0/` — where a
-      # positive must validate and a negative must fail.
+      # positive must validate and a negative must fail. Both fixture sections of
+      # the conformance index are read here too, each against its own variant of
+      # `fixture.schema.json`.
       - name: Lint fixtures
         run: node conformance/lint/lint.mjs
+
+      # CV-5's check, against its own corpus in `conformance/lint/adapter-claims.test/`
+      # — a package per case and what the lint must say about it. It needs no network.
+      #
+      # This step is not decoration. `INVARIANTS.md` cites this script as CV-5's
+      # coverage, and the coverage lint accepts a `lint:` citation only where a
+      # workflow under `.github/workflows/` actually runs the script: a lint nobody
+      # executes checks nothing, and a rule whose only coverage is an unrun file has no
+      # coverage at all. Removing this step turns the coverage lint red, which is the
+      # arrangement working.
+      - name: Adapter claims lint, against its own corpus (CV-5)
+        run: node conformance/lint/adapter-claims.mjs --self-test

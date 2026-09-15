@@ -1,14 +1,20 @@
 # ADAPTER-RUNNER — the adapter fixture format
 
-**What this file is.** The complete description of the documents in `fixtures/adapter/` — seven JSON files, each one a
+**What this file is.** The complete description of the documents in `fixtures/adapter/` — ten JSON files, each one a
 wiring, a tool set an adapter built, a call through it, and what must then be true. It is written so that somebody who
 has written an Affiant adapter for a framework nobody here has used can read this file, bind these documents to their
 own adapter, and publish what the run said in their implementation's parity manifest.
 
-**Read [`RUNNER.md`](RUNNER.md) first.** An adapter fixture *is* a conformance fixture: the same document, the same
-`given` and `expect`, the same strictness, the same partial matchers, validated against the same
-[`fixture.schema.json`](fixture.schema.json). This file describes only what is different — two step kinds and five
-`expect` clauses — and the one thing about the section as a whole that a driver has to get right.
+**Read [`RUNNER.md`](RUNNER.md) first.** An adapter fixture is a conformance fixture with two step kinds and five
+`expect` clauses of its own: the same document, the same `given`, the same strictness, the same partial matchers. This
+file describes only what is different, and the one thing about the section as a whole that a driver has to get right.
+
+The two shapes are **separate variants** of [`fixture.schema.json`](fixture.schema.json) —
+`#/$defs/conformanceFixture` and `#/$defs/adapterFixture` — and the lint validates each manifest section against its
+own. That is not tidiness. A conformance fixture stating `hostExecuteRan`, or an `adapter-call` step, would be stating a
+key the reference runner never reads: the document would assert nothing about that fact and every implementation, one
+that does nothing included, would pass it. So a conformance fixture carrying an adapter step or an adapter clause is
+**refused**, and so is an adapter fixture pretending to be a conformance one.
 
 **What an adapter is.** The code that puts the Affiant gate between a host framework's tool-calling loop and the writes
 a model proposes through it. A host hands the adapter its tool definitions; the adapter hands back the framework's own
@@ -56,7 +62,10 @@ Everything in `RUNNER.md` that the two extra step kinds do not replace:
   `conversationId`, `entry`, `refusal`;
 - **the eight conformance step kinds are all legal here.** An adapter fixture whose story is "file through the seam,
   then read the row back" uses `adapter-build`, `adapter-call` and then `get`, which is exactly what
-  `adapter/cv3-docket-row-survives-history` does;
+  `adapter/cv3-docket-row-survives-history` does. A driver binds the kinds its own fixtures use; one it has **not**
+  bound is an `error` outcome and it counts against the implementation exactly like a failure (`RUNNER.md` §8), in the
+  step under test and in any `prior` step alike. Never a pass, and never a silent skip — a document whose scene was
+  never set is a document whose expectations mean nothing;
 - every `expect` clause of §4, including `entry`, `card`, `store`, `found`, `telemetry` and `canonicalHash`, with the
   matcher semantics of §5;
 - the strictness of §6 — an unknown key anywhere fails the fixture, an `expect` that states no fact fails as vacuous, a
@@ -68,7 +77,12 @@ Everything in `RUNNER.md` that the two extra step kinds do not replace:
 |---|---|---|
 | `kind` | yes | `"adapter-build"`. |
 | `definitions` | yes | The tool definitions the host hands the adapter, in order. §3.1. |
-| `declared` | no | Tools the host declared it cannot intercept **before** the set is built (CV-4): `{ tool, category: "no-execute" \| "provider-executed" \| "hosted-mcp" }`. The same shape as `given.gate.uncovered`, stated here because a declaration is part of how a host wires an adapter. |
+| `declared` | no | Tools the host declared it cannot intercept (CV-4): `{ tool, category: "no-execute" \| "provider-executed" \| "hosted-mcp" }`. The same shape as `given.gate.uncovered`. |
+
+**`declared` is applied through the gate's own declaration entry point, before the set is built**, and the order is the
+whole point: a declaration made afterwards would not have been there when the adapter classified the tool, so a
+write-capable tool in an uncovered category would have been refused at wire-up (CV-1) rather than filed `blocked`
+(CV-4, AZ-4). A driver that applied it later would be running a different fixture.
 
 The step builds the framework's tool set from those definitions, against the gate `given.gate` describes. The set it
 produces is what a later `adapter-call` names a tool in. A fixture may carry more than one `adapter-build`; the last one
@@ -93,6 +107,11 @@ with one addition:
 
 `entityId` `null` or absent means a create-shaped tool. `omitExecute` means the definition carries no host function at
 all — the `no-execute` coverage category.
+
+**`readResult`** is what the host function of a **read** definition returns, stated by the fixture. Without it
+`expect.outcome.result` could not be compared at all: the driver would be choosing the value and then checking its own
+choice, which is not a test of anything. Stating it makes a read's result a fact the document pins. It is meaningless on
+a write-capable definition, whose own function is a tripwire that must never run.
 
 **The driver supplies the host function, and it is a tripwire.** For a **write-capable** definition the function must
 fail the fixture if it is ever called: the gate stands in front of writes and must never perform one (GT-6), and a
@@ -133,9 +152,18 @@ Three values, and the distinction between the second and the third is the whole 
 - **`null`** — the call arrives with no context at all. GT-2 says an adapter that cannot obtain the context at its seam
   refuses, and CV-2 says it never falls back to a shared default, so this call must produce a refusal and must file
   nothing.
+- **`{ "malformed": <any JSON> }`** — the call arrives with something that is not a turn context, and the driver passes
+  that value through as the context exactly as written. GT-2 is about a context an implementation can **read**, not
+  about a property being present, and a format that could only say `null` could not state the case at all: a host that
+  passed `{ turn: { nonsense: true } }` would be refused by an honest seam and silently tolerated by a careless one, and
+  no fixture could tell them apart.
 
 A context the framework's own validation rejects before the adapter sees it is still a refused call: what the fixture
 states is that nothing was filed and the host's function did not run, not which layer said no.
+
+The turn's `messageId` and `utterance` come from the context the fixture states. An adapter may require either to be
+non-empty — a blank message id travels onto an attestation record (AZ-1) where nobody can tell it from an absent one —
+so every fixture in this section states both.
 
 ### 4.2 `gate`
 
@@ -148,12 +176,26 @@ The default, `"present"`, uses the set the `adapter-build` step produced.
 
 ### 4.3 `messages`
 
-The framework's own message history for the call, passed through whatever channel the framework passes it. It exists
-for CV-3: a fixture states it to put a framework-side artefact — an approval response, a replayed tool result, a
-checkpoint — in front of the seam and assert that the adapter reads nothing out of it. An adapter reads no approval, no
-Affidavit and no entry state from a framework's history; the Docket row is the source of truth. A framework with no
-such channel ignores the key, and a fixture that states it is then answered by the rest of its expectations, which are
-about the Docket and not about the framework.
+The framework's own message history for the call, stated **abstractly** so a fixture names no framework:
+
+```jsonc
+"messages": [ { "kind": "framework-approval", "approved": true } ]
+```
+
+`framework-approval` is an approval the framework reconstructed from a client's reply — the path AZ-5 closes. A driver
+maps it to its own framework's shape and passes it through whatever channel that framework passes a history on: the AI
+SDK's driver builds a `tool-approval-response` part and hands it to the call as the SDK would. Naming that shape in the
+fixture would make the document about one framework; naming the artefact makes it about the rule.
+
+**An implementation whose framework has no such channel** cannot replay an artefact at all, and says so — in the
+conformance note of its own driver, and in its parity manifest's `adapters[].note`. The fixture is then answered by its
+**replay half** only: the call is made without the artefact, and the assertions about the Docket row and about the
+model-facing output still hold, because a seam that cannot be handed an approval cannot read one either. What it may
+**not** do is state that the fixture passed with the artefact half unrun and say nothing.
+
+The `modelOutput` assertion holds either way, and it is the half that matters: a seam that read an approval out of the
+history and told the model the row was `approved` would leave the Docket row untouched and still be exactly what AZ-5
+forbids. §5.3's `status` is what sees it.
 
 ## 5. The `expect` clauses of this section
 
@@ -166,9 +208,24 @@ What the call under test did, as the caller saw it. `{ kind, code?, messageConta
 | `kind` | Means |
 |---|---|
 | `filed` | The call returned a write result: a proposal was filed and the caller was handed the entry it produced. |
-| `read` | The call returned a read result. `result`, when stated, is compared for structural equality. |
+| `read` | The call returned a read result. `result`, when stated, is compared for structural equality against the definition's own `readResult` (§3.1). |
 | `refused` | The call produced an Affiant refusal carrying one of the rulebook's codes — whether the seam raised it or returned it as the tool's error result. `code` is compared as a string, exactly, and `messageContains` must appear as a substring of the reason. |
 | `thrown` | The call raised something that is **not** a refusal. This is what CV-2 requires of a seam whose gate is unreachable, and it is a different fact from a refusal: a refusal is the framework being told no in the vocabulary of the rulebook, and a throw is the seam refusing to answer at all. |
+
+**How a driver decides which one it is.** A tool's result is a discriminated union of three kinds (AF-5), and a call
+either returns one or raises. So:
+
+1. the call **raised** an Affiant error — one carrying a rulebook refusal code — and the outcome is `refused` with that
+   code;
+2. the call **raised** anything else, and the outcome is `thrown`;
+3. the call **returned** the write kind, and the outcome is `filed` with the entry id that result carries;
+4. the call **returned** the read kind, and the outcome is `read` with the value;
+5. the call **returned** the error kind, and the outcome is `refused` with its code — the same fact as (1), arriving by
+   the other door, because whether a seam raises a refusal or returns it is the framework's convention rather than the
+   rulebook's.
+
+Anything else the call returned is an `error` outcome for the document: a result that is none of the three kinds is a
+seam this format cannot describe, and reporting a pass for it would be reporting a pass for a shape nobody checked.
 
 The **row** a `filed` call produced is stated through `expect.entry`, the matcher every other fixture uses — a fixture
 that wants to pin the status writes `"entry": { "status": "pending" }`. Two clauses rather than a nested one, because
@@ -176,9 +233,15 @@ that wants to pin the status writes `"entry": { "status": "pending" }`. Two clau
 
 ### 5.2 `entries`
 
-How many rows the Docket holds in the step's own tenant afterwards, as an integer. `0` is the statement a refused call
-makes and is the reason the clause exists: "it was refused" and "it was refused **and nothing was filed**" are different
-claims, and only the second one closes CV-2.
+How many rows the Docket holds in the step's own tenant afterwards, as an integer. The **tenant's whole list** — the
+Docket operation that yields every row of a scope, never narrowed by conversation — because a row filed under a
+conversation the fixture did not expect is exactly the kind of row this clause exists to see.
+
+`0` is the statement a refused call makes and is the reason the clause exists: "it was refused" and "it was refused
+**and nothing was filed**" are different claims, and only the second one closes CV-2. `1` after a second call is the
+statement `adapter/cv2-second-call-without-context-refuses` makes, and it is the one that catches a seam caching the
+first call's context per gate: such a seam refuses nothing and files a second row, and without a second call in the
+document nothing would ever look.
 
 ### 5.3 `modelOutput`
 
@@ -186,20 +249,41 @@ What the framework was handed to put in its own history — the **model-facing**
 host received. Every adapter has both: the host gets the whole gated result, and the model gets a summary, because the
 Affidavit and the Evidence Card must not go back into a transcript (CV-3, AZ-5).
 
+**`"modelOutput": null` is a statement**, and it is the one the refusal fixtures make: the framework was handed
+**nothing at all**. A call that raised — a refusal or a throw — leaves nothing for a framework to put in its history,
+and a seam that instead returned the raw proposal as the tool's result is precisely what CV-2's second sentence
+forbids. Without this clause a refusal fixture observes only that the Docket is empty, and a seam that refused *and*
+handed the model the proposal anyway would pass it.
+
 | Key | What it matches |
 |---|---|
 | `keys` | The **whole** key set of that output, sorted by Unicode code point. Stating it states all of them: an output carrying a key nobody asked for is exactly what this clause is for. |
 | `fields` | The field names the output lists, in order. |
-| `carriesNoFieldValues` | Derived, and the clause the rule is about. `true` asserts two things at once: **no key** anywhere in the output is the name of a field the filing swore to, and **no value** of any such field appears anywhere inside it, at any depth. |
+| `status` | The status the output tells the model the row reads at, which must be the row's own. A seam that read an approval out of the framework's history and told the model `approved` over a `pending` row is what AZ-5 closes, and nothing else in this matcher would see it. |
+| `carriesNoFieldValues` | Derived, and the clause the rule is about. See below. |
+
+**`carriesNoFieldValues` is a check over text, not over structure.** `true` asserts two things:
+
+- **no key** anywhere in the output, at any depth, is the name of a field the filing swore to;
+- **no serialisation of any sworn field's value appears as a substring of the JSON serialisation of the output**.
+
+The second is stated over text on purpose. A structural comparison passes a summary whose `note` reads
+`"priority=High"` — the sworn value is in the framework's history, in a sentence, exactly as surely as it would be as a
+value, and CV-3 does not care which. A value whose JSON serialisation is shorter than three characters is compared as a
+**whole JSON token** instead (that is, the serialisation must not appear as a complete token in the output), because a
+one-character value would otherwise match almost any output and the clause would fail on every document.
 
 An adapter whose framework has no separate model-facing output answers this clause with whatever the framework puts in
 its history, which is then the thing CV-3 is about.
 
 ### 5.4 `frameworkCarries`
 
-Every key of the model-facing output whose value **is** the filed entry's id, stated as the whole list and sorted. CV-3
-says a framework checkpoint may carry an `entryId` and nothing else; `["entryId"]` is that sentence as a matcher, and
-together with `carriesNoFieldValues` it is what "nothing else" means: one pointer back at the Docket, and no copy of
+Every **path** in the model-facing output whose value is the filed entry's id, stated as the whole list and sorted. A
+path is dotted for a nested match and bracketed for an array index — `entryId`, `result.entryId`, `items[0].entryId` —
+so a summary that buried the id somewhere unexpected is named rather than merely counted.
+
+CV-3 says a framework checkpoint may carry an `entryId` and nothing else; `["entryId"]` is that sentence as a matcher,
+and together with `carriesNoFieldValues` it is what "nothing else" means: one pointer back at the Docket, and no copy of
 what the Docket holds.
 
 ### 5.5 `hostExecuteRan`
@@ -221,7 +305,7 @@ failing fixture like any other: it is listed, with a disposition and a detail a 
 
 ## 7. The index
 
-[`fixtures/MANIFEST.json`](fixtures/MANIFEST.json), section `"adapter"`, lists every document with its `id`, its
+[`fixtures/MANIFEST.json`](fixtures/MANIFEST.json), section `"adapter"`, lists all ten documents with its `id`, its
 `file`, the `rules` it checks, the `set` it belongs to, and its `oracle` — `null` on every row here, with
 `acceptedOnReview: true` beside it. There is no negative oracle for this section: the fixtures were authored with the
 first adapter, so there is no earlier release of an adapter whose recorded defect they refute. They are accepted on

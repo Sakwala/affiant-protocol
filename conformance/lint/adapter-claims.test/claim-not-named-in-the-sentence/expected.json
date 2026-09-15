@@ -1,0 +1,5 @@
+{
+  "outcome": "fail",
+  "why": "a declared claim does not back a sentence that does not name it",
+  "mentions": "names no declared feature"
+}

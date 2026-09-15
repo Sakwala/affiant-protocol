@@ -4,7 +4,7 @@
     "CV-2",
     "GT-2"
   ],
-  "title": "The same write tool called with no turn context is refused with wireup-invalid and nothing is filed: a seam that cannot obtain a context refuses rather than falling back to a shared default.",
+  "title": "The same write tool called with no turn context is refused with wireup-invalid, nothing is filed, and the framework is handed nothing at all: a seam that cannot obtain a context refuses rather than falling back to a shared default, and never returns the raw proposal as the tool's result.",
   "given": {
     "clock": "2026-09-15T09:00:00.000Z",
     "store": "memory",
@@ -73,6 +73,7 @@
       "code": "wireup-invalid"
     },
     "entries": 0,
+    "modelOutput": null,
     "hostExecuteRan": false
   }
 }

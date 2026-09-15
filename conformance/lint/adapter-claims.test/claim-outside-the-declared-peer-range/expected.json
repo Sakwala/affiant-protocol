@@ -1,0 +1,5 @@
+{
+  "outcome": "fail",
+  "why": "a host may install a runtime without the feature",
+  "mentions": "peer range"
+}

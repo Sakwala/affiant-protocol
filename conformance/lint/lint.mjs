@@ -67,6 +67,10 @@ const schemaFilesIn = (dir) =>
 for (const name of schemaFilesIn(seedSchemasDir)) ajv.addSchema(readJson(join(seedSchemasDir, name)));
 for (const name of schemaFilesIn(v01SchemasDir)) ajv.addSchema(readJson(join(v01SchemasDir, name)));
 
+// The fixture format is registered by `$id`, so the two variants inside it can be
+// addressed as `<$id>#/$defs/conformanceFixture` and `<$id>#/$defs/adapterFixture`.
+ajv.addSchema(readJson(join(repoRoot, 'conformance', 'fixture.schema.json')));
+
 const compiled = new Map();
 const compile = (schemaRelPath) => {
   if (compiled.has(schemaRelPath)) return compiled.get(schemaRelPath);
@@ -405,7 +409,8 @@ const CHECKED_BY = '*Checked by:*';
 const PROMOTED_SET = /^(gate|decide|sequence-a|sequence-c|canonical|adapter)\//;
 
 /**
- * A citation that names a lint **in this repository**, which counts as coverage.
+ * A citation that names a lint **in this repository**, which counts as coverage — but only
+ * where a workflow actually runs it.
  *
  * The general rule stands: a `suite:` or a `guard:` entry is a supplement, because it lives in
  * an implementation's own repository and this lint cannot run it or even see it. A lint under
@@ -415,8 +420,21 @@ const PROMOTED_SET = /^(gate|decide|sequence-a|sequence-c|canonical|adapter)\//;
  * documentation and its declared dist-tags is not a thing a fixture can observe at all, so the
  * alternative to accepting the lint would be exempting the rule for good and calling that
  * coverage.
+ *
+ * "The script exists" is not that claim. A file nobody runs checks nothing, and a rule whose
+ * only coverage is an unrun script is a rule with no coverage at all — so {@link runsInCi}
+ * reads `.github/workflows/` and the citation counts only where one of them names the script.
  */
 const REPOSITORY_LINT = /^lint:\s*(conformance\/lint\/[A-Za-z0-9._\-/]+\.mjs)$/;
+
+/** Whether a workflow under `.github/workflows/` invokes `scriptPath`. */
+function runsInCi(scriptPath) {
+  const workflows = join(repoRoot, '.github', 'workflows');
+  if (!existsSync(workflows)) return false;
+  return readdirSync(workflows)
+    .filter((name) => name.endsWith('.yml') || name.endsWith('.yaml'))
+    .some((name) => readFileSync(join(workflows, name), 'utf8').includes(scriptPath));
+}
 
 /** Matcher keys whose value is a projection or a derived fact, not a wire property. */
 const DERIVED_MATCHER_KEYS = new Set([
@@ -538,6 +556,13 @@ function atLeastV020(protocolTag) {
  *     states and the implementation's own CI asserts. Checking it here too means the published pair
  *     cannot drift apart in this repository.
  */
+/** The rules `coverage-exemptions.json` excuses right now, sorted. */
+function exemptionRules() {
+  const path = join(repoRoot, 'conformance', 'lint', 'coverage-exemptions.json');
+  if (!existsSync(path)) return null;
+  return (readJson(path).exemptions ?? []).map((entry) => String(entry.rule)).sort();
+}
+
 function checkPublished(section) {
   const parityDir = join(repoRoot, 'conformance', 'parity');
   const resultsDir = join(repoRoot, 'conformance', 'results');
@@ -576,13 +601,33 @@ function checkPublished(section) {
           fail(`parity/${name}: declares a failing fixture the index does not list — ${row.id}`);
         }
       }
-      if (atLeastV020(document.protocolTag) && !Array.isArray(document.adapters)) {
-        fail(
-          `parity/${name}: states no adapters[], and this manifest reads at ` +
-            `${JSON.stringify(document.protocolTag)}. From v0.2.0 a manifest says which adapters the ` +
-            `implementation ships and ran the adapter fixture section for — \`[]\` where it ships none. ` +
-            `Silence is not the same statement as an empty list (conformance/PARITY.md).`,
-        );
+      if (atLeastV020(document.protocolTag)) {
+        if (!Array.isArray(document.adapters)) {
+          fail(
+            `parity/${name}: states no adapters[], and this manifest reads at ` +
+              `${JSON.stringify(document.protocolTag)}. From v0.2.0 a manifest says which adapters the ` +
+              `implementation ships and ran the adapter fixture section for — \`[]\` where it ships none. ` +
+              `Silence is not the same statement as an empty list (conformance/PARITY.md).`,
+          );
+        }
+        // PARITY.md's third requirement of a v0.2 manifest: `exemptions[]` is the
+        // exemption file, copied. The comparison is made only for manifests read at
+        // v0.2.0 or later, because a manifest is a claim AS OF its own tag — the two
+        // v0.1 manifests list CV-2, CV-3 and CV-5 and are correct to, since those rows
+        // were in the file at v0.1.3 and were lifted here.
+        const exempted = exemptionRules();
+        if (exempted !== null) {
+          const stated = (document.exemptions ?? []).map((row) => String(row.rule)).sort();
+          if (JSON.stringify(stated) !== JSON.stringify(exempted)) {
+            fail(
+              `parity/${name}: exemptions[] is ${JSON.stringify(stated)} and the exemption file at ` +
+                `this tag excuses ${JSON.stringify(exempted)}. A driver COPIES the file rather than ` +
+                `retyping it, so a rule the rulebook stops excusing stops appearing in the same pull ` +
+                `request that moves the pin — an implementation may not invent an exemption, and it ` +
+                `may not keep one either (conformance/DRIVER.md section 6).`,
+            );
+          }
+        }
       }
       if (atLeastV013(document.protocolTag)) {
         for (const runtime of document.runtimes ?? []) {
@@ -721,29 +766,49 @@ function checkPromotedFilesListed(section) {
  * go against conformance/canonical-vector.schema.json.
  */
 function checkFixtureSchema(section) {
-  const validateFixture = compile('conformance/fixture.schema.json');
+  // Each section against its OWN variant, not against the union at the root.
+  // `fixture.schema.json` describes two shapes — a conformance fixture and an adapter
+  // fixture — and the difference is the point: an adapter step or an adapter clause in
+  // a `conformance` document is a key the reference runner never reads, so the
+  // document would assert nothing about that fact and every implementation, including
+  // one that does nothing, would pass it. Validating both sections against the union
+  // would accept exactly that.
+  const fixtureSchema = readJson(join(repoRoot, 'conformance', 'fixture.schema.json'));
+  const variantFor = (name) => {
+    const key = `${String(fixtureSchema.$id)}#/$defs/${name}`;
+    return ajv.getSchema(key) ?? ajv.compile({ $ref: key });
+  };
+  const validateConformance = variantFor('conformanceFixture');
+  const validateAdapter = variantFor('adapterFixture');
   const validateVector = compile('conformance/canonical-vector.schema.json');
   let declarative = 0;
+  let adapters = 0;
   let vectors = 0;
   for (const entry of section.fixtures) {
     const document = readPromoted(entry);
     if (document === null) continue;
-    const isVector = entry.set === 'canonical';
-    const validate = isVector ? validateVector : validateFixture;
-    if (validate(document)) {
-      if (isVector) vectors += 1;
+    const variant =
+      entry.set === 'canonical'
+        ? { name: 'canonical-vector.schema.json', validate: validateVector }
+        : entry.set === 'adapter'
+          ? { name: 'fixture.schema.json#/$defs/adapterFixture', validate: validateAdapter }
+          : { name: 'fixture.schema.json#/$defs/conformanceFixture', validate: validateConformance };
+    if (variant.validate(document)) {
+      if (entry.set === 'canonical') vectors += 1;
+      else if (entry.set === 'adapter') adapters += 1;
       else declarative += 1;
       continue;
     }
-    console.log(`FAIL  ${entry.id}  ->  ${isVector ? 'canonical-vector' : 'fixture'}.schema.json`);
-    for (const err of validate.errors ?? []) {
+    console.log(`FAIL  ${entry.id}  ->  ${variant.name}`);
+    for (const err of variant.validate.errors ?? []) {
       const at = err.instancePath || '(root)';
       console.log(`        ${at} ${err.message}${err.params ? ' ' + JSON.stringify(err.params) : ''}`);
     }
-    fail(`${entry.id}: does not validate against the ${isVector ? 'canonical vector' : 'fixture'} format`);
+    fail(`${entry.id}: does not validate against ${variant.name}`);
   }
   console.log(
-    `OK    format: ${declarative} declarative fixture(s) and ${vectors} byte vector(s) validate`,
+    `OK    format: ${declarative} conformance fixture(s), ${adapters} adapter fixture(s) and ` +
+      `${vectors} byte vector(s) validate, each against its own variant`,
   );
 }
 
@@ -950,8 +1015,9 @@ function checkRuleCoverage(section) {
   }
 
   // Forward, with the per-rule report.
-  console.log('coverage — every rule in INVARIANTS.md against the promoted fixtures:');
+  console.log('coverage — every rule in INVARIANTS.md against the fixtures and the lints:');
   let covered = 0;
+  let byLint = 0;
   let excused = 0;
   for (const rule of rules) {
     const reciprocating = [];
@@ -973,15 +1039,27 @@ function checkRuleCoverage(section) {
       .filter((entry) => entry.rules.includes(rule.id) && !reciprocating.includes(entry.id))
       .map((entry) => entry.id);
     const exemption = exempt.get(rule.id);
-    // A lint in this repository counts as coverage, and is checked the way a fixture is: the
-    // script the rule names has to exist, or the citation is a promise nothing keeps.
+    // A lint in this repository counts as coverage, and is checked the way a fixture is —
+    // twice over. The script the rule names has to exist, or the citation is a promise
+    // nothing keeps; and a workflow has to run it, or the promise is kept by nobody.
     const lints = [];
     for (const path of rule.lints ?? []) {
-      if (existsSync(join(repoRoot, path))) lints.push(path);
-      else fail(`coverage: ${rule.id} cites ${path}, which this repository does not contain`);
+      if (!existsSync(join(repoRoot, path))) {
+        fail(`coverage: ${rule.id} cites ${path}, which this repository does not contain`);
+        continue;
+      }
+      if (!runsInCi(path)) {
+        fail(
+          `coverage: ${rule.id} cites ${path}, which no workflow under .github/workflows/ runs. ` +
+            `A script nobody runs checks nothing, so it is not coverage — wire it into CI or ` +
+            `excuse the rule by name in coverage-exemptions.json.`,
+        );
+        continue;
+      }
+      lints.push(path);
     }
     if (reciprocating.length === 0 && lints.length > 0) {
-      covered += 1;
+      byLint += 1;
       console.log(
         `LINT  ${rule.id.padEnd(6)} ${lints.join(', ')}` +
           (namedBy.length === 0 ? '' : `  [+${String(namedBy.length)} fixture(s) naming it]`),
@@ -1016,8 +1094,11 @@ function checkRuleCoverage(section) {
         (namedBy.length === 0 ? '' : `  [+${String(namedBy.length)} naming it uncited]`),
     );
   }
+  // Counted apart on purpose: a fixture and a lint are not the same kind of evidence, and a
+  // summary that folded them together would hide how much of the rulebook rests on which.
   console.log(
-    `OK    coverage: ${covered} of ${rules.length} rule(s) checked by a promoted fixture, ${excused} exempt by name`,
+    `OK    coverage: ${covered} of ${rules.length} rule(s) checked by a fixture, ${byLint} by a ` +
+      `lint this repository runs, ${excused} exempt by name`,
   );
 }
 

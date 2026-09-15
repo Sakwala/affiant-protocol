@@ -1,0 +1,23 @@
+{
+  "name": "@example/adapter-under-test",
+  "version": "0.0.0",
+  "private": true,
+  "affiant": {
+    "adapter": {
+      "runtime": "ai",
+      "surfaces": [
+        "generateText",
+        "streamText"
+      ],
+      "durabilityClaims": [
+        {
+          "feature": "magic-pixie-dust",
+          "since": "7.0.0"
+        }
+      ]
+    }
+  },
+  "peerDependencies": {
+    "ai": "^7.0.0"
+  }
+}
