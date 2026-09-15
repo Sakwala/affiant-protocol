@@ -7,9 +7,10 @@ repository, `packages/conformance-driver` in the TypeScript one — and a third 
 document is for.
 
 **Read [`RUNNER.md`](RUNNER.md) first.** It is the format; this is what you do with it. [`PARITY.md`](PARITY.md) is the
-document you publish afterwards.
+document you publish afterwards. From v0.2.0 there is a second fixture section, for implementations that ship an
+adapter; its format is [`ADAPTER-RUNNER.md`](ADAPTER-RUNNER.md) and §7 below says who runs it.
 
-A driver has five obligations. In order:
+A driver has six obligations. In order:
 
 ---
 
@@ -74,7 +75,8 @@ The card invariants of `RUNNER.md` §4.2 are checked on **every** filing, whethe
 
 Read [`fixtures/MANIFEST.json`](fixtures/MANIFEST.json) section `"conformance"` and run **every** entry — not the
 directory listing, and not a subset the driver happens to have bound. A fixture in the manifest that the driver does not
-run is `error`, never absent.
+run is `error`, never absent. The `"adapter"` section is scoped differently and is §7's subject; everything else in this
+section is the same for both.
 
 Validate each fixture against [`fixture.schema.json`](fixture.schema.json) before running it, and apply the same
 strictness the format requires (`RUNNER.md` §6): an unknown key fails the fixture, and an `expect` that states no fact
@@ -120,9 +122,37 @@ suite on the implementation's own CI, not by a fixture, and the manifest names t
 gap; a runtime it claims and does not run the suite on **is**.
 
 **Inherited exemptions.** [`lint/coverage-exemptions.json`](lint/coverage-exemptions.json) names the rules that carry no
-conformance fixture at v0.1, each with a version and a reason — schema-level rules checked by the fixture lint,
-runtime rules checked by a CI matrix and a source lint, registry rules checked by registry suites, and the rules whose
-fixtures arrive with the first adapter at v0.2. A driver **copies** those entries into `exemptions[]` in its manifest, so
-a reader of that document alone knows which rules no fixture in the run covers, and adds `checkedInstead` naming what it
-does instead. An implementation may not invent an exemption: exempting yourself from a rule is not a parity report, it
-is a press release.
+fixture, each with a version and a reason — schema-level rules checked by the fixture lint, runtime rules checked by a
+CI matrix and a source lint, registry rules checked by registry suites. A driver **copies** those entries into
+`exemptions[]` in its manifest, so a reader of that document alone knows which rules no fixture in the run covers, and
+adds `checkedInstead` naming what it does instead. An implementation may not invent an exemption: exempting yourself
+from a rule is not a parity report, it is a press release. A driver builds the list from the file rather than retyping
+it, so a rule the rulebook stops excusing stops appearing in the same pull request that moves the pin — which is what
+happened at v0.2.0 to CV-2, CV-3 and CV-5.
+
+---
+
+## 7. Adapter fixtures: run one section per adapter, or declare none
+
+From v0.2.0 the index carries a second section, `"adapter"`, whose format is [`ADAPTER-RUNNER.md`](ADAPTER-RUNNER.md):
+the same document shape with two step kinds of its own, `adapter-build` and `adapter-call`, and matchers over what the
+call did, what the Docket holds afterwards and what the host framework was handed. Those documents check three rules
+that are about an adapter's seam and about nothing else — CV-2's fail-closed call site, CV-3's delegation clause and,
+through a lint rather than a fixture, CV-5's durability claims.
+
+**A driver runs the `adapter` section once for every adapter its implementation ships and declares.** An implementation
+that ships none runs none of them, and says so: `adapters: []` in its parity manifest. An implementation that ships two
+runs the section twice, once per adapter, and names both.
+
+The scoping is at the **section** level, not the fixture level, and that is the point. §4's sentence about the
+`conformance` section — run every entry, an unrun entry is `error` — has to stay true, and an implementation with no
+adapter has no seam to bind: a fixture-level "not applicable" would be the alternative, and the parity schema
+deliberately has no such state, because a fixture an implementation quietly excuses itself from is not a parity report.
+
+The failing set a driver asserts against its manifest (§5) is the **union** over the sections it ran. A fixture in the
+`adapter` section that fails is a failing fixture like any other: listed by id, with a disposition and a detail.
+
+Every fixture in the section is model-free and network-free, so a driver needs no provider credential and no network to
+run it. CV-5's lint does need the registry, and it runs in the adapter's own continuous integration; its result is
+recorded in the manifest as `adapters[].claimsLint` ([`ADAPTER-CLAIMS.md`](ADAPTER-CLAIMS.md),
+[`PARITY.md`](PARITY.md)).

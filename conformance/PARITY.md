@@ -37,6 +37,7 @@ that they find out by running the suite themselves, or by an outage.
     }
   ],
   "runtimes": [{ "name": "net8.0", "version": "8.0.x", "claimed": true }],
+  "adapters": [],
   "exemptions": [
     {
       "rule": "SR-3",
@@ -58,6 +59,7 @@ that they find out by running the suite themselves, or by an outage.
 | `runLog` | Where the run that produced this can be read — a path in this repository or a CI run URL. The manifest is the claim; the log is the evidence. |
 | `failing[]` | Every fixture the implementation does not pass. **Exactly these and no others.** |
 | `runtimes[]` | The runtimes this holds for, each `claimed` or not (`DRIVER.md` §6), and, from a run whose `protocolTag` is `v0.1.3` or later, each stating the `unicodeVersion` its character database carries — PV-3's neighbour test reads General_Category from that database, so two runtimes at two Unicode versions can differ on code points assigned since the older one. |
+| `adapters[]` | Every Affiant adapter this implementation ships and declares, and what the adapter fixture section said about it. `[]` is the positive statement that the implementation ships none and ran none of that section. Required from `v0.2.0`. See below. |
 | `exemptions[]` | The rulebook exemptions this implementation inherits, copied from [`lint/coverage-exemptions.json`](lint/coverage-exemptions.json), each optionally naming what the implementation checks instead. An implementation may not invent one. |
 
 ### A `failing` row
@@ -120,6 +122,51 @@ check the claim rather than take it.
 Until an implementation's manifest is empty, that implementation is described as **conformant to the subset it passes**,
 naming the manifest — never as "conformant". `parity/README.md` lists the manifests that exist and links each to the
 implementation it is about.
+
+## Adapters, from v0.2.0
+
+The rulebook gained a second fixture section at `v0.2.0`: `adapter`, whose format is
+[`ADAPTER-RUNNER.md`](ADAPTER-RUNNER.md) and whose scope is [`DRIVER.md`](DRIVER.md) §7. A driver runs it **once for
+every adapter its implementation ships and declares**, and an implementation that ships none runs none of it.
+
+`adapters[]` is where that is stated, one row per adapter:
+
+```jsonc
+"adapters": [
+  {
+    "package": "@affiant/adapter-ai-sdk",
+    "version": "0.1.0-alpha.0",
+    "runtime": "ai",
+    "runtimeVersion": "7.0.101",
+    "fixtures": 7,
+    "claimsLint": "pass"
+  }
+]
+```
+
+| Key | What it is |
+|---|---|
+| `package` | The adapter package, by the name a reader installs it under. |
+| `version` | The version of it the run exercised — one a reader can install and reproduce this against. |
+| `runtime` | The host framework it is for, by the name its own registry knows it by: the `affiant.adapter.runtime` of the adapter's own `package.json` ([`ADAPTER-CLAIMS.md`](ADAPTER-CLAIMS.md)). |
+| `runtimeVersion` | The version of that framework the run resolved and ran against. CV-5 is about a claim resting on a version pinned at build time, so the version a run *measured* is worth more than the range a package declares. |
+| `fixtures` | How many documents of the adapter section this adapter's run covered. |
+| `claimsLint` | What [`lint/adapter-claims.mjs`](lint/adapter-claims.mjs) said about the package — `"pass"`, `"fail"`, or `"skipped"` for a run made with `--offline`, which verifies the declaration and the README but checks no claim against a published dist-tag. The lint needs the registry, so it runs in the adapter's own continuous integration and its verdict is carried here. |
+
+**What a `v0.2` manifest must carry.** A manifest whose `protocolTag` reads `v0.2.0` or later is named
+`parity/<implementation>-v0.2.json`, and beside everything a `v0.1` manifest carries it states:
+
+1. `adapters[]`, always — `[]` where the implementation ships no adapter. The rulebook's lint requires the key of every
+   manifest read at `v0.2.0` or later; silence is not the same statement as `[]`.
+2. A `failing[]` that is the **union** over the sections the run covered. An adapter fixture that fails is a failing
+   fixture like any other, listed by id with a disposition and a detail.
+3. `exemptions[]` **without** CV-2, CV-3 and CV-5. Those three carried `until: "0.2.0"` and were removed from
+   [`lint/coverage-exemptions.json`](lint/coverage-exemptions.json) when the first adapter arrived; a driver builds its
+   list from that file rather than retyping it, so they disappear in the same pull request that moves the pin.
+
+The manifest **format** is unchanged at `schemaVersion: "0.1.0"`: `adapters[]` is an added optional property and every
+document published against an earlier tag still validates. What tells a reader which fields to expect is `protocolTag`,
+which is the thing a manifest is a claim about.
 
 ## Shape at v0.1
 

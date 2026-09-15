@@ -25,6 +25,12 @@
 // every v0.1 fixture has a schema, and that every enum set the manifest maps to a
 // schema matches that schema's `enum` exactly, in order — in both directories.
 //
+// From v0.2.0 the fixture index has two sections, `conformance` and `adapter`
+// (conformance/ADAPTER-RUNNER.md). Everything below reads them as one index: the same
+// format check, the same coverage lint, the same published-document checks. What
+// differs is who RUNS each one, which is a driver's business and DRIVER.md §7's
+// subject, not this lint's.
+//
 // Run: node conformance/lint/lint.mjs   (from the repository root, or anywhere)
 
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
@@ -395,8 +401,22 @@ if (!existsSync(enumsFile)) {
 /** The label a rule's fixture citations follow in INVARIANTS.md. */
 const CHECKED_BY = '*Checked by:*';
 
-/** A citation that names a promoted fixture, as opposed to a suite, a lint or a seed shape. */
-const PROMOTED_SET = /^(gate|decide|sequence-a|sequence-c|canonical)\//;
+/** A citation that names a fixture in the index, as opposed to a suite, a lint or a seed shape. */
+const PROMOTED_SET = /^(gate|decide|sequence-a|sequence-c|canonical|adapter)\//;
+
+/**
+ * A citation that names a lint **in this repository**, which counts as coverage.
+ *
+ * The general rule stands: a `suite:` or a `guard:` entry is a supplement, because it lives in
+ * an implementation's own repository and this lint cannot run it or even see it. A lint under
+ * `conformance/lint/` is the one exception, and it is a narrow one — the script is in this
+ * repository, it runs in this repository's CI, and it is the same kind of artifact the coverage
+ * lint itself is. CV-5 is the rule that needs it: a statement about an adapter package's
+ * documentation and its declared dist-tags is not a thing a fixture can observe at all, so the
+ * alternative to accepting the lint would be exempting the rule for good and calling that
+ * coverage.
+ */
+const REPOSITORY_LINT = /^lint:\s*(conformance\/lint\/[A-Za-z0-9._\-/]+\.mjs)$/;
 
 /** Matcher keys whose value is a projection or a derived fact, not a wire property. */
 const DERIVED_MATCHER_KEYS = new Set([
@@ -441,18 +461,33 @@ const partialValidators = new Map();
 
 console.log('');
 const conformance = manifest.conformance;
+// The adapter section (v0.2.0): the same document format, the same checks, its own manifest
+// section — because DRIVER.md scopes it at the section level, so that an implementation that
+// ships no adapter runs none of it and stays green without a fixture-level "not applicable"
+// state the parity schema deliberately lacks. Everything below reads the two sections as one
+// index, which is what the coverage lint, the oracle and the published documents are about.
+const adapter = manifest.adapter;
 if (!conformance || !Array.isArray(conformance.fixtures)) {
   fail('manifest: no "conformance" section, or it lists no fixtures');
 } else {
   checkUnique(conformance.fixtures, 'conformance');
-  checkPromotedFilesListed(conformance);
-  checkFixtureSchema(conformance);
-  checkVectorRecords(conformance);
-  checkOracle(conformance);
-  checkRuleCoverage(conformance);
-  checkMatcherShapes(conformance);
-  checkInferencePresence(conformance);
-  checkPublished(conformance);
+  if (adapter !== undefined) {
+    if (!Array.isArray(adapter.fixtures)) fail('manifest: the "adapter" section lists no fixtures');
+    else checkUnique(adapter.fixtures, 'adapter');
+  }
+  const indexed = {
+    ...conformance,
+    sets: { ...(conformance.sets ?? {}), ...(adapter?.sets ?? {}) },
+    fixtures: [...conformance.fixtures, ...(adapter?.fixtures ?? [])],
+  };
+  checkPromotedFilesListed(indexed);
+  checkFixtureSchema(indexed);
+  checkVectorRecords(indexed);
+  checkOracle(indexed);
+  checkRuleCoverage(indexed);
+  checkMatcherShapes(indexed);
+  checkInferencePresence(indexed);
+  checkPublished(indexed);
 }
 
 /**
@@ -466,6 +501,18 @@ function atLeastV013(protocolTag) {
   if (parsed === null) return false;
   const [major, minor, patch] = parsed.slice(1).map(Number);
   return major > 0 || minor > 1 || (minor === 1 && patch >= 3);
+}
+
+/**
+ * Whether a manifest's `protocolTag` names `v0.2.0` or a later rulebook, read the same way and for
+ * the same reason: `adapters[]` is the statement a manifest makes about the adapter fixture section,
+ * and that section only exists from `v0.2.0`. A tag this cannot order is not held to it.
+ */
+function atLeastV020(protocolTag) {
+  const parsed = /^v(\d+)\.(\d+)\.(\d+)$/.exec(String(protocolTag ?? ''));
+  if (parsed === null) return false;
+  const [major, minor] = parsed.slice(1).map(Number);
+  return major > 0 || minor >= 2;
 }
 
 /**
@@ -528,6 +575,14 @@ function checkPublished(section) {
         if (!fixtureIds.has(row.id)) {
           fail(`parity/${name}: declares a failing fixture the index does not list — ${row.id}`);
         }
+      }
+      if (atLeastV020(document.protocolTag) && !Array.isArray(document.adapters)) {
+        fail(
+          `parity/${name}: states no adapters[], and this manifest reads at ` +
+            `${JSON.stringify(document.protocolTag)}. From v0.2.0 a manifest says which adapters the ` +
+            `implementation ships and ran the adapter fixture section for — \`[]\` where it ships none. ` +
+            `Silence is not the same statement as an empty list (conformance/PARITY.md).`,
+        );
       }
       if (atLeastV013(document.protocolTag)) {
         for (const runtime of document.runtimes ?? []) {
@@ -850,9 +905,11 @@ function readRules() {
       const end = clause.indexOf(stop);
       if (end >= 0) clause = clause.slice(0, end);
     }
-    rule.cites = [...clause.matchAll(/`([^`]+)`/g)]
-      .map(([, cite]) => cite)
-      .filter((cite) => PROMOTED_SET.test(cite));
+    const cited = [...clause.matchAll(/`([^`]+)`/g)].map(([, cite]) => cite);
+    rule.cites = cited.filter((cite) => PROMOTED_SET.test(cite));
+    rule.lints = cited
+      .map((cite) => REPOSITORY_LINT.exec(cite)?.[1])
+      .filter((path) => path !== undefined);
   }
   return rules;
 }
@@ -916,6 +973,27 @@ function checkRuleCoverage(section) {
       .filter((entry) => entry.rules.includes(rule.id) && !reciprocating.includes(entry.id))
       .map((entry) => entry.id);
     const exemption = exempt.get(rule.id);
+    // A lint in this repository counts as coverage, and is checked the way a fixture is: the
+    // script the rule names has to exist, or the citation is a promise nothing keeps.
+    const lints = [];
+    for (const path of rule.lints ?? []) {
+      if (existsSync(join(repoRoot, path))) lints.push(path);
+      else fail(`coverage: ${rule.id} cites ${path}, which this repository does not contain`);
+    }
+    if (reciprocating.length === 0 && lints.length > 0) {
+      covered += 1;
+      console.log(
+        `LINT  ${rule.id.padEnd(6)} ${lints.join(', ')}` +
+          (namedBy.length === 0 ? '' : `  [+${String(namedBy.length)} fixture(s) naming it]`),
+      );
+      if (exemption !== undefined) {
+        fail(
+          `coverage: ${rule.id} is checked by ${lints.join(', ')} and is still excused in ` +
+            `coverage-exemptions.json — a rule cannot be both checked and exempt`,
+        );
+      }
+      continue;
+    }
     if (reciprocating.length === 0) {
       if (exemption === undefined) {
         fail(

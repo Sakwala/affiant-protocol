@@ -7,6 +7,11 @@ in a language nobody has used yet can read this file, write a **driver** (`DRIVE
 own code, and publish a **parity manifest** (`PARITY.md`) saying which of them they pass. Nothing here assumes you have
 read the reference implementation.
 
+**There is a second fixture section from v0.2.0**, `fixtures/adapter/`, for the three rules that are about an adapter's
+seam and could not be checked before an adapter existed. It is this format with two step kinds and five `expect`
+clauses of its own, and it is described in [`ADAPTER-RUNNER.md`](ADAPTER-RUNNER.md); who runs it is
+[`DRIVER.md`](DRIVER.md) §7. Everything in this file holds for those documents too.
+
 **Where the format came from.** It is the reference runner's, written out from
 [`Sakwala/affiant-ts`](https://github.com/Sakwala/affiant-ts) `packages/core/src/testing.ts` (published as
 `@affiant/core/testing`) at commit `c4591ea` — the commit `fixtures/PROMOTED_FROM` names. The fixtures were promoted here
@@ -353,4 +358,7 @@ the manifest (`ORACLE.md`, `fixtures/MANIFEST.json`).
 [`fixtures/MANIFEST.json`](fixtures/MANIFEST.json), section `"conformance"`, lists every promoted document with its `id`,
 its `file`, the `rules` it checks, the `set` it belongs to, and its `oracle` — either `null`, or the release it MUST fail
 against and the shipped defect it refutes ([`ORACLE.md`](ORACLE.md)). A driver runs **every fixture the manifest lists**;
-running a subset and reporting a pass is the failure mode the whole arrangement exists to prevent.
+running a subset and reporting a pass is the failure mode the whole arrangement exists to prevent. The `"adapter"`
+section beside it is indexed the same way and scoped differently — a driver runs it once per adapter its implementation
+ships and declares, and not at all where it ships none ([`ADAPTER-RUNNER.md`](ADAPTER-RUNNER.md),
+[`DRIVER.md`](DRIVER.md) §7).
