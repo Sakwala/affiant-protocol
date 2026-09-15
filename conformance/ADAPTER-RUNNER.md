@@ -267,10 +267,13 @@ handed the model the proposal anyway would pass it.
 - **no key** anywhere in the output, at any depth, is the name of a field the filing swore to;
 - **no serialisation of any sworn field's value appears as a substring of the JSON serialisation of the output**.
 
+A **string** value's serialisation is its JSON-escaped body *without* the surrounding quotes, so a sworn value sitting
+inside a longer sentence is found; every other value's is its whole JSON form.
+
 The second is stated over text on purpose. A structural comparison passes a summary whose `note` reads
-`"priority=High"` — the sworn value is in the framework's history, in a sentence, exactly as surely as it would be as a
-value, and CV-3 does not care which. A value whose JSON serialisation is shorter than three characters is compared as a
-**whole JSON token** instead (that is, the serialisation must not appear as a complete token in the output), because a
+`filed for review: priority=High` — the sworn value is in the framework's history, in a sentence, exactly as surely as
+it would be as a value, and CV-3 does not care which. A serialisation shorter than three characters is compared as a
+**whole JSON token** instead (bounded on each side by something that cannot be part of the same literal), because a
 one-character value would otherwise match almost any output and the clause would fail on every document.
 
 An adapter whose framework has no separate model-facing output answers this clause with whatever the framework puts in

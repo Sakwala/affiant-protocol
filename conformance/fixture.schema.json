@@ -572,7 +572,7 @@
           "enum": ["pending", "approved", "rejected", "expired"]
         },
         "carriesNoFieldValues": {
-          "description": "The derived check the rule is about, and it is a check over TEXT rather than over structure: no key anywhere in the output is the name of a sworn field, and no serialisation of any sworn field's value appears as a substring of the output's own JSON serialisation. Structural equality is not enough — a summary carrying `priority=High` inside a sentence has put a sworn value in the framework's history just as surely as one carrying it as a value. A value whose JSON serialisation is shorter than three characters is compared as a whole JSON token instead, because a one-character value would otherwise match almost any output.",
+          "description": "The derived check the rule is about, and it is a check over TEXT rather than over structure: no key anywhere in the output is the name of a sworn field, and no serialisation of any sworn field's value appears as a substring of the output's own JSON serialisation. A STRING value's serialisation is its JSON-escaped body without the surrounding quotes, so a value sitting inside a longer sentence is found; every other value's is its whole JSON form. Structural equality is not enough — a summary whose note reads `filed for review: priority=High` has put a sworn value in the framework's history just as surely as one carrying it as a value. A serialisation shorter than three characters is compared as a whole JSON token instead, because a one-character value would otherwise match almost any output.",
           "type": "boolean"
         }
       }
