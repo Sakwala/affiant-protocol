@@ -70,6 +70,12 @@ durability, using the fixed phrase list of §3, and fails on any occurrence wher
 that claims nothing and says nothing passes; a package that claims something and declares it passes if check one
 passes; a package that *says* it and declares nothing fails, with the sentence quoted and its line named.
 
+**Exit codes.** `0` when every check passed, `1` when a check failed, and **`2` when the registry could not be read at
+all**. The third is what lets a continuous-integration job fall back to `--offline` on a runner with no route to the
+registry without also swallowing the one failure that fallback cannot see: a claim resting on a version `latest` has not
+reached is precisely what the registry half checks, and a job that retried offline on *any* failure would report CV-5
+green for it.
+
 **`--offline`** skips the registry read, prints why, and runs everything that needs no network — the declaration's
 shape, the peer-range check and the whole README check. A run that used it has **not** verified any declared claim
 against a published dist-tag, and it says so on the last line, so a result recorded from an offline run is recorded

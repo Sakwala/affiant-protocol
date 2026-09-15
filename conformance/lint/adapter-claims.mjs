@@ -32,7 +32,12 @@
 // no network. It is for a machine with no route to the registry; a run that uses it
 // has NOT verified any declared claim against a published dist-tag, and it says so.
 //
-// Exit 0 when every check passed, 1 otherwise.
+// Exit 0 when every check passed, 1 when a check failed, and **2** when the registry
+// could not be read at all. The third code is what lets a continuous-integration job
+// fall back to `--offline` for a runner with no route to the registry without also
+// swallowing the failure that fallback cannot see: a claim resting on a version
+// `latest` has not reached is precisely what the registry half checks, and a job that
+// retried offline on any failure would report CV-5 green for it.
 
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
@@ -114,6 +119,9 @@ const readmePath = join(packageDir, 'README.md');
 
 const failures = [];
 const fail = (message) => failures.push(message);
+
+/** Whether the registry could not be read, which is exit code 2 rather than 1. */
+let registryUnreachable = false;
 
 if (!existsSync(manifestPath)) {
   console.error(`FATAL  no package.json at ${manifestPath}`);
@@ -264,6 +272,7 @@ function distTagsOf(name) {
     const tags = JSON.parse(stdout);
     return tags !== null && typeof tags === 'object' ? tags : null;
   } catch (error) {
+    registryUnreachable = true;
     fail(
       `could not read ${name}'s dist-tags from the registry: ` +
         `${error instanceof Error ? error.message.split('\n')[0] : String(error)}. ` +
@@ -431,7 +440,7 @@ console.log('');
 if (failures.length > 0) {
   console.error(`${failures.length} problem(s):`);
   for (const failure of failures) console.error(`  - ${failure}`);
-  process.exit(1);
+  process.exit(registryUnreachable ? 2 : 1);
 }
 console.log(
   `${String(manifest.name)}: CV-5 satisfied` +
