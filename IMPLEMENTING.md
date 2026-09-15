@@ -22,7 +22,7 @@ Versions of this repository are git tags. The current one is `v0.1.3`; pin that,
 legitimate pin too, and is what you use while a version's text is on `main` and its tag has not been cut — a commit is
 as immutable as a tag and, unlike a tag, cannot be moved under a running build.) Either fetch the ref at build time and
 verify a checksum recorded beside the pin, or vendor
-[`conformance/fixtures/**`](conformance/fixtures/), [`schemas/0.1.0/**`](schemas/0.1.0/) and the three format schemas
+[`conformance/fixtures/**`](conformance/fixtures/) (both sections' documents), [`schemas/0.1.0/**`](schemas/0.1.0/) and the three format schemas
 ([`conformance/fixture.schema.json`](conformance/fixture.schema.json),
 [`conformance/canonical-vector.schema.json`](conformance/canonical-vector.schema.json),
 [`conformance/results.schema.json`](conformance/results.schema.json)) into your own repository under a directory that
@@ -87,13 +87,22 @@ driver does not run is an `error` outcome, not an absence. Expect to fail some o
 of the seven canonical byte vectors on your first run. That is normal, and it is exactly what the parity manifest exists
 to record — nobody's first driver run is green, including the reference implementation's.
 
+There is a second section in the same index, `"adapter"`, and it is scoped differently: you run it once for every
+Affiant adapter your implementation ships and declares, and not at all if you ship none
+([`conformance/ADAPTER-RUNNER.md`](conformance/ADAPTER-RUNNER.md), [`conformance/DRIVER.md`](conformance/DRIVER.md)
+§7). An adapter is the code that puts the gate between a host framework's tool-calling loop and the writes a model
+proposes through it; if you are implementing the core and no adapter yet, you run none of that section and say so in
+your manifest.
+
 *First action:* point your driver at the manifest, run it, and read the `diff` on every `fail` outcome before writing
 anything down.
 
 ### 6. Publish a parity manifest
 
-Write a manifest to [`conformance/parity/<name>-v0.1.json`](conformance/parity/) following
-[`conformance/PARITY.md`](conformance/PARITY.md): one row per failing fixture, carrying its id, the rules it checks, and
+Write a manifest to [`conformance/parity/<name>-v<protocol minor>.json`](conformance/parity/) following
+[`conformance/PARITY.md`](conformance/PARITY.md). From `v0.2.0` it states `adapters[]` — one row per adapter you ship,
+or `[]`, which is the positive statement that you ship none; silence is not the same claim. Beside that, one row per
+failing fixture, carrying its id, the rules it checks, and
 a `disposition` — `fixed` (a release that has shipped corrects it, named in `fixedIn`), `planned` (scheduled for the
 release `plannedFor` names), `fenced` (a specific host-side workaround contains it, named in `fence`, optionally with a
 `plannedFor` as well), or `ignored` (nothing is being done and nothing is scheduled, with a `detail` a reader can
@@ -155,8 +164,20 @@ node conformance/lint/lint.mjs
 
 It checks that every schema fixture validates or is refused correctly, that the fixture manifest and the files on disk
 agree exactly, that the negative oracle's list and each fixture's own oracle data agree, and that rule coverage holds in
-both directions — every rule cited by a fixture that exists, every fixture's rule ids naming rules that exist. A pull
-request that fails it does not merge.
+both directions — every rule cited by a fixture that exists, every fixture's rule ids naming rules that exist. Both
+fixture sections, `conformance` and `adapter`, are read as one index for all of that. A pull request that fails it does
+not merge.
+
+The adapter claims lint is a separate script, because it needs the npm registry and so belongs in an adapter package's
+own CI rather than in this repository's:
+
+```
+node conformance/lint/adapter-claims.mjs <adapter package directory>
+node conformance/lint/adapter-claims.mjs <adapter package directory> --offline
+```
+
+It is CV-5's check — what an adapter package declares about durability, against what the runtime it depends on actually
+publishes — and [`conformance/ADAPTER-CLAIMS.md`](conformance/ADAPTER-CLAIMS.md) says what it reads.
 
 ## Questions
 
