@@ -16,7 +16,7 @@ evidence of what happened at one ref.
 
 | | |
 |---|---|
-| Implementation | [`Sakwala/affiant-ts`](https://github.com/Sakwala/affiant-ts) — `@affiant/core` at **`0.1.0-alpha.2`**, the reference implementation these fixtures were promoted from. That version is not on npm: publishing there is a separate, hand-dispatched step in that repository and it has not been dispatched for it, so `latest` and `alpha` both still point at `0.1.0-alpha.1` |
+| Implementation | [`Sakwala/affiant-ts`](https://github.com/Sakwala/affiant-ts) — `@affiant/core` at **`0.1.0-alpha.2`**, the reference implementation these fixtures were promoted from. At 01:27 UTC, when this run was produced, that version was not yet on npm; it was published later the same day, on 2026-09-16, under the `alpha` dist-tag and with a provenance attestation, and `latest` and `alpha` both point at it now |
 | Adapter | `@affiant/adapter-ai-sdk` at **`0.1.0-alpha.0`**, against the `ai` package at the version the suites resolved, **`7.0.101`**. It is the one adapter this implementation ships and declares, so the `adapter` section runs once, against it ([`../../DRIVER.md`](../../DRIVER.md) §7) |
 | Runtimes | `node` (the run below), and the same suite under `bun` and inside `workerd` in that repository's CI, where the failing set must be identical on each (RT-1). Each runtime's `unicodeVersion` is measured by probe rather than declared — 17.0 on Node and Bun, 16.0 on workerd |
 | Driver | that repository's `packages/conformance-driver`; `src/adapter.ts` is the `adapter` section's runner and `src/adapters/ai-sdk.ts` the binding for this adapter |

@@ -14,8 +14,8 @@ ref, and a later run is published as a new directory beside it, never in place o
 | Runtime | `net10.0` |
 | Driver | that repository's `tests/Affiant.Conformance.Tests`, invoking the shipped `Affiant.Testing.ComplianceHarness.ConformanceSuite` runner |
 | Protocol ref the fixtures came from | **`v0.2.0`** — the tag, vendored into that repository under `tests/Affiant.Conformance.Tests/protocol/` and verified against checksums on every build (`conformance/sync.sh --verify`) |
-| Commit measured | [`01781ea`](https://github.com/Sakwala/affiant/commit/01781ea235fe2d76d5cdd6fadd7e5f91a5d8ccb8) — the default branch, not the release tag: `1.0.0-beta.3.1` shipped on 2026-09-09 and the branch has taken changes since, so this reads the branch that builds that version rather than the released artefacts |
-| Run produced | 2026-09-16T01:50:47.513Z |
+| Commit measured | [`73ac398`](https://github.com/Sakwala/affiant/commit/73ac398f81681e26c70ff7e387e6cd9cb02f6fb4) on branch `conformance/v0.2.0` ([Sakwala/affiant#152](https://github.com/Sakwala/affiant/pull/152)), the branch that moves that repository's pin to `v0.2.0` — not the release tag: `1.0.0-beta.3.1` shipped on 2026-09-09 and the default branch has taken changes since, so this reads the tree that builds that version rather than the released artefacts |
+| Run produced | 2026-09-16T02:38:05.961Z |
 
 ## Totals
 
