@@ -53,16 +53,17 @@ const fail = (message) => failures.push(message);
 const readJson = (path) => JSON.parse(readFileSync(path, 'utf8'));
 
 // ---------------------------------------------------------------------------
-// --self-test: the three decisions in this file that are not about a document
+// --self-test: the four decisions in this file that are not about a document
 // ---------------------------------------------------------------------------
 
 /**
  * Everything else here is checked by the documents it reads: a wrong answer shows up as
- * a fixture that validates when it should not. These three do not have that, because
+ * a fixture that validates when it should not. These four do not have that, because
  * they are decisions ABOUT the check rather than the check itself — whether a workflow
- * runs a script, whether a manifest is held to the v0.2 requirements, and whether its
- * exemptions are the file's. Each of them was wrong once, and each was wrong in the
- * direction of passing, so each has the mutation that caught it written down here.
+ * runs a script, whether a manifest is held to the v0.2 requirements, whether its
+ * exemptions are the file's, and what a published pair's comparison found. Each of them
+ * was wrong once, and each was wrong in the direction of passing, so each has the
+ * mutation that caught it written down here.
  */
 if (process.argv.includes('--self-test')) {
   const problems = [];
@@ -125,6 +126,37 @@ if (process.argv.includes('--self-test')) {
     'a lifted CV-2 row fails',
     exemptionsMatch({ exemptions: [{ rule: 'AF-5' }, { rule: 'CV-2' }, { rule: 'RT-1' }] }, exempted),
     false,
+  );
+
+  // The OK line used to be printed after the comparison whatever it found, so a pair
+  // that disagreed produced a problem AND a line saying the failing set was exactly the
+  // manifest's. The caller now prints it on an empty list only, which is a decision
+  // about the check rather than the check itself, so it is pinned here.
+  const agreeingRun = {
+    results: [
+      { id: 'gate/ttl-from-verdict', outcome: 'pass' },
+      { id: 'gate/substance-hollow-refused', outcome: 'fail' },
+    ],
+  };
+  check(
+    'a pair that agrees has no problem, so the caller prints OK',
+    pairProblems(agreeingRun, { failing: [{ id: 'gate/substance-hollow-refused' }] }, 'results/x', 'y.json'),
+    [],
+  );
+  check(
+    'a run failing what the manifest does not declare is a problem',
+    pairProblems(agreeingRun, { failing: [] }, 'results/x', 'y.json'),
+    ['results/x: fails gate/substance-hollow-refused, which parity/y.json does not declare'],
+  );
+  check(
+    'a manifest declaring what the run passes is a problem',
+    pairProblems({ results: [{ id: 'gate/ttl-from-verdict', outcome: 'pass' }] }, { failing: [{ id: 'gate/ttl-from-verdict' }] }, 'results/x', 'y.json'),
+    ['parity/y.json: declares gate/ttl-from-verdict, which results/x does not fail'],
+  );
+  check(
+    'a skip is a problem, and this manifest declares none',
+    pairProblems({ results: [{ id: 'gate/ttl-from-verdict', outcome: 'skipped' }] }, { failing: [] }, 'results/x', 'y.json'),
+    ['results/x: skipped gate/ttl-from-verdict; a skip is legitimate only where the manifest declares one'],
   );
 
   console.log('');
@@ -663,9 +695,36 @@ export function heldToV02(protocolTag) {
 }
 
 /**
+ * Everything wrong with one published pair — a run and the manifest about it — as
+ * messages, or an empty list when they agree. Pure, so the self-test can hand it a pair
+ * that agrees and a pair that does not, and so the caller can tell the two apart: the
+ * `OK` line is printed on the empty list only, never beside a problem it contradicts.
+ */
+/**
  * Whether a manifest's `exemptions[]` is what the exemption file excuses. Pure, so the self-test
  * can hold it to the mutation it exists for: a CV-2 row that survived the lift.
  */
+export function pairProblems(run, document, where, name) {
+  const problems = [];
+  const observed = new Set(
+    run.results.filter((r) => r.outcome === 'fail' || r.outcome === 'error').map((r) => r.id),
+  );
+  const declared = new Set((document.failing ?? []).map((row) => row.id));
+  for (const id of observed) {
+    if (!declared.has(id)) problems.push(`${where}: fails ${id}, which parity/${name} does not declare`);
+  }
+  for (const id of declared) {
+    if (!observed.has(id)) problems.push(`parity/${name}: declares ${id}, which ${where} does not fail`);
+  }
+  for (const result of run.results) {
+    if (result.outcome !== 'skipped') continue;
+    problems.push(
+      `${where}: skipped ${result.id}; a skip is legitimate only where the manifest declares one`,
+    );
+  }
+  return problems;
+}
+
 export function exemptionsMatch(document, exempted) {
   const stated = (document.exemptions ?? []).map((row) => String(row.rule)).sort();
   return JSON.stringify(stated) === JSON.stringify(exempted);
@@ -689,7 +748,7 @@ export function exemptionsMatch(document, exempted) {
  *     in the schema only because the manifests published against earlier tags predate it;
  *   - a published run directory carries a README, because a run with no provenance — which driver,
  *     which release, which protocol ref, when — is not evidence a reader can use;
- *   - where a run and a manifest are about the same implementation and version, the run's
+ *   - where a run and a manifest are about the same implementation, version and protocol tag, the run's
  *     fail-or-error set equals the manifest's `failing[]` EXACTLY, which is the rule PARITY.md
  *     states and the implementation's own CI asserts. Checking it here too means the published pair
  *     cannot drift apart in this repository.
@@ -821,28 +880,29 @@ function checkPublished(section) {
       }
     }
 
+    // The manifest this run is evidence for: same implementation, same version AND the same
+    // protocol ref. The ref is part of the match because a manifest produced against one tag says
+    // nothing about another — which is the rule both implementations' own comparison scripts
+    // already refuse on — and because from the moment an implementation publishes a v0.2 reading
+    // of a version whose v0.1 reading is still published here, two manifests answer to the same
+    // implementation and version and only the tag tells them apart. Without it this check would
+    // find the pair ambiguous and silently compare nothing.
     const about = manifests.filter(
       (m) =>
         m.document.implementation === run.implementation.name &&
-        m.document.version === run.implementation.version,
+        m.document.version === run.implementation.version &&
+        m.document.protocolTag === run.protocolTag,
     );
     if (about.length !== 1) continue;
 
     const { name, document } = about[0];
-    const observed = new Set(
-      run.results.filter((r) => r.outcome === 'fail' || r.outcome === 'error').map((r) => r.id),
-    );
-    const declared = new Set(document.failing.map((row) => row.id));
-    for (const id of observed) {
-      if (!declared.has(id)) fail(`${where}: fails ${id}, which parity/${name} does not declare`);
-    }
-    for (const id of declared) {
-      if (!observed.has(id)) fail(`parity/${name}: declares ${id}, which ${where} does not fail`);
-    }
-    const skipped = run.results.filter((r) => r.outcome === 'skipped').map((r) => r.id);
-    for (const id of skipped) {
-      fail(`${where}: skipped ${id}; a skip is legitimate only where the manifest declares one`);
-    }
+    const problems = pairProblems(run, document, where, name);
+    for (const problem of problems) fail(problem);
+
+    // Only when the pair agreed. An OK line printed after the comparison whatever it
+    // found says "the failing set is exactly parity/<name>" in the same log as the
+    // problem proving it is not, and a reader scanning for OK lines reads the wrong one.
+    if (problems.length > 0) continue;
     console.log(
       `OK    ${where}: ${String(run.summary.passed)} passed, ${String(run.summary.failed)} failed, ` +
         `${String(run.summary.errored)} errored, ${String(run.summary.skipped)} skipped of ` +
