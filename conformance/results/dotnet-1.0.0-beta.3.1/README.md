@@ -14,7 +14,7 @@ ref, and a later run is published as a new directory beside it, never in place o
 | Runtime | `net10.0` |
 | Driver | that repository's `tests/Affiant.Conformance.Tests`, invoking the shipped `Affiant.Testing.ComplianceHarness.ConformanceSuite` runner |
 | Protocol ref the fixtures came from | **`v0.2.0`** — the tag, vendored into that repository under `tests/Affiant.Conformance.Tests/protocol/` and verified against checksums on every build (`conformance/sync.sh --verify`) |
-| Commit measured | [`73ac398`](https://github.com/Sakwala/affiant/commit/73ac398f81681e26c70ff7e387e6cd9cb02f6fb4) on branch `conformance/v0.2.0` ([Sakwala/affiant#152](https://github.com/Sakwala/affiant/pull/152)), the branch that moves that repository's pin to `v0.2.0` — not the release tag: `1.0.0-beta.3.1` shipped on 2026-09-09 and the default branch has taken changes since, so this reads the tree that builds that version rather than the released artefacts |
+| Commit measured | [`73ac398`](https://github.com/Sakwala/affiant/commit/73ac398f81681e26c70ff7e387e6cd9cb02f6fb4) on branch `conformance/v0.2.0` ([Sakwala/affiant#152](https://github.com/Sakwala/affiant/pull/152), rebase-merged 2026-09-16; on `main` the same tree is [`3a95be8`](https://github.com/Sakwala/affiant/commit/3a95be8)) — not the release tag: `1.0.0-beta.3.1` shipped on 2026-09-09 and the default branch has taken changes since, so this reads the tree that builds that version rather than the released artefacts |
 | Run produced | 2026-09-16T02:38:05.961Z |
 
 ## Totals
