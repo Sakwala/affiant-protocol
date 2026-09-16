@@ -100,7 +100,7 @@ It runs in CI on every push and pull request, over everything in this directory:
 - **every published parity manifest and every published run is validated** — `parity/*.json` against
   [`parity/MANIFEST.schema.json`](parity/MANIFEST.schema.json), `results/*/results.json` against
   [`results.schema.json`](results.schema.json) — every fixture id either one names is checked to be one the index lists,
-  and where a run and a manifest are about the same implementation and version the run's fail-or-error set must equal
+  and where a run and a manifest are about the same implementation, version and protocol tag the run's fail-or-error set must equal
   the manifest's `failing[]` exactly, which is the rule [`PARITY.md`](PARITY.md) states. A manifest whose `protocolTag`
   reads `v0.1.3` or later must also state a `unicodeVersion` on every runtime, because PV-3's neighbour test reads its
   categories from that runtime's own Unicode database; and one read at `v0.2.0` or later must state `adapters[]` — `[]`

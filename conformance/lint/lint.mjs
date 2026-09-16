@@ -689,7 +689,7 @@ export function exemptionsMatch(document, exempted) {
  *     in the schema only because the manifests published against earlier tags predate it;
  *   - a published run directory carries a README, because a run with no provenance — which driver,
  *     which release, which protocol ref, when — is not evidence a reader can use;
- *   - where a run and a manifest are about the same implementation and version, the run's
+ *   - where a run and a manifest are about the same implementation, version and protocol tag, the run's
  *     fail-or-error set equals the manifest's `failing[]` EXACTLY, which is the rule PARITY.md
  *     states and the implementation's own CI asserts. Checking it here too means the published pair
  *     cannot drift apart in this repository.
@@ -821,10 +821,18 @@ function checkPublished(section) {
       }
     }
 
+    // The manifest this run is evidence for: same implementation, same version AND the same
+    // protocol ref. The ref is part of the match because a manifest produced against one tag says
+    // nothing about another — which is the rule both implementations' own comparison scripts
+    // already refuse on — and because from the moment an implementation publishes a v0.2 reading
+    // of a version whose v0.1 reading is still published here, two manifests answer to the same
+    // implementation and version and only the tag tells them apart. Without it this check would
+    // find the pair ambiguous and silently compare nothing.
     const about = manifests.filter(
       (m) =>
         m.document.implementation === run.implementation.name &&
-        m.document.version === run.implementation.version,
+        m.document.version === run.implementation.version &&
+        m.document.protocolTag === run.protocolTag,
     );
     if (about.length !== 1) continue;
 
