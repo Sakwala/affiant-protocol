@@ -157,11 +157,13 @@ and typing `executionDetail` as a string. So every one of the twenty new fixture
 `gate/multiparty-blocked` (retired at 0.3.0; the row stands for that release at that tag) stays on the beta.1 table above,
 because that table is a statement about `1.0.0-beta.1` at that tag, unaffected by this pre-release.
 
-**This list has been run**, locally, against `1.0.0-beta.3.1`: `results/dotnet-1.0.0-beta.3.1-at-v0.3-pre/`. 13 of 13
-failed or errored, 0 passed. Every one of the listed fixtures errored in the driver's fixture loader — an object-typed
+**This list has been run**, locally, against `1.0.0-beta.3.1`: `results/dotnet-1.0.0-beta.3.1-at-v0.3-pre/`. Twenty of
+twenty failed or errored, 0 passed. Every one of the listed fixtures errored in the driver's fixture loader — an object-typed
 `requirement` or `executionDetail` where the `1.0.0-beta.3.1` driver expects a string — before the gate ran, so this
 run proves that the release cannot run the 0.3.0 format and not the specific mechanism each row names; the
-per-mechanism demonstration is the .NET catch-up driver's first run at `v0.3.0`.
+per-mechanism demonstration is the .NET catch-up driver's first run at `v0.3.0`. Two pre-existing fixtures,
+`decide/approve` and `decide/reject`, which now state `decision.by`, fail on `1.0.0-beta.3.1` for that fact alone —
+not part of this twenty-fixture list, and left for the .NET catch-up driver's parity manifest.
 
 ## The run
 
