@@ -73,7 +73,7 @@ Unknown keys are a failure, at every level — see §6.
 |---|---|---|
 | `defaultTtlMs` | yes | The review deadline, in milliseconds, applied when neither the verdict nor the policy names one (GT-4). A whole number, one or more. |
 | `authorization` | yes | Who may decide (AZ-2): `{ "allow": ["<principal id>", …] }`, where `"*"` admits everyone, plus optional `"throws": true` — a port that falls over instead of answering, which the gate must read as a **refusal** and never as an approval. |
-| `policies` | no | The approval chain, **in order** (AZ-4). Each entry: `id` (the host's id, written into a Standing Order attestation), `version`, `declaredInputs` (the provenance sources it predicates on — PV-4), `declaresThreshold` (whether any verdict it can return names a risk ceiling — GT-5, CV-1), `defaultTtlMs` (its own deadline — GT-4), and `verdict`: `{ requirement, ttlMs?, threshold?, reason? }` or `null` for "no opinion". `requirement` is one of `StandingOrder`, `ReviewerConfirmation`, `ReferralRequired`, `MultiParty`. |
+| `policies` | no | The approval chain, **in order** (AZ-4). Each entry: `id` (the host's id, written into a Standing Order attestation), `version`, `declaredInputs` (the provenance sources it predicates on — PV-4), `declaresThreshold` (whether any verdict it can return names a risk ceiling — GT-5, CV-1), `defaultTtlMs` (its own deadline — GT-4), and `verdict`: `{ requirement, ttlMs?, threshold?, reason? }` or `null` for "no opinion". `requirement` is one of `StandingOrder`, `ReviewerConfirmation`, `ReferralRequired`, `MultiParty` — or, from 0.3.0, the requirement **object** `{ kind: "MultiParty", approvers, required }` (M-2), the only way a fixture can state `MultiParty` from that version on. `approvers` is the host policy's own list of at least two distinct principal ids, `uniqueItems`; `required` is the host policy's own integer, `1 ≤ required ≤ approvers.length` — both validated by the gate and never invented by it (AZ-4). *(0.3.0)* |
 | `riskScorer` | no | What the host's risk function returns — a single number for every call — or `null` for **no scorer wired** (GT-5). The distinction matters: a policy that declares a threshold with no scorer wired is a wire-up refusal, not a silent non-fire. |
 | `interceptors` | no | Deterministic resolvers (PV-2, GT-1 step 2): `{ name, fields: { <field>: { value, source: "External" \| "Computed", confidence, binding, evidence? } } }`. A binding is `{ kind: "external-ref" \| "computation-ref", ref }` — the two kinds a machine may mint. A machine never binds a value to a person's act (PV-3). |
 | `inference` | no | What the host's inference reports, keyed by field name (GT-1 step 3): `{ value, confidence, presence?: "literal" \| "inferred", utteranceSpan? }`. The **values** are scripted, never computed — the gate's contract is that it asks the host for values and tags whatever it gets, so a fixture that also decided *how* the values were found would be testing a model the framework does not ship. `presence` and `utteranceSpan` are **optional**, and they are the port's own **report, which the implementation verifies against `given.ctx.utterance` by PV-3's finder** — never the grade. A fixture states them to exercise a port's claim; it never states them to decide the outcome, and the lint refuses one that scripts a claim its own utterance contradicts without pinning the grade the finder gives. `null` or absent means the port reports nothing at all; and a field whose `value` is `null`, an object, an array, the empty string or a non-finite number is one the port reported nothing **for** — the implementation merges none of them, and the field stays `Empty` (PV-3, AF-1). |
@@ -108,7 +108,7 @@ GT-2), `entry` (the entry this step acts on: a label from an earlier `as`, or, a
 | `file` | `toolName`, `operation`, `schema?`, `preparedFields?`, `args?`, `operationLabel?` | The host files a proposal it assembled — Sequence C's way in (GT-1). |
 | `decide` | `decision` | Approve, amend or reject (DK-1, AZ-1, AZ-2). `decision` is `{ kind: "approve" \| "reject", amendments?, reason? }`. |
 | `resubmit` | — | File an expired entry again (DK-1). A resubmission is a **new** entry, never a reopened one. |
-| `markExecuted` | `outcome`, `detail?` | The host's executor reports what it did (DK-1, AZ-5, AZ-7): `outcome` is `"executed"` or `"failed"`. The framework never performs the write. |
+| `markExecuted` | `outcome`, `detail?` | The host's executor reports what it did (DK-1, AZ-5, AZ-7): `outcome` is `"executed"` or `"failed"`. The framework never performs the write. From 0.3.0, `detail` is `{ code, … } | null` — an object naming the host's own `code`, never a string a reader must parse (M-5); a bare string is the pre-0.3.0 shape and stays legal on an existing fixture. *(0.3.0)* |
 | `expireDue` | `limit`, `scope?` | The host-scheduled sweep (DK-3). Bounded and paged: `limit` is how many the sweep may take. |
 | `get` | — | Read the entry as it stands, with the deadline applied (DK-1). |
 | `rehydrate` | `page`, `scope?` | One page of what a reconnecting client needs (DK-5). `page` is `{ limit, cursor? }`. |
@@ -156,16 +156,21 @@ about the rest, so an unrelated addition to a Docket row does not break thirty d
 `amendedAffidavit`, `canonicalDiffersFromProposal`.
 
 Five of those are not plain property reads and a driver must implement them as described or the fixture means something
-else:
+else — **from 0.3.0, `approvals` joins that list** (M-3, M-8):
 
 - **`status` is the status the row *reads*, not the one it stores.** A row past its deadline reads `expired` whether or
   not a sweep has run, and every fixture about expiry is about the read (DK-1).
 - **`attestation` is the attestation record's *attestor*** — `{ kind: "member", id }`, `{ kind: "member-via-relay",
-  memberId, relay }` or `{ kind: "standing-order", policyId, version }` — not the whole record, or `null` for none.
-  Whenever a fixture states a non-null attestation, the runner **also** checks that the attestation names the entry it
-  attests to: a record that cannot name its own subject is not evidence (AZ-1).
-- **`decision` is `{ kind, reason }` only**, or `null`. The attestation says who may be held to this; the decision says
-  what they chose and why. A Standing Order produces an attestation and no decision record.
+  memberId, relay }`, `{ kind: "standing-order", policyId, version }` or, from 0.3.0, `{ kind: "multi-party", approvers:
+  [attestor, …] }` — not the whole record, or `null` for none. The `multi-party` form's `approvers` are the member /
+  member-via-relay attestors of the approval records that folded the row, in record order (M-4); a Standing Order never
+  appears inside it (AZ-3). Whenever a fixture states a non-null attestation, the runner **also** checks that the
+  attestation names the entry it attests to: a record that cannot name its own subject is not evidence (AZ-1). *(0.3.0
+  for the `multi-party` form)*
+- **`decision` is `{ kind, reason }` only**, or `null` — and, from 0.3.0, `by?`: the principal whose act folded the row
+  (required on every decided row in the wire shape; for a single reviewer, that reviewer) (M-4). The attestation says who
+  may be held to this; the decision says what they chose, why, and — from 0.3.0 — who. A Standing Order produces an
+  attestation and no decision record. *(`by` is 0.3.0)*
 - **`expiresAtOffsetMs` is an offset**, in milliseconds, from the instant the entry was filed — a fixture cannot state an
   absolute deadline it did not compute (GT-4).
 - **`lineage`** is `{ supersedes?, supersededBy? }`, where the sentinel **`"@some"`** asserts only that the link is
@@ -174,6 +179,17 @@ else:
 - **`canonicalDiffersFromProposal`** is derived: whether the row's canonical form differs from its proposal's. `true` is
   the substitution guard — a grant minted over the Affidavit a reviewer was shown must not validate the one they amended
   (SR-1).
+- **`approvals` is the WHOLE list of approval records, in record order, or `null`.** `null` asserts the row's
+  `requirement.kind` is not `MultiParty`; a `MultiParty` row's list is `[]` at filing and gains one entry per decision
+  folded onto it so far, each `{ approver, decision, reason?, attestation? }` — the same "state the whole list, in order"
+  convention `affidavit.fields` uses, so a fixture pins exactly how many approvals a row carries and who made each
+  (M-3, M-8). *(0.3.0)*
+
+From 0.3.0, `requirement` on `expect.entry` (and `expect.superseded`) is a kind name or a **partial** matcher over the
+requirement object, `{ kind?, approvers?, required? }` — a stated `approvers` is the whole list, in order, the same
+convention as `approvals` (M-8). `executionDetail` is `null`, a bare string (the pre-0.3.0 shape, still legal), or a
+partial matcher over the typed object: `{ code? }`, where `code` is compared exactly and other properties are the
+host's own and unconstrained (M-5, M-8). *(0.3.0)*
 
 `affidavit` and `amendedAffidavit` take a partial Affidavit matcher: `operationType` (`create` \| `update`),
 `entityType`, `entityId`, `aggregateConfidence`, `populatedConfidence`, `emptyFieldCount`, and `fields`. **Stating
@@ -198,6 +214,10 @@ the span.
 `populatedConfidence`, `emptyFieldCount`, `fields`, `presentation`. `warningsContain` is a list of **substrings** each of
 which must appear somewhere in the card's warnings. `fields` matches the reviewer-facing shape of each **sworn** field,
 in order: `{ name, kind?, value?, isMandatory? }`.
+
+From 0.3.0, `multiParty` is stated **whole**, never partially: `null` for a card not built from a `MultiParty` row,
+otherwise `{ approvers: [{ id, decided: null | "approve" | "reject" }, …], required }` — the approvers list in the
+row's own order and the required count (M-13). *(0.3.0)*
 
 `presentation` matches the card envelope's rendering hints: `{ name, kind?, allowedValues?, pattern? }` per entry, in
 the order the card carries them. A closed value set and an input mask are **presentation, not substance** — the gate
