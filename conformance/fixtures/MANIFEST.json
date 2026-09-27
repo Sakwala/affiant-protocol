@@ -1124,6 +1124,36 @@
         }
       },
       {
+        "id": "gate/multiparty-verdict-duplicate-approvers",
+        "file": "gate/26-multiparty-verdict-duplicate-approvers.json",
+        "rules": [
+          "AZ-4",
+          "CV-1"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release does not validate the verdict's `approvers` / `required` correlation before filing"
+        }
+      },
+      {
+        "id": "gate/multiparty-verdict-required-zero",
+        "file": "gate/27-multiparty-verdict-required-zero.json",
+        "rules": [
+          "AZ-4",
+          "CV-1"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release does not validate the verdict's `approvers` / `required` correlation before filing"
+        }
+      },
+      {
         "id": "decide/approve",
         "file": "decide/01-approve.json",
         "rules": [
@@ -1485,6 +1515,81 @@
         "rules": [
           "DK-1",
           "AZ-4"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
+      },
+      {
+        "id": "decide/multiparty-approve-via-relay",
+        "file": "decide/30-multiparty-approve-via-relay.json",
+        "rules": [
+          "AZ-4",
+          "AZ-3"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
+      },
+      {
+        "id": "decide/multiparty-late-amendments-not-preserved",
+        "file": "decide/31-multiparty-late-amendments-not-preserved.json",
+        "rules": [
+          "DK-1",
+          "AZ-4"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
+      },
+      {
+        "id": "decide/multiparty-approvals-in-record-order",
+        "file": "decide/32-multiparty-approvals-in-record-order.json",
+        "rules": [
+          "AZ-4",
+          "AZ-1"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
+      },
+      {
+        "id": "decide/multiparty-wrong-tenant-not-found",
+        "file": "decide/33-multiparty-wrong-tenant-not-found.json",
+        "rules": [
+          "AZ-2",
+          "AZ-4"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
+      },
+      {
+        "id": "decide/multiparty-refile-replays",
+        "file": "decide/34-multiparty-refile-replays.json",
+        "rules": [
+          "AZ-4",
+          "GT-4"
         ],
         "set": "decide",
         "oracle": {

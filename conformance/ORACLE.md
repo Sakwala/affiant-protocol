@@ -146,13 +146,13 @@ not load, and every one of the five listed here did not pass.
 
 The shipped .NET packages at `1.0.0-beta.3.1` record `MultiParty` verbatim and file it `blocked` — correct at v0.2,
 absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation, no `decision.by`,
-and typing `executionDetail` as a string. So every one of the thirteen new fixtures must fail or error on it.
+and typing `executionDetail` as a string. So every one of the twenty new fixtures must fail or error on it.
 
 | Shipped defect | Rule | Fixtures that must fail on `1.0.0-beta.3.1` |
 |---|---|---|
-| The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by` | AZ-4 | `gate/multiparty-files-one-entry`, `decide/multiparty-partial-stays-pending`, `decide/multiparty-all-approve`, `decide/multiparty-reject-folds`, `decide/multiparty-non-approver-refused`, `decide/multiparty-approver-twice-refused`, `decide/multiparty-amendment-refused`, `decide/multiparty-after-fold-refused`, `decide/multiparty-expired-then-resubmit`, `decide/multiparty-executed-with-typed-detail` |
+| The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by` | AZ-4 | `gate/multiparty-files-one-entry`, `decide/multiparty-partial-stays-pending`, `decide/multiparty-all-approve`, `decide/multiparty-reject-folds`, `decide/multiparty-non-approver-refused`, `decide/multiparty-approver-twice-refused`, `decide/multiparty-amendment-refused`, `decide/multiparty-after-fold-refused`, `decide/multiparty-expired-then-resubmit`, `decide/multiparty-executed-with-typed-detail`, `decide/multiparty-approve-via-relay`, `decide/multiparty-late-amendments-not-preserved`, `decide/multiparty-approvals-in-record-order`, `decide/multiparty-wrong-tenant-not-found`, `decide/multiparty-refile-replays` |
 | `executionDetail` is typed as a string, never `{ code, … }` | DK-1 | `decide/execution-detail-typed`, `decide/multiparty-executed-with-typed-detail` |
-| The release does not validate the verdict's `approvers` / `required` correlation before filing | AZ-4, CV-1 | `gate/multiparty-verdict-too-few-approvers`, `gate/multiparty-verdict-required-out-of-range` |
+| The release does not validate the verdict's `approvers` / `required` correlation before filing | AZ-4, CV-1 | `gate/multiparty-verdict-too-few-approvers`, `gate/multiparty-verdict-required-out-of-range`, `gate/multiparty-verdict-duplicate-approvers`, `gate/multiparty-verdict-required-zero` |
 
 `gate/multiparty-blocked` (retired at 0.3.0; the row stands for that release at that tag) stays on the beta.1 table above,
 because that table is a statement about `1.0.0-beta.1` at that tag, unaffected by this pre-release.
