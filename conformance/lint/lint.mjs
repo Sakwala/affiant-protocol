@@ -181,8 +181,38 @@ const ajv = new Ajv2020({ allErrors: true, strict: true });
 addFormats(ajv);
 const schemaFilesIn = (dir) =>
   existsSync(dir) ? readdirSync(dir).filter((n) => n.endsWith('.schema.json')).sort() : [];
+
+// Every section of the manifest that indexes a versioned schema directory — "0.1.0",
+// "0.3.0", and whatever a later pre-release adds — read as ONE list, in the manifest's
+// own key order. A section qualifies by SHAPE (a string `schemas` and an array
+// `fixtures`), not by name, so a new version is taught to this lint by adding its
+// section rather than by editing a hardcoded "0.1.0" throughout this file (M-1).
+const manifestVersionKeys = Object.keys(manifest).filter(
+  (key) =>
+    manifest[key] &&
+    typeof manifest[key] === 'object' &&
+    typeof manifest[key].schemas === 'string' &&
+    Array.isArray(manifest[key].fixtures),
+);
+/** The fixture directory a versioned section's documents live under: "0.1.0" -> "v0.1". */
+const fixtureDirFor = (key) => `v${key.split('.').slice(0, 2).join('.')}`;
+/** The versioned section a manifest reads as its NEWEST — the highest (major, minor, patch). */
+const parseVersionKey = (key) => key.split('.').map((part) => Number(part) || 0);
+const newestVersionKey = manifestVersionKeys.reduce((newest, key) => {
+  if (newest === null) return key;
+  const a = parseVersionKey(key);
+  const b = parseVersionKey(newest);
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    if ((a[i] ?? 0) !== (b[i] ?? 0)) return (a[i] ?? 0) > (b[i] ?? 0) ? key : newest;
+  }
+  return newest;
+}, null);
+
 for (const name of schemaFilesIn(seedSchemasDir)) ajv.addSchema(readJson(join(seedSchemasDir, name)));
-for (const name of schemaFilesIn(v01SchemasDir)) ajv.addSchema(readJson(join(v01SchemasDir, name)));
+for (const key of manifestVersionKeys) {
+  const dir = join(repoRoot, manifest[key].schemas);
+  for (const name of schemaFilesIn(dir)) ajv.addSchema(readJson(join(dir, name)));
+}
 
 // The fixture format is registered by `$id`, so the two variants inside it can be
 // addressed as `<$id>#/$defs/conformanceFixture` and `<$id>#/$defs/adapterFixture`.
@@ -197,7 +227,10 @@ const compile = (schemaRelPath) => {
   return validate;
 };
 
-console.log(`affiant-protocol fixture lint — seed ${manifest.protocolVersion}, and ${manifest['0.1.0'].protocolVersion}`);
+console.log(
+  `affiant-protocol fixture lint — seed ${manifest.protocolVersion}, and ` +
+    manifestVersionKeys.map((key) => manifest[key].protocolVersion).join(', '),
+);
 const derivedFrom = manifest.derivedFrom ?? {};
 console.log('the seed wire fixtures are hand-authored examples; their shapes were asserted against:');
 console.log(`  framework  ${derivedFrom.framework}`);
@@ -325,29 +358,42 @@ const crossObjectErrors = (schemaRelPath, data) => {
 };
 
 // ---------------------------------------------------------------------------
-// 0.1.0
+// Every versioned section — "0.1.0", "0.3.0", ... — checked the same way
 // ---------------------------------------------------------------------------
 
-console.log('');
-const v01 = manifest['0.1.0'];
-if (!v01 || !Array.isArray(v01.fixtures)) {
-  fail('manifest: no "0.1.0" section, or it lists no fixtures');
-} else {
-  checkUnique(v01.fixtures, '0.1.0');
+/** Every JSON file under a directory, recursively, as absolute paths. */
+const walk = (dir) => {
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir).flatMap((name) => {
+    const full = join(dir, name);
+    return statSync(full).isDirectory() ? walk(full) : full.endsWith('.json') ? [full] : [];
+  });
+};
 
-  const definitionsOnly = new Set(v01.definitionsOnly ?? []);
+/**
+ * One versioned section of the manifest, checked exactly as "0.1.0" always was: every
+ * fixture positive or negative against the schema it names, every schema in the
+ * directory covered by a positive unless definitionsOnly excuses it, every fixture file
+ * on disk claimed by the manifest exactly once.
+ */
+function checkVersionedSection(key) {
+  const section = manifest[key];
+  checkUnique(section.fixtures, key);
+
+  const schemasDir = join(repoRoot, section.schemas);
+  const definitionsOnly = new Set(section.definitionsOnly ?? []);
   const schemasWithPositive = new Set();
   let positives = 0;
   let negatives = 0;
 
-  for (const entry of v01.fixtures) {
+  for (const entry of section.fixtures) {
     const fixturePath = join(fixturesDir, entry.file);
     if (!existsSync(fixturePath)) {
       fail(`${entry.id}: manifest names a fixture file that does not exist — ${entry.file}`);
       continue;
     }
     if (!entry.schema) {
-      fail(`${entry.id}: a v0.1 fixture must name the schema it is about`);
+      fail(`${entry.id}: a ${key} fixture must name the schema it is about`);
       continue;
     }
     if (!existsSync(join(repoRoot, entry.schema))) {
@@ -395,31 +441,31 @@ if (!v01 || !Array.isArray(v01.fixtures)) {
 
   // Coverage, both ways: a schema with no positive fixture is a shape nothing pins,
   // and a fixture directory nobody listed is a document nothing validates.
-  for (const name of schemaFilesIn(v01SchemasDir)) {
-    const rel = `schemas/0.1.0/${name}`;
+  for (const name of schemaFilesIn(schemasDir)) {
+    const rel = `${section.schemas}/${name}`;
     if (definitionsOnly.has(rel)) continue;
     if (!schemasWithPositive.has(rel)) {
-      fail(`${rel}: no positive fixture in the 0.1.0 manifest section validates against it`);
+      fail(`${rel}: no positive fixture in the ${key} manifest section validates against it`);
     }
   }
-  const v01Dir = join(fixturesDir, 'v0.1');
-  const walk = (dir) => {
-    if (!existsSync(dir)) return [];
-    return readdirSync(dir).flatMap((name) => {
-      const full = join(dir, name);
-      return statSync(full).isDirectory() ? walk(full) : full.endsWith('.json') ? [full] : [];
-    });
-  };
-  const v01OnDisk = walk(v01Dir).map((p) => relative(fixturesDir, p)).sort();
-  const v01Unlisted = v01OnDisk.filter((p) => !seenFiles.has(p));
-  for (const p of v01Unlisted) fail(`${p}: fixture file is not listed in MANIFEST.json`);
-  if (v01Unlisted.length === 0) {
-    console.log(`OK    manifest covers all ${v01OnDisk.length} file(s) in conformance/fixtures/v0.1/`);
+  const sectionDir = join(fixturesDir, fixtureDirFor(key));
+  const onDiskForSection = walk(sectionDir).map((p) => relative(fixturesDir, p)).sort();
+  const unlistedForSection = onDiskForSection.filter((p) => !seenFiles.has(p));
+  for (const p of unlistedForSection) fail(`${p}: fixture file is not listed in MANIFEST.json`);
+  if (unlistedForSection.length === 0) {
+    console.log(`OK    manifest covers all ${onDiskForSection.length} file(s) in conformance/fixtures/${fixtureDirFor(key)}/`);
   }
   console.log(
-    `OK    0.1.0: ${positives} positive and ${negatives} negative fixture(s) over ` +
-      `${schemasWithPositive.size} of ${schemaFilesIn(v01SchemasDir).length - definitionsOnly.size} schema(s)`,
+    `OK    ${key}: ${positives} positive and ${negatives} negative fixture(s) over ` +
+      `${schemasWithPositive.size} of ${schemaFilesIn(schemasDir).length - definitionsOnly.size} schema(s)`,
   );
+}
+
+console.log('');
+if (manifestVersionKeys.length === 0) {
+  fail('manifest: no versioned section (a "schemas" string and a "fixtures" array) — nothing to check');
+} else {
+  for (const key of manifestVersionKeys) checkVersionedSection(key);
 }
 
 // ---------------------------------------------------------------------------
@@ -1953,6 +1999,8 @@ if (failures.length > 0) {
 }
 console.log(
   `${checked} seed fixture(s) validated; ` +
-    `${manifest['0.1.0'].fixtures.length} v0.1 fixture(s) checked (positives validated, negatives refused); ` +
-    `0 problems.`,
+    manifestVersionKeys
+      .map((key) => `${manifest[key].fixtures.length} ${key} fixture(s) checked (positives validated, negatives refused)`)
+      .join('; ') +
+    `; 0 problems.`,
 );
