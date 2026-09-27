@@ -1,6 +1,7 @@
 # INVARIANTS — the rules every Affiant implementation enforces
 
-**Status: v0.2 text** (the v0.1 text of 2026-09-04, amended 2026-09-15 — see the changelog), written against a working
+**Status: v0.3 pre-release text** (the v0.2 text of 2026-09-15, amended 2026-09-28 for
+native `MultiParty` — see the changelog), written against a working
 implementation. Every rule has a permanent id, a full
 statement in RFC 2119 words, the reason where it is not obvious, and a *Checked by* line naming the fixtures, suites or lints
 that fail when the rule is broken. The skeleton of 2026-09-04 carried the same ids as one-liners; nothing was renumbered.
@@ -78,7 +79,8 @@ named on the record.
 
 **Refusal codes (v0.1).** `substance-refused` (GT-3), `wireup-invalid` (CV-1), `coverage-refused` (CV-4, AZ-4),
 `requirement-not-implemented` (AZ-4), `decision-unauthorized` (AZ-2, AZ-3), `entry-not-found` (AZ-2), `decision-not-pending`,
-`decision-expired`, `decision-lost-race`, `execution-already-recorded` (DK-1). Three names are **provisional** until the
+`decision-expired`, `decision-lost-race`, `execution-already-recorded` (DK-1), `approver-not-listed`,
+`approver-already-decided`, `decision-not-amendable` (AZ-4, 0.3.0). Three names are **provisional** until the
 `ErrorCode` registry schema lands — `requirement-not-implemented`, `coverage-refused` and `execution-already-recorded`; the
 other seven are fixed by this text. A refusal carries its code and a human-readable reason; an implementation MAY add codes
 but MUST NOT reuse these names for other meanings. The registry names gate refusals only: a caller's programming error — an
@@ -392,6 +394,13 @@ another reviewer) are **reserved**: `ReferralRequired` and `MultiParty` verdicts
 exists because those transitions have not run anywhere yet, and any fixture that names one is deleted back to *reserved* if
 the reference implementation's design diverges. The shipped .NET gate writes `Deferred` on a `ReferralRequired` verdict today
 (`src/Affiant.Core/Services/ReviewGate.cs:382`); the parity manifest carries that until the transition is specified.
+From 0.3.0, `executionDetail` is `{ code, … } | null` — an object whose `code` is an identifier from the host's
+vocabulary (the rulebook reserves none) and whose other properties are the host's, never a string a reader must
+parse; a report carrying a string is a caller error, not a refusal. A `MultiParty` entry's status **folds** from its
+approval records (AZ-4) under the same guarded compare-and-set: the record and the fold it causes are one transition,
+so two approvals racing for the `required`-th place fold the entry once. A decided row carries `decision.by`, the
+principal whose act folded it. Resubmitting an expired `MultiParty` entry files a successor with the same requirement
+object and no approval records.
 *Why:* this is the one surface both implementations genuinely share, so it was written first; an execution state that can
 be flipped after the fact is an audit record that lies. *Checked by:* `decide/approve`, `decide/reject`,
 `decide/second-decision-refused`, `decide/expired-amendments-preserved`, `decide/blocked-refused`,
@@ -399,7 +408,10 @@ be flipped after the fact is an audit record that lies. *Checked by:* `decide/ap
 `decide/execution-recorded-once`, `decide/execution-second-report-refused`, `decide/resubmit-prefills`,
 `sequence-a/approve-round-trip`, `sequence-a/reject-round-trip`, `sequence-a/expiry-then-resubmit`,
 `sequence-a/late-amendments-preserved`, `sequence-a/replay-keeps-the-deadline`,
-`sequence-a/mandatory-field-reviewer-approves`; the once-only sentence by the store contract's cases
+`sequence-a/mandatory-field-reviewer-approves`, `decide/multiparty-all-approve`, `decide/multiparty-reject-folds`,
+`decide/multiparty-after-fold-refused`, `decide/multiparty-expired-then-resubmit`,
+`decide/multiparty-executed-with-typed-detail`, `decide/execution-detail-typed`, `decide/multiparty-partial-stays-pending`;
+the once-only sentence by the store contract's cases
 `deadline/preserves-the-first-record-not-the-second` and `lineage/keeps-the-first-successor-not-the-second`
 (`suite: @affiant/core/testing` store contract), each of which files a *second, different* record and asserts the first
 one stands. *Constrains:* `wire/docket-expiring`,
@@ -409,8 +421,9 @@ vocabulary `approved | rejected | expired | resubmitted` in `wire/action-decisio
 ### DK-2 — Amendments: `null` clears, absent leaves untouched *(v0.1)*
 **MUST.** In an amendment map, `null` means "cleared" and an absent key means "untouched"; an implementation never conflates
 them and never accepts `undefined` as a value. An amendment naming a field that is not proposed is a caller error and
-changes no state. *Checked by:* `decide/amend-recompute`, `decide/resubmit-prefills`, `sequence-a/late-amendments-preserved`,
-`canonical/wire-evidence-card-request-amended`.
+changes no state. Under `MultiParty` an amendment map is refused with `decision-not-amendable` and nothing
+is recorded (AZ-4). *Checked by:* `decide/amend-recompute`, `decide/resubmit-prefills`, `sequence-a/late-amendments-preserved`,
+`canonical/wire-evidence-card-request-amended`, `decide/multiparty-amendment-refused`.
 *Constrains:* `wire/evidence-card-request-resubmission` (`priorAmendments` shape).
 
 ### DK-3 — The expiry sweep is bounded, paged and host-scheduled *(v0.1)*
@@ -456,16 +469,19 @@ paged, so a reconnecting client sees what still needs a decision before what sti
 
 ### AZ-1 — Every executed write carries an attestation record; no attribution, no execution *(v0.1)*
 **MUST.** `attestation: { by, at, entryId }` with `by ∈ { { kind: "member", id }, { kind: "member-via-relay", memberId,
-relay: { principal, channelIdentity, messageId } }, { kind: "standing-order", policyId, version } }`. The *mode* is the `kind`
+relay: { principal, channelIdentity, messageId } }, { kind: "standing-order", policyId, version }, { kind: "multi-party",
+approvers: [member | member-via-relay attestors] } }` *(0.3.0)*. The *mode* is the `kind`
 of `by`; there is no separate mode field to drift from it. A `standing-order` attestation is written by the pipeline in the
-same write that files the entry `approved`; a `member` or `member-via-relay` attestation is written by the decision. An
+same write that files the entry `approved`; a `member` or `member-via-relay` attestation is written by the decision. A
+`multi-party` attestation is written by the fold (AZ-4) and is composed of the approval records' own attestations and
+nothing else. An
 implementation that cannot attribute a write refuses it. Writes a host makes outside the gate (imports, migrations) carry a
 distinct `outsideGate: { reason, recordedBy, at }` that no export may render in an attestation position and that a card
 shows as outside the guarantee.
 *Checked by:* `decide/approve`, `decide/reject`, `decide/relay-member-via-relay`, `gate/standing-order-by-the-book`,
 `gate/standing-order-bound-input`, `sequence-a/approve-round-trip`, `sequence-a/optional-field-empty-standing-order-fires`,
 `sequence-a/reject-round-trip`, `sequence-c/relay-auto-approve-bound-external`,
-`sequence-c/relayed-decision-member-via-relay`. *Source:* the .NET `DocketEntry` gains the record in the conformance release;
+`sequence-c/relayed-decision-member-via-relay`, `decide/multiparty-all-approve`. *Source:* the .NET `DocketEntry` gains the record in the conformance release;
 until then the parity manifest names it.
 
 ### AZ-2 — Tenant-scoped, fail-closed decision authorization with the approver's identity on the record *(v0.1)*
@@ -480,7 +496,8 @@ resubmission.
 *Why:* an ownership check hand-rolled per host tends to check the acting user and not the tenant, and to fall open when
 identity is unresolved; a rule the framework enforces is the only version of this check that every host gets.
 *Checked by:* `decide/approve`, `decide/unresolved-identity`, `decide/wrong-tenant`, `decide/authorization-declined`,
-`decide/authorization-throws`, `sequence-c/relay-may-not-attest-member`, `sequence-c/relay-decision-other-tenant-not-found`;
+`decide/authorization-throws`, `sequence-c/relay-may-not-attest-member`, `sequence-c/relay-decision-other-tenant-not-found`,
+`decide/multiparty-non-approver-refused`;
 `suite: gate refuses with a scope-blind store`.
 
 ### AZ-3 — What identity may attest what *(v0.1)*
@@ -490,8 +507,12 @@ itself (its principal, the channel identity and the message id); a `service` pri
 relay, is refused with `decision-unauthorized`; a capture a relay auto-approves attests `standing-order` with the person
 carried in the policy's `external-ref` binding (PV-2). Which entries may be decided through a relay is host policy. An
 implementation MUST make the rule structural: no code path can construct a `member` attestation from a `service` principal.
+An approval record under
+`MultiParty` carries its own attestation under this rule; the fold's `multi-party` attestation is composed of those
+and nothing else.
 *Checked by:* `decide/relay-member-via-relay`, `decide/relay-without-assertion-refused`,
-`sequence-c/relayed-decision-member-via-relay`, `sequence-c/relay-may-not-attest-member`; `suite: decide types (type-level)`.
+`sequence-c/relayed-decision-member-via-relay`, `sequence-c/relay-may-not-attest-member`, `decide/multiparty-all-approve`,
+`decide/multiparty-non-approver-refused`; `suite: decide types (type-level)`.
 
 ### AZ-4 — Requirement levels fail closed on authorization, not on evidence; native `MultiParty`; the `blocked` marker and its codes *(v0.1; `MultiParty` semantics 0.3.0)*
 **MUST.** Requirement kinds: `StandingOrder`, `ReviewerConfirmation`, `ReferralRequired`, `MultiParty`. From 0.3.0 the
