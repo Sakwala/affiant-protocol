@@ -339,7 +339,7 @@ if (unlisted.length === 0) {
  */
 const crossObjectErrors = (schemaRelPath, data) => {
   const errors = [];
-  if (schemaRelPath === 'schemas/0.1.0/evidence-card-request.schema.json') {
+  if (schemaRelPath.endsWith('/evidence-card-request.schema.json')) {
     const hints = data?.presentation;
     const fields = data?.affidavit?.fields;
     if (Array.isArray(hints) && Array.isArray(fields)) {
