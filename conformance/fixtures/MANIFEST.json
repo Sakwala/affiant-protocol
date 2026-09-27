@@ -1818,6 +1818,15 @@
         "oracle": null,
         "acceptedOnReview": true
       }
+    ],
+    "retired": [
+      {
+        "id": "gate/multiparty-blocked",
+        "file": "gate/11-multiparty-blocked.json",
+        "retiredAt": "0.3.0",
+        "rules": ["AZ-4"],
+        "reason": "Stated that a MultiParty verdict files blocked, which is false from 0.3.0; gate/referral-blocked keeps AZ-4's blocked path covered. Published runs made at earlier tags still report it."
+      }
     ]
   },
   "adapter": {

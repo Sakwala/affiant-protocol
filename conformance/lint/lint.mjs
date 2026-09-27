@@ -706,6 +706,16 @@ if (!conformance || !Array.isArray(conformance.fixtures)) {
     if (!Array.isArray(adapter.fixtures)) fail('manifest: the "adapter" section lists no fixtures');
     else checkUnique(adapter.fixtures, 'adapter');
   }
+  // A retired id is a tombstone, not a fixture: it names no file the runner reads, so it never
+  // joins seenFiles — but its id shares the same namespace a live id draws from, and a fixture
+  // resurrected under an id its own tombstone still names would be indistinguishable from the row
+  // the tombstone tells a published run about.
+  const retiredSeenIds = new Set();
+  for (const entry of conformance.retired ?? []) {
+    if (retiredSeenIds.has(entry.id)) fail(`manifest: duplicate retired fixture id — ${entry.id}`);
+    retiredSeenIds.add(entry.id);
+    if (seenIds.has(entry.id)) fail(`manifest: retired fixture id is also a live fixture id — ${entry.id}`);
+  }
   const indexed = {
     ...conformance,
     sets: { ...(conformance.sets ?? {}), ...(adapter?.sets ?? {}) },
@@ -819,6 +829,10 @@ function checkPublished(section) {
   const parityDir = join(repoRoot, 'conformance', 'parity');
   const resultsDir = join(repoRoot, 'conformance', 'results');
   const fixtureIds = new Set(section.fixtures.map((f) => f.id));
+  // A published run made at an earlier tag reports ids this manifest has since retired — the
+  // fixture stopped being true, but the run that observed it against an implementation of that
+  // tag is still a true reading of that run, so a retired id is accepted here and only here.
+  const retiredIds = new Set((section.retired ?? []).map((f) => f.id));
 
   // Its own Ajv. The parity schema states its conditional requirements as `if`/`then` subschemas
   // (`disposition: "planned"` -> `plannedFor` is required, and not legal on `fixed` or `ignored`),
@@ -930,7 +944,7 @@ function checkPublished(section) {
     checked += 1;
 
     for (const result of run.results) {
-      if (!fixtureIds.has(result.id)) {
+      if (!fixtureIds.has(result.id) && !retiredIds.has(result.id)) {
         fail(`${where}/results.json: reports a fixture the index does not list — ${result.id}`);
       }
     }
@@ -1248,6 +1262,7 @@ function checkRuleCoverage(section) {
   if (rules.length === 0) return;
   const ruleIds = new Set(rules.map((rule) => rule.id));
   const byId = new Map(section.fixtures.map((entry) => [entry.id, entry]));
+  const retiredById = new Map((section.retired ?? []).map((entry) => [entry.id, entry]));
 
   const exemptionsPath = join(repoRoot, 'conformance', 'lint', 'coverage-exemptions.json');
   const exemptions = existsSync(exemptionsPath) ? readJson(exemptionsPath).exemptions ?? [] : [];
@@ -1277,7 +1292,12 @@ function checkRuleCoverage(section) {
     for (const cite of rule.cites) {
       const fixture = byId.get(cite);
       if (fixture === undefined) {
-        fail(`coverage: ${rule.id} cites ${cite}, which the promoted suite does not contain`);
+        const retired = retiredById.get(cite);
+        if (retired !== undefined) {
+          fail(`coverage: ${rule.id} cites ${cite}, retired at ${retired.retiredAt} — cite a fixture the promoted suite still runs`);
+        } else {
+          fail(`coverage: ${rule.id} cites ${cite}, which the promoted suite does not contain`);
+        }
         continue;
       }
       if (!fixture.rules.includes(rule.id)) {
