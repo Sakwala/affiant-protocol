@@ -181,8 +181,38 @@ const ajv = new Ajv2020({ allErrors: true, strict: true });
 addFormats(ajv);
 const schemaFilesIn = (dir) =>
   existsSync(dir) ? readdirSync(dir).filter((n) => n.endsWith('.schema.json')).sort() : [];
+
+// Every section of the manifest that indexes a versioned schema directory — "0.1.0",
+// "0.3.0", and whatever a later pre-release adds — read as ONE list, in the manifest's
+// own key order. A section qualifies by SHAPE (a string `schemas` and an array
+// `fixtures`), not by name, so a new version is taught to this lint by adding its
+// section rather than by editing a hardcoded "0.1.0" throughout this file (M-1).
+const manifestVersionKeys = Object.keys(manifest).filter(
+  (key) =>
+    manifest[key] &&
+    typeof manifest[key] === 'object' &&
+    typeof manifest[key].schemas === 'string' &&
+    Array.isArray(manifest[key].fixtures),
+);
+/** The fixture directory a versioned section's documents live under: "0.1.0" -> "v0.1". */
+const fixtureDirFor = (key) => `v${key.split('.').slice(0, 2).join('.')}`;
+/** The versioned section a manifest reads as its NEWEST — the highest (major, minor, patch). */
+const parseVersionKey = (key) => key.split('.').map((part) => Number(part) || 0);
+const newestVersionKey = manifestVersionKeys.reduce((newest, key) => {
+  if (newest === null) return key;
+  const a = parseVersionKey(key);
+  const b = parseVersionKey(newest);
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    if ((a[i] ?? 0) !== (b[i] ?? 0)) return (a[i] ?? 0) > (b[i] ?? 0) ? key : newest;
+  }
+  return newest;
+}, null);
+
 for (const name of schemaFilesIn(seedSchemasDir)) ajv.addSchema(readJson(join(seedSchemasDir, name)));
-for (const name of schemaFilesIn(v01SchemasDir)) ajv.addSchema(readJson(join(v01SchemasDir, name)));
+for (const key of manifestVersionKeys) {
+  const dir = join(repoRoot, manifest[key].schemas);
+  for (const name of schemaFilesIn(dir)) ajv.addSchema(readJson(join(dir, name)));
+}
 
 // The fixture format is registered by `$id`, so the two variants inside it can be
 // addressed as `<$id>#/$defs/conformanceFixture` and `<$id>#/$defs/adapterFixture`.
@@ -197,7 +227,10 @@ const compile = (schemaRelPath) => {
   return validate;
 };
 
-console.log(`affiant-protocol fixture lint — seed ${manifest.protocolVersion}, and ${manifest['0.1.0'].protocolVersion}`);
+console.log(
+  `affiant-protocol fixture lint — seed ${manifest.protocolVersion}, and ` +
+    manifestVersionKeys.map((key) => manifest[key].protocolVersion).join(', '),
+);
 const derivedFrom = manifest.derivedFrom ?? {};
 console.log('the seed wire fixtures are hand-authored examples; their shapes were asserted against:');
 console.log(`  framework  ${derivedFrom.framework}`);
@@ -325,29 +358,42 @@ const crossObjectErrors = (schemaRelPath, data) => {
 };
 
 // ---------------------------------------------------------------------------
-// 0.1.0
+// Every versioned section — "0.1.0", "0.3.0", ... — checked the same way
 // ---------------------------------------------------------------------------
 
-console.log('');
-const v01 = manifest['0.1.0'];
-if (!v01 || !Array.isArray(v01.fixtures)) {
-  fail('manifest: no "0.1.0" section, or it lists no fixtures');
-} else {
-  checkUnique(v01.fixtures, '0.1.0');
+/** Every JSON file under a directory, recursively, as absolute paths. */
+const walk = (dir) => {
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir).flatMap((name) => {
+    const full = join(dir, name);
+    return statSync(full).isDirectory() ? walk(full) : full.endsWith('.json') ? [full] : [];
+  });
+};
 
-  const definitionsOnly = new Set(v01.definitionsOnly ?? []);
+/**
+ * One versioned section of the manifest, checked exactly as "0.1.0" always was: every
+ * fixture positive or negative against the schema it names, every schema in the
+ * directory covered by a positive unless definitionsOnly excuses it, every fixture file
+ * on disk claimed by the manifest exactly once.
+ */
+function checkVersionedSection(key) {
+  const section = manifest[key];
+  checkUnique(section.fixtures, key);
+
+  const schemasDir = join(repoRoot, section.schemas);
+  const definitionsOnly = new Set(section.definitionsOnly ?? []);
   const schemasWithPositive = new Set();
   let positives = 0;
   let negatives = 0;
 
-  for (const entry of v01.fixtures) {
+  for (const entry of section.fixtures) {
     const fixturePath = join(fixturesDir, entry.file);
     if (!existsSync(fixturePath)) {
       fail(`${entry.id}: manifest names a fixture file that does not exist — ${entry.file}`);
       continue;
     }
     if (!entry.schema) {
-      fail(`${entry.id}: a v0.1 fixture must name the schema it is about`);
+      fail(`${entry.id}: a ${key} fixture must name the schema it is about`);
       continue;
     }
     if (!existsSync(join(repoRoot, entry.schema))) {
@@ -395,31 +441,31 @@ if (!v01 || !Array.isArray(v01.fixtures)) {
 
   // Coverage, both ways: a schema with no positive fixture is a shape nothing pins,
   // and a fixture directory nobody listed is a document nothing validates.
-  for (const name of schemaFilesIn(v01SchemasDir)) {
-    const rel = `schemas/0.1.0/${name}`;
+  for (const name of schemaFilesIn(schemasDir)) {
+    const rel = `${section.schemas}/${name}`;
     if (definitionsOnly.has(rel)) continue;
     if (!schemasWithPositive.has(rel)) {
-      fail(`${rel}: no positive fixture in the 0.1.0 manifest section validates against it`);
+      fail(`${rel}: no positive fixture in the ${key} manifest section validates against it`);
     }
   }
-  const v01Dir = join(fixturesDir, 'v0.1');
-  const walk = (dir) => {
-    if (!existsSync(dir)) return [];
-    return readdirSync(dir).flatMap((name) => {
-      const full = join(dir, name);
-      return statSync(full).isDirectory() ? walk(full) : full.endsWith('.json') ? [full] : [];
-    });
-  };
-  const v01OnDisk = walk(v01Dir).map((p) => relative(fixturesDir, p)).sort();
-  const v01Unlisted = v01OnDisk.filter((p) => !seenFiles.has(p));
-  for (const p of v01Unlisted) fail(`${p}: fixture file is not listed in MANIFEST.json`);
-  if (v01Unlisted.length === 0) {
-    console.log(`OK    manifest covers all ${v01OnDisk.length} file(s) in conformance/fixtures/v0.1/`);
+  const sectionDir = join(fixturesDir, fixtureDirFor(key));
+  const onDiskForSection = walk(sectionDir).map((p) => relative(fixturesDir, p)).sort();
+  const unlistedForSection = onDiskForSection.filter((p) => !seenFiles.has(p));
+  for (const p of unlistedForSection) fail(`${p}: fixture file is not listed in MANIFEST.json`);
+  if (unlistedForSection.length === 0) {
+    console.log(`OK    manifest covers all ${onDiskForSection.length} file(s) in conformance/fixtures/${fixtureDirFor(key)}/`);
   }
   console.log(
-    `OK    0.1.0: ${positives} positive and ${negatives} negative fixture(s) over ` +
-      `${schemasWithPositive.size} of ${schemaFilesIn(v01SchemasDir).length - definitionsOnly.size} schema(s)`,
+    `OK    ${key}: ${positives} positive and ${negatives} negative fixture(s) over ` +
+      `${schemasWithPositive.size} of ${schemaFilesIn(schemasDir).length - definitionsOnly.size} schema(s)`,
   );
+}
+
+console.log('');
+if (manifestVersionKeys.length === 0) {
+  fail('manifest: no versioned section (a "schemas" string and a "fixtures" array) — nothing to check');
+} else {
+  for (const key of manifestVersionKeys) checkVersionedSection(key);
 }
 
 // ---------------------------------------------------------------------------
@@ -626,9 +672,18 @@ const MATCHER_OVERRIDES = {
 /** An Ajv holding a relaxed copy of every v0.1 schema, for the partial matcher check. */
 const partialAjv = new Ajv2020({ allErrors: true, strict: false });
 addFormats(partialAjv);
+// The matcher cross-check reads the NEWEST versioned section's schemas, not v0.1's by
+// name — a fixture matcher describes the wire as it stands now, and by 0.3.0 that is
+// `schemas/0.3.0/`, where `requirement` and `docket-entry` disagree in shape with the
+// frozen v0.1.0 files (`schemas/0.1.0/` is `v01SchemasDir`, kept for the seed check
+// above; unused here now). `v01Documents` keeps its v0.1-era name below because most
+// of what it resolves is unchanged since v0.1.0 (`common`, `provenance-tag`,
+// `binding`, …), which the MATCHER_OVERRIDES table above still addresses by those
+// stems.
+const newestSchemasDir = join(repoRoot, manifest[newestVersionKey].schemas);
 const v01Documents = new Map();
-for (const name of schemaFilesIn(v01SchemasDir)) {
-  const document = readJson(join(v01SchemasDir, name));
+for (const name of schemaFilesIn(newestSchemasDir)) {
+  const document = readJson(join(newestSchemasDir, name));
   v01Documents.set(name.replace(/\.schema\.json$/, ''), document);
   partialAjv.addSchema(relaxDocument(document));
 }
@@ -650,6 +705,16 @@ if (!conformance || !Array.isArray(conformance.fixtures)) {
   if (adapter !== undefined) {
     if (!Array.isArray(adapter.fixtures)) fail('manifest: the "adapter" section lists no fixtures');
     else checkUnique(adapter.fixtures, 'adapter');
+  }
+  // A retired id is a tombstone, not a fixture: it names no file the runner reads, so it never
+  // joins seenFiles — but its id shares the same namespace a live id draws from, and a fixture
+  // resurrected under an id its own tombstone still names would be indistinguishable from the row
+  // the tombstone tells a published run about.
+  const retiredSeenIds = new Set();
+  for (const entry of conformance.retired ?? []) {
+    if (retiredSeenIds.has(entry.id)) fail(`manifest: duplicate retired fixture id — ${entry.id}`);
+    retiredSeenIds.add(entry.id);
+    if (seenIds.has(entry.id)) fail(`manifest: retired fixture id is also a live fixture id — ${entry.id}`);
   }
   const indexed = {
     ...conformance,
@@ -764,6 +829,10 @@ function checkPublished(section) {
   const parityDir = join(repoRoot, 'conformance', 'parity');
   const resultsDir = join(repoRoot, 'conformance', 'results');
   const fixtureIds = new Set(section.fixtures.map((f) => f.id));
+  // A published run made at an earlier tag reports ids this manifest has since retired — the
+  // fixture stopped being true, but the run that observed it against an implementation of that
+  // tag is still a true reading of that run, so a retired id is accepted here and only here.
+  const retiredIds = new Set((section.retired ?? []).map((f) => f.id));
 
   // Its own Ajv. The parity schema states its conditional requirements as `if`/`then` subschemas
   // (`disposition: "planned"` -> `plannedFor` is required, and not legal on `fixed` or `ignored`),
@@ -875,7 +944,7 @@ function checkPublished(section) {
     checked += 1;
 
     for (const result of run.results) {
-      if (!fixtureIds.has(result.id)) {
+      if (!fixtureIds.has(result.id) && !retiredIds.has(result.id)) {
         fail(`${where}/results.json: reports a fixture the index does not list — ${result.id}`);
       }
     }
@@ -1193,6 +1262,7 @@ function checkRuleCoverage(section) {
   if (rules.length === 0) return;
   const ruleIds = new Set(rules.map((rule) => rule.id));
   const byId = new Map(section.fixtures.map((entry) => [entry.id, entry]));
+  const retiredById = new Map((section.retired ?? []).map((entry) => [entry.id, entry]));
 
   const exemptionsPath = join(repoRoot, 'conformance', 'lint', 'coverage-exemptions.json');
   const exemptions = existsSync(exemptionsPath) ? readJson(exemptionsPath).exemptions ?? [] : [];
@@ -1222,7 +1292,12 @@ function checkRuleCoverage(section) {
     for (const cite of rule.cites) {
       const fixture = byId.get(cite);
       if (fixture === undefined) {
-        fail(`coverage: ${rule.id} cites ${cite}, which the promoted suite does not contain`);
+        const retired = retiredById.get(cite);
+        if (retired !== undefined) {
+          fail(`coverage: ${rule.id} cites ${cite}, retired at ${retired.retiredAt} — cite a fixture the promoted suite still runs`);
+        } else {
+          fail(`coverage: ${rule.id} cites ${cite}, which the promoted suite does not contain`);
+        }
         continue;
       }
       if (!fixture.rules.includes(rule.id)) {
@@ -1893,6 +1968,12 @@ function checkMatcherShapes(section) {
     for (const [key, value] of Object.entries(matcher)) {
       if (DERIVED_MATCHER_KEYS.has(key)) continue;
       if (key === 'fields' || key === 'affidavit' || key === 'amendedAffidavit') continue;
+      // From 0.3.0 `expect.entry.requirement` is either the bare `kind` name (RUNNER
+      // §4.1's shorthand, which the wire schema does not spell as a literal string) or
+      // a partial object matcher over the requirement object — the string form has no
+      // wire counterpart to check against and is not a type mismatch, so it is skipped
+      // rather than routed through the generic single-`$ref` override mechanism.
+      if (family === 'entry' && key === 'requirement' && typeof value === 'string') continue;
       const override = MATCHER_OVERRIDES[`${family}.${key}`];
       const target = override ?? [stem, `/properties/${key}`];
       check(`${family}.${key}`, id, value, target[0], target[1], `${path}.${key}`);
@@ -1953,6 +2034,8 @@ if (failures.length > 0) {
 }
 console.log(
   `${checked} seed fixture(s) validated; ` +
-    `${manifest['0.1.0'].fixtures.length} v0.1 fixture(s) checked (positives validated, negatives refused); ` +
-    `0 problems.`,
+    manifestVersionKeys
+      .map((key) => `${manifest[key].fixtures.length} ${key} fixture(s) checked (positives validated, negatives refused)`)
+      .join('; ') +
+    `; 0 problems.`,
 );
