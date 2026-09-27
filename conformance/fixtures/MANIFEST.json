@@ -1251,6 +1251,25 @@
         "oracle": null
       },
       {
+        "id": "decide/multiparty-executed-with-typed-detail",
+        "file": "decide/22-multiparty-executed-with-typed-detail.json",
+        "rules": [
+          "DK-1",
+          "AZ-5"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
+        "id": "decide/execution-detail-typed",
+        "file": "decide/23-execution-detail-typed.json",
+        "rules": [
+          "DK-1"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
         "id": "sequence-a/approve-round-trip",
         "file": "sequence-a/01-approve-round-trip.json",
         "rules": [
