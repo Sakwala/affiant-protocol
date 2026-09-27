@@ -1,7 +1,7 @@
 # Schemas — v0.3.0 (pre-release)
 
 JSON Schema (draft 2020-12) for the Affiant wire format, **as the v0.3 pre-release designs it** — v0.1 with the
-native `MultiParty` design (`../../decisions/2026-09-28-affiant-native-multiparty-design.md`) written in. This is
+native `MultiParty` design (https://github.com/Sakwala/affiant-protocol/issues/41) written in. This is
 the first schema change since v0.1.0 (`schemas/0.1.0/README.md`'s versioning policy: while the major is `0`, a
 schema-breaking change bumps the minor). `0.1.0/` stays frozen; the seed one directory up (`../`, version
 `0.0.1-seed`) is a description of the wire the shipped .NET framework sends today, and both remain incompatible
@@ -53,7 +53,8 @@ the network.
   optional rather than nullable, and the object is still closed.
 - **Shared definitions live in [`common.schema.json`](common.schema.json)** and are reached by `$ref`:
   `isoInstant`, `uuid`, `identifier`, `protocolVersion`, `jsonValue`, `nonNegativeInteger`, `unitInterval`. It
-  carries definitions and no payload of its own, so it is the one schema with no fixture.
+  carries definitions and no payload of its own, so it is listed under `definitionsOnly` rather than carrying a
+  positive document of its own.
 
 ## The files
 
@@ -69,7 +70,7 @@ the network.
 | `money.schema.json` | a monetary value: a decimal string and an ISO 4217 code | SR-2 |
 | `tool-result.schema.json` | what a gated tool call returns: `write` \| `read` \| `error` | AF-5, GT-6 |
 | `entity-ref.schema.json` | the entity a write is about | AF-3 |
-| `attestation.schema.json` | who agreed, when, to which entry: `member`, `member-via-relay`, `standing-order` | AZ-1, AZ-3 |
+| `attestation.schema.json` | who agreed, when, to which entry: `member`, `member-via-relay`, `standing-order`, `multi-party` | AZ-1, AZ-3, AZ-4 |
 | `outside-gate.schema.json` | a write the host made outside the gate — deliberately not an attestation | AZ-1 |
 | `blocked.schema.json` | why an entry sitting in `pending` will accept no decision | AZ-4, CV-4 |
 | `docket-entry.schema.json` | the row every proposed write becomes | DK-1…DK-5, AZ-1, AZ-4 |
@@ -78,7 +79,7 @@ the network.
 | `decision-result.schema.json` | what became of a review, reported back | DK-1, AZ-1 |
 | `notification.schema.json` | `docket-expiring`, `docket-expired`, `docket-transition` | DK-1, DK-3 |
 | `operation.schema.json` | the operation-shape registry: `create`, `update` | AF-3 |
-| `error-code.schema.json` | the refusal-code registry: ten names, three provisional | CV-1, AZ-4 |
+| `error-code.schema.json` | the refusal-code registry: thirteen names, three provisional | CV-1, AZ-4 |
 | `telemetry-key.schema.json` | the telemetry-key registry: nine keys with their attribute lists | TL-1 |
 
 ## The three renames and three moves
@@ -131,7 +132,7 @@ above. This is the pre-release's whole diff:
 
 ## What changed from the seed
 
-| Seed (`../`) | v0.1 (here) | Change |
+| Seed (`../`) | 0.3.0 (here) | Change |
 |---|---|---|
 | `provenance-source` | `provenance-source` | unchanged: the same seven names in the same ladder order |
 | `provenance-tag` | `provenance-tag` | `evidence` → `note`; **gains** `at` (when the tag was minted) and `binding` (nullable, PV-2) |
@@ -191,7 +192,7 @@ npm --prefix conformance/lint ci
 node conformance/lint/lint.mjs
 ```
 
-That validates every fixture in [`../../conformance/fixtures/v0.1/`](../../conformance/fixtures/v0.1/) against the
-schema the manifest assigns it — **positives must validate, negatives must fail** — checks that every schema here
-has a fixture and every fixture has a schema, and compares the pinned enum sets against both directories. See
+That validates every fixture in [`../../conformance/fixtures/v0.3/`](../../conformance/fixtures/v0.3/) against the
+schema the manifest assigns it — **positives must validate, negatives must fail** — checks that every schema has a
+positive document or is listed under `definitionsOnly`, and compares the pinned enum sets against both directories. See
 [`../../conformance/README.md`](../../conformance/README.md).
