@@ -130,6 +130,10 @@ above. This is the pre-release's whole diff:
 | `card.multiParty` | `evidence-card-request.schema.json` | The roster and its progress, so a reviewer surface reads who has decided from the card rather than deriving it itself |
 | Three refusal codes | `error-code.schema.json` | `approver-not-listed`, `approver-already-decided`, `decision-not-amendable` name the three ways a `MultiParty` decision is refused that no existing code covered |
 
+`tool-result.schema.json` (embeds the card), `decision-result.schema.json` and `notification.schema.json` (each
+`$ref`s `docket-entry.schema.json`'s `status` and `execution` `$defs`) are not in the table above because their
+own shape is untouched — they changed only transitively, by carrying the objects the table lists.
+
 ## What changed from the seed
 
 | Seed (`../`) | 0.3.0 (here) | Change |
