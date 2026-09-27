@@ -1,9 +1,11 @@
-# Schemas — v0.1
+# Schemas — v0.3.0 (pre-release)
 
-JSON Schema (draft 2020-12) for the Affiant wire format, **as v0.1 designs it** rather than as one implementation
-happens to send it. This is the first version that was designed: the seed one directory up (`../`, version
-`0.0.1-seed`) is a description of the wire the shipped .NET framework sends today, and the two are deliberately
-not compatible.
+JSON Schema (draft 2020-12) for the Affiant wire format, **as the v0.3 pre-release designs it** — v0.1 with the
+native `MultiParty` design (`../../decisions/2026-09-28-affiant-native-multiparty-design.md`) written in. This is
+the first schema change since v0.1.0 (`schemas/0.1.0/README.md`'s versioning policy: while the major is `0`, a
+schema-breaking change bumps the minor). `0.1.0/` stays frozen; the seed one directory up (`../`, version
+`0.0.1-seed`) is a description of the wire the shipped .NET framework sends today, and both remain incompatible
+with this one.
 
 Read [`../../INVARIANTS.md`](../../INVARIANTS.md) alongside these files. Every rule this directory encodes is
 numbered there (`AF-n` Affidavit shape, `PV-n` provenance and bindings, `GT-n` the gate pipeline, `DK-n` the
@@ -16,7 +18,7 @@ a schema's description and `INVARIANTS.md` differ, **`INVARIANTS.md` wins and th
 schema-breaking change bumps the minor. Every envelope carries it (`INVARIANTS.md` SR-4) — the Affidavit, the
 Evidence Card request, the Docket entry, the decision result, every notification and the telemetry-key registry.
 A consumer **refuses** a payload whose major differs from the version it targets, and **MAY warn** on a newer
-minor it does not know. The string for this directory is `0.1.0`.
+minor it does not know. The string for this directory is `0.3.0`.
 
 The seed predates the field and carries the version only at fixture-set level, in
 [`../../conformance/fixtures/MANIFEST.json`](../../conformance/fixtures/MANIFEST.json).
@@ -28,7 +30,7 @@ names the tag it was produced against.
 
 ## `$id` — an identifier, not yet a URL
 
-Every schema's `$id` is `https://affiant.dev/schemas/0.1.0/<name>.schema.json`. **Nothing is served from that
+Every schema's `$id` is `https://affiant.dev/schemas/0.3.0/<name>.schema.json`. **Nothing is served from that
 path yet.** Until `affiant.dev` serves them, an `$id` here is an identifier that makes `$ref` between these files
 resolve inside a validator that has loaded the directory — it is not a URL a validator can fetch. Load the
 directory (as [`../../conformance/lint/lint.mjs`](../../conformance/lint/lint.mjs) does) rather than relying on
@@ -110,6 +112,22 @@ not also offer a reviewer surface an approve button that cannot work.
 **The per-field constraints and the warnings moved onto the card envelope too.** Same reason, and it is the
 ruling that closes the two open questions v0.1 opened with:
 [Presentation lives on the card envelope](#presentation-lives-on-the-card-envelope).
+
+## What changed from 0.1.0
+
+Everything else in this directory is unchanged from [`schemas/0.1.0/`](../0.1.0/) other than the version strings
+above. This is the pre-release's whole diff:
+
+| Change | Where | Why |
+|---|---|---|
+| The requirement object | `requirement.schema.json` (new), `docket-entry.requirement` `$ref`s it | One wire shape for all four requirement kinds instead of a bare kind string, so `MultiParty`'s `approvers` and `required` — the host policy's own values, validated and never invented (AZ-4) — have somewhere to live on the row itself |
+| `approvals` | `docket-entry.schema.json` | A `MultiParty` entry's status folds from its approvers' own records, not from a status flip nobody attributed (M-3, AZ-4) |
+| `decision.by` | `docket-entry.schema.json` `$defs.decisionRecord` | Every decided row names the principal whose act folded it, so a reader never reconstructs who caused the fold from the approvals list (M-4) |
+| Typed `executionDetail` | `docket-entry.schema.json` `$defs.executionDetail` | An object with a `code` from the host's own vocabulary, never a string a reader must parse (M-5) |
+| `compositeRef` removed | `docket-entry.schema.json` | There is no composition above the gate at 0.3.0: a host that needs several approvals asks for `MultiParty` instead of stitching several entries together under a shared label (M-6) |
+| The `multi-party` attestor | `attestation.schema.json` `$defs.multiParty`, `by.oneOf` | The fold's own attestation, composed of the approval records' attestations and nothing else (AZ-1, AZ-3) |
+| `card.multiParty` | `evidence-card-request.schema.json` | The roster and its progress, so a reviewer surface reads who has decided from the card rather than deriving it itself (D-7, M-13) |
+| Three refusal codes | `error-code.schema.json` | `approver-not-listed`, `approver-already-decided`, `decision-not-amendable` name the three ways a `MultiParty` decision is refused that no existing code covered (M-7) |
 
 ## What changed from the seed
 
