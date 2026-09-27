@@ -979,6 +979,35 @@
         "oracle": null
       },
       {
+        "id": "gate/multiparty-files-one-entry",
+        "file": "gate/23-multiparty-files-one-entry.json",
+        "rules": [
+          "AZ-4"
+        ],
+        "set": "gate",
+        "oracle": null
+      },
+      {
+        "id": "gate/multiparty-verdict-too-few-approvers",
+        "file": "gate/24-multiparty-verdict-too-few-approvers.json",
+        "rules": [
+          "AZ-4",
+          "CV-1"
+        ],
+        "set": "gate",
+        "oracle": null
+      },
+      {
+        "id": "gate/multiparty-verdict-required-out-of-range",
+        "file": "gate/25-multiparty-verdict-required-out-of-range.json",
+        "rules": [
+          "AZ-4",
+          "CV-1"
+        ],
+        "set": "gate",
+        "oracle": null
+      },
+      {
         "id": "decide/approve",
         "file": "decide/01-approve.json",
         "rules": [
@@ -1196,6 +1225,27 @@
           "DK-1",
           "DK-4",
           "AZ-5"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
+        "id": "decide/multiparty-partial-stays-pending",
+        "file": "decide/20-multiparty-partial-stays-pending.json",
+        "rules": [
+          "AZ-4",
+          "DK-1"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
+        "id": "decide/multiparty-all-approve",
+        "file": "decide/21-multiparty-all-approve.json",
+        "rules": [
+          "AZ-4",
+          "DK-1",
+          "AZ-1"
         ],
         "set": "decide",
         "oracle": null
