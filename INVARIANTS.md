@@ -493,19 +493,46 @@ implementation MUST make the rule structural: no code path can construct a `memb
 *Checked by:* `decide/relay-member-via-relay`, `decide/relay-without-assertion-refused`,
 `sequence-c/relayed-decision-member-via-relay`, `sequence-c/relay-may-not-attest-member`; `suite: decide types (type-level)`.
 
-### AZ-4 — Requirement levels fail closed on authorization, not on evidence; the `blocked` marker and its codes *(v0.1)*
-**MUST.** Requirement kinds: `StandingOrder`, `ReviewerConfirmation`, `ReferralRequired`, `MultiParty`. An implementation
-that receives a requirement level it does not implement files the entry as `pending` with the requirement recorded verbatim
-and `blocked: { code, … }`, refuses every decision on it (`decision-not-pending`, with the blocked code in the details), never
-executes it, and never degrades to a weaker requirement. Codes: `requirement-not-implemented` (with `level`), and
-`coverage-refused` (with the tool name and the uncovered category, CV-4). A blocked entry's card says so and never claims a
-confirmation is being awaited. `MultiParty` semantics are reserved for v0.3 or later (see *Reserved for v0.3 and later*); until then a host composes multi-party approval
-*above* the gate: one entry per approver, the executor bound to the composite (`compositeRef` on each constituent entry),
-each constituent card stating on its face that it is one of N approvals for a named composite, and no constituent's approval
-alone reaches the executor.
-*Why:* the shipped .NET gate routes `MultiParty` to the single-card branch — a joint requirement silently gets one approval
-(`src/Affiant.Core/Services/ReviewGate.cs:387`). *Checked by:* `gate/multiparty-blocked`, `gate/referral-blocked`, `gate/coverage-refused-declared`,
-`decide/blocked-refused`.
+### AZ-4 — Requirement levels fail closed on authorization, not on evidence; native `MultiParty`; the `blocked` marker and its codes *(v0.1; `MultiParty` semantics 0.3.0)*
+**MUST.** Requirement kinds: `StandingOrder`, `ReviewerConfirmation`, `ReferralRequired`, `MultiParty`. From 0.3.0 the
+requirement is recorded as an object `{ kind, … }` (`schemas/0.3.0/requirement.schema.json`): `{ kind }` alone for the
+first three; `{ kind: "MultiParty", approvers, required }` for the fourth, where `approvers` is the host policy's list of
+at least two distinct principal identifiers and `required` is the host policy's integer with `1 ≤ required ≤
+approvers.length`. An implementation validates both and never invents either; a verdict that fails the validation is a
+policy fault refused at evaluation with `wireup-invalid`, nothing filed (CV-1). A `MultiParty` write is **one** entry:
+its Affidavit is the proposal, its id derives as any other (GT-4), a retry replays it, and it files `pending` with
+`approvals: []` and no `blocked` marker. A decision on it is an **approval record** `{ approver, decision, reason, at,
+attestation }` written by the gate under AZ-2 and AZ-3 with two more checks, in this order after them: the principal
+MUST be one of the entry's `approvers` (`approver-not-listed`) and MUST NOT have a record already
+(`approver-already-decided`); an amendment map on a `MultiParty` decision is refused (`decision-not-amendable`) and
+nothing is recorded. Each approval's attestation is `member` or `member-via-relay`, never `standing-order`. The entry's
+status **folds** from its records under DK-1: the `required`-th `approve` folds it `approved` in the same guarded
+transition that records that approval, with an entry-level attestation whose `by` is `{ kind: "multi-party",
+approvers: [the attestors of the approvals that folded it, in record order] }`; the first `reject` folds it
+`rejected`; either fold writes `decision: { kind, reason, at, by }` naming the approver whose record folded it, and
+every later decision is refused `decision-not-pending`. Expiry, resubmission (DK-1: the successor files with the same
+requirement object and `approvals: []`), execution (DK-1, AZ-5, AZ-7) and rehydration (DK-5) treat the entry as any
+other. A level an implementation does not run — `ReferralRequired` at 0.3.0, and `MultiParty` in an implementation
+that has not reached 0.3.0 — files `pending` with the requirement recorded verbatim and `blocked: { code, … }`,
+refuses every decision on it (`decision-not-pending`, with the blocked code in the details), never executes it, and
+never degrades to a weaker requirement. Codes: `requirement-not-implemented` (with `level`), and `coverage-refused`
+(with the tool name and the uncovered category, CV-4). A blocked entry's card says so and never claims a confirmation
+is being awaited. There is no composition above the gate at 0.3.0: `compositeRef` left the row and the filing
+surface, and a host that needs several approvals asks for `MultiParty`.
+*Why:* the shipped .NET gate routes `MultiParty` to the single-card branch — a joint requirement silently gets one
+approval (`src/Affiant.Core/Services/ReviewGate.cs:387`); and the v0.2 composition above the gate kept the approver,
+the round and the cause of a failure in fields no store could constrain, which the first running host showed
+(2026-09-27). `required` is a value so that a quorum is a policy decision and not a schema change; only `required =
+approvers.length` has run in a host as of this pre-release.
+*Checked by:* `gate/multiparty-files-one-entry`, `gate/multiparty-verdict-too-few-approvers`,
+`gate/multiparty-verdict-required-out-of-range`, `decide/multiparty-partial-stays-pending`,
+`decide/multiparty-all-approve`, `decide/multiparty-reject-folds`, `decide/multiparty-non-approver-refused`,
+`decide/multiparty-approver-twice-refused`, `decide/multiparty-amendment-refused`,
+`decide/multiparty-after-fold-refused`, `decide/multiparty-expired-then-resubmit`, `gate/referral-blocked`,
+`gate/coverage-refused-declared`, `decide/blocked-refused`; `suite: two approvals racing for the required-th place fold
+the entry once` (the store contract of `@affiant/core/testing`, run by every store). *Source:* the running host's
+interim composition and its evidence (Orrery, 2026-09-27); the owner's rulings of 2026-09-28 on
+[affiant-protocol #41–#46](https://github.com/Sakwala/affiant-protocol/issues/41).
 
 ### AZ-5 — The Docket is the sole record of approval authority *(v0.1)*
 **MUST.** An executor is reachable only through a Docket entry that carries an attestation (AZ-1); nothing replayed from a
