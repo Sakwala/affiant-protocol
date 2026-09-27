@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://affiant.dev/schemas/0.3.0/docket-entry.schema.json",
   "title": "DocketEntry",
-  "description": "One filed proposal: the Affidavit, what it needs before it may execute, where it stands, and who agreed. The Docket is the SOLE record of approval authority — an executor is reachable only through an entry that carries an attestation, and nothing replayed from a client's history, a chat transcript or a framework checkpoint stands in for that (INVARIANTS.md AZ-5). A row reads FORWARD (DK-4): a recorded fact is never edited in place, and an accepted amendment, a preserved late amendment, an execution outcome and a supersession are each appended beside what was already there. Three correlations no JSON Schema can state, which an implementation enforces instead: execution is non-null exactly when status is \"approved\"; decidedAt is non-null on every terminal row and null while pending; and status is what the row SAYS — what it READS is status with the deadline applied, so a pending entry past expiresAt reads expired whether or not any sweep has run.",
+  "description": "One filed proposal: the Affidavit, what it needs before it may execute, where it stands, and who agreed. The Docket is the SOLE record of approval authority — an executor is reachable only through an entry that carries an attestation, and nothing replayed from a client's history, a chat transcript or a framework checkpoint stands in for that (INVARIANTS.md AZ-5). A row reads FORWARD (DK-4): a recorded fact is never edited in place, and an accepted amendment, a preserved late amendment, an execution outcome and a supersession are each appended beside what was already there. Five correlations no JSON Schema can state, which an implementation enforces instead: execution is non-null exactly when status is \"approved\"; decidedAt is non-null on every terminal row and null while pending; status is what the row SAYS — what it READS is status with the deadline applied, so a pending entry past expiresAt reads expired whether or not any sweep has run; approvals is null exactly when requirement.kind is not \"MultiParty\" (M-3, AZ-4); and, for a MultiParty requirement, required is at most approvers.length (AZ-4).",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -18,7 +18,7 @@
     "status",
     "execution",
     "blocked",
-    "compositeRef",
+    "approvals",
     "attestation",
     "amendments",
     "preservedAmendments",
@@ -84,10 +84,13 @@
         { "type": "null" }
       ]
     },
-    "compositeRef": {
-      "description": "The composite approval this entry is one constituent of, or null. Until MultiParty semantics land (reserved for v0.3 or later), a host composes multi-party approval ABOVE the gate: one entry per approver, all naming the same composite, each card stating on its face that it is one of N, and no constituent's approval alone reaching the executor (AZ-4).",
+    "approvals": {
+      "description": "The approval records a MultiParty entry's status folds from, or null when requirement.kind is not \"MultiParty\" (M-3, AZ-4). [] at filing; one record is appended per approver, in record order, never edited once written. There is no composition above the gate at 0.3.0: a host that needs several approvals asks for MultiParty and the gate keeps this list, rather than the host stitching several entries together under a shared label.",
       "oneOf": [
-        { "$ref": "https://affiant.dev/schemas/0.3.0/common.schema.json#/$defs/identifier" },
+        {
+          "type": "array",
+          "items": { "$ref": "#/$defs/approvalRecord" }
+        },
         { "type": "null" }
       ]
     },
@@ -133,8 +136,11 @@
       ]
     },
     "executionDetail": {
-      "description": "What the executor reported, or null when it has not reported or had nothing to say.",
-      "type": ["string", "null"]
+      "description": "What the executor reported, or null when it has not reported or had nothing to say. From 0.3.0 a typed object rather than a string a reader must parse (M-5).",
+      "oneOf": [
+        { "$ref": "#/$defs/executionDetail" },
+        { "type": "null" }
+      ]
     }
   },
   "$defs": {
@@ -155,7 +161,7 @@
       "description": "What a reviewer decided, as it is recorded on the row. Amending is approving with an amendment map, not a third kind.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "reason", "at"],
+      "required": ["kind", "reason", "at", "by"],
       "properties": {
         "kind": {
           "description": "Approve or reject.",
@@ -169,6 +175,53 @@
         "at": {
           "description": "When the decision was made.",
           "$ref": "https://affiant.dev/schemas/0.3.0/common.schema.json#/$defs/isoInstant"
+        },
+        "by": {
+          "description": "The principal whose act folded this row (M-4). For a ReviewerConfirmation decision, that reviewer; for a MultiParty decision, the approver whose approval or rejection record folded the entry — required on every decided row from 0.3.0 so a reader never has to reconstruct who caused the fold from the approvals list.",
+          "$ref": "https://affiant.dev/schemas/0.3.0/common.schema.json#/$defs/identifier"
+        }
+      }
+    },
+    "approvalRecord": {
+      "title": "ApprovalRecord",
+      "description": "One approver's decision on a MultiParty entry (M-3, AZ-4). Named approver rather than left implicit so a store can key these (tenant, entry, approver); appended once per approver, in record order, and never edited once written.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["approver", "decision", "reason", "at", "attestation"],
+      "properties": {
+        "approver": {
+          "description": "The principal who decided, one of the entry's requirement.approvers.",
+          "$ref": "https://affiant.dev/schemas/0.3.0/common.schema.json#/$defs/identifier"
+        },
+        "decision": {
+          "description": "Approve or reject.",
+          "type": "string",
+          "enum": ["approve", "reject"]
+        },
+        "reason": {
+          "description": "The approver's stated reason, or null when they gave none. Required on a rejection.",
+          "type": ["string", "null"]
+        },
+        "at": {
+          "description": "When this approver decided.",
+          "$ref": "https://affiant.dev/schemas/0.3.0/common.schema.json#/$defs/isoInstant"
+        },
+        "attestation": {
+          "description": "This approver's own attestation — member or member-via-relay, never standing-order (AZ-3). The entry-level attestation the fold writes is composed of these and nothing else (AZ-4).",
+          "$ref": "https://affiant.dev/schemas/0.3.0/attestation.schema.json"
+        }
+      }
+    },
+    "executionDetail": {
+      "title": "ExecutionDetail",
+      "description": "What the executor reported, typed from 0.3.0 rather than a string a reader must parse (M-5). code is the host's own vocabulary — the rulebook reserves none — and every other property is the host's; additionalProperties is true because this is the executor's report, not a protocol-defined shape.",
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["code"],
+      "properties": {
+        "code": {
+          "description": "The host's identifier for what happened. Never a string to parse: a caller that needs structure puts it in another property on this object.",
+          "$ref": "https://affiant.dev/schemas/0.3.0/common.schema.json#/$defs/identifier"
         }
       }
     },
