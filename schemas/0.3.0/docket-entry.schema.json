@@ -208,7 +208,32 @@
         },
         "attestation": {
           "description": "This approver's own attestation — member or member-via-relay, never standing-order (AZ-3). The entry-level attestation the fold writes is composed of these and nothing else (AZ-4).",
-          "$ref": "https://affiant.dev/schemas/0.3.0/attestation.schema.json"
+          "$ref": "#/$defs/approvalAttestation"
+        }
+      }
+    },
+    "approvalAttestation": {
+      "title": "ApprovalAttestation",
+      "description": "The attestation shape of one approval record (F-12): the same envelope as attestation.schema.json, but closed on `by` to member or member-via-relay, because a MultiParty approver always acts as a person and never as a standing-order or the entry-level multi-party fold itself (AZ-3, AZ-4).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["by", "at", "entryId"],
+      "properties": {
+        "by": {
+          "description": "Who agreed to this one approval.",
+          "type": "object",
+          "oneOf": [
+            { "$ref": "https://affiant.dev/schemas/0.3.0/attestation.schema.json#/$defs/member" },
+            { "$ref": "https://affiant.dev/schemas/0.3.0/attestation.schema.json#/$defs/memberViaRelay" }
+          ]
+        },
+        "at": {
+          "description": "When they agreed.",
+          "$ref": "https://affiant.dev/schemas/0.3.0/common.schema.json#/$defs/isoInstant"
+        },
+        "entryId": {
+          "description": "The Docket entry this attests to.",
+          "$ref": "https://affiant.dev/schemas/0.3.0/common.schema.json#/$defs/uuid"
         }
       }
     },
