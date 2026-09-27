@@ -322,7 +322,7 @@
                   "description": "A kind name, or — from 0.3.0, and the only way to state MultiParty — the requirement object (M-2, M-8): the host policy's own `approvers` and `required`, which the fixture states exactly because the gate validates them and never invents either (AZ-4).",
                   "oneOf": [
                     { "$ref": "#/$defs/requirementKind" },
-                    { "$ref": "#/$defs/requirementObject" }
+                    { "$ref": "#/$defs/requirementGiven" }
                   ]
                 },
                 "ttlMs": { "type": "integer", "minimum": 1 },
@@ -1117,8 +1117,8 @@
       ]
     },
 
-    "requirementObject": {
-      "description": "The requirement as an object, the only way a fixture can state MultiParty from 0.3.0 (M-2, M-8): the first three kinds carry nothing else; MultiParty carries the host policy's own `approvers` (at least two distinct principal ids) and `required`, values the gate validates and never invents (AZ-4).",
+    "requirementGiven": {
+      "description": "The requirement as an object on the given side, the only way a fixture can state MultiParty from 0.3.0 (M-2, M-8). Permissive by design (B-57c2 item 5, the conductor's ruling on B-57c1's finding): a fixture describes what the host's policy verdict returned, and the gate is what validates it, so this shape states no lower bound on `approvers` and no bound on `required` — a fixture that demonstrates the gate refusing an invalid verdict (fewer than two approvers, `required` out of range) must be able to state that invalid verdict in the first place. `kind` is one of the four; `approvers` is an array of strings with no `minItems`/`uniqueItems`; `required` is an integer with no `minimum`.",
       "oneOf": [
         {
           "type": "object",
@@ -1144,8 +1144,8 @@
           "required": ["kind", "approvers", "required"],
           "properties": {
             "kind": { "const": "MultiParty" },
-            "approvers": { "type": "array", "items": { "type": "string" }, "minItems": 2, "uniqueItems": true },
-            "required": { "type": "integer", "minimum": 1 }
+            "approvers": { "type": "array", "items": { "type": "string" } },
+            "required": { "type": "integer" }
           }
         }
       ]
@@ -1176,10 +1176,9 @@
     },
 
     "executionDetailGiven": {
-      "description": "What the host's executor reports about a write. From 0.3.0 (M-5) an object naming the host's own `code`, never a string a reader must parse; `null` for no detail. A bare string is the pre-0.3.0 shape and stays legal so an existing fixture is unchanged (M-8).",
+      "description": "What the host's executor reports about a write. From 0.3.0 (M-5) an object naming the host's own `code`, never a string a reader must parse; `null` for no detail. The string form left the format with B-57c2's item 5: every fixture that carried one is amended to the typed shape.",
       "oneOf": [
         { "type": "null" },
-        { "type": "string" },
         {
           "type": "object",
           "additionalProperties": true,
@@ -1190,10 +1189,9 @@
     },
 
     "executionDetailMatcher": {
-      "description": "A partial matcher over the executionDetail on the row. From 0.3.0 (M-5, M-8), an object whose `code`, when stated, is compared exactly and whose other properties are the host's own and unconstrained; `null` asserts the row carries no detail. A bare string is the pre-0.3.0 shape and stays legal so an existing fixture is unchanged (M-8).",
+      "description": "A partial matcher over the executionDetail on the row. From 0.3.0 (M-5, M-8), an object whose `code`, when stated, is compared exactly and whose other properties are the host's own and unconstrained; `null` asserts the row carries no detail. The string form left the format with B-57c2's item 5: every fixture that carried one is amended to the typed shape.",
       "oneOf": [
         { "type": "null" },
-        { "type": "string" },
         {
           "type": "object",
           "additionalProperties": true,
