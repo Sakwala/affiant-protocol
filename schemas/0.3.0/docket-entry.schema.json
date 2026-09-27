@@ -66,8 +66,8 @@
       ]
     },
     "requirement": {
-      "description": "What the policy chain decided this write needs before it may execute, recorded verbatim (AZ-4).",
-      "$ref": "#/$defs/requirementKind"
+      "description": "What the policy chain decided this write needs before it may execute, recorded verbatim (AZ-4). From 0.3.0 this is an object naming its kind (schemas/0.3.0/requirement.schema.json); MultiParty's carries the host policy's approvers and required.",
+      "$ref": "https://affiant.dev/schemas/0.3.0/requirement.schema.json"
     },
     "status": {
       "description": "What the row says.",
@@ -149,12 +149,6 @@
       "description": "What became of an approved write once the host's executor reported. A separate axis rather than two more statuses because an approved-but-failed write and an approved-and-committed one differ in what the HOST must do next, not in whether the approval happened; collapsing them into status loses the approval. The framework never performs the write — the only path to \"executed\" is the host's report (AZ-7).",
       "type": "string",
       "enum": ["unexecuted", "executed", "failed"]
-    },
-    "requirementKind": {
-      "title": "RequirementKind",
-      "description": "How much agreement a write needs before it may execute — the policy chain's verdict kind. StandingOrder approves with no person present; ReviewerConfirmation asks one person; ReferralRequired hands the entry to a different reviewer and MultiParty requires several, NEITHER of which v0.1 runs: an implementation records the level verbatim, files the entry pending with a blocked marker, and never degrades it to a weaker requirement (AZ-4).",
-      "type": "string",
-      "enum": ["StandingOrder", "ReviewerConfirmation", "ReferralRequired", "MultiParty"]
     },
     "decisionRecord": {
       "title": "DecisionRecord",
