@@ -85,7 +85,7 @@
       ]
     },
     "compositeRef": {
-      "description": "The composite approval this entry is one constituent of, or null. Until MultiParty semantics land at protocol v0.2, a host composes multi-party approval ABOVE the gate: one entry per approver, all naming the same composite, each card stating on its face that it is one of N, and no constituent's approval alone reaching the executor (AZ-4).",
+      "description": "The composite approval this entry is one constituent of, or null. Until MultiParty semantics land (reserved for v0.3 or later), a host composes multi-party approval ABOVE the gate: one entry per approver, all naming the same composite, each card stating on its face that it is one of N, and no constituent's approval alone reaching the executor (AZ-4).",
       "oneOf": [
         { "$ref": "https://affiant.dev/schemas/0.1.0/common.schema.json#/$defs/identifier" },
         { "type": "null" }

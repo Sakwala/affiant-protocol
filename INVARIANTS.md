@@ -499,7 +499,7 @@ that receives a requirement level it does not implement files the entry as `pend
 and `blocked: { code, … }`, refuses every decision on it (`decision-not-pending`, with the blocked code in the details), never
 executes it, and never degrades to a weaker requirement. Codes: `requirement-not-implemented` (with `level`), and
 `coverage-refused` (with the tool name and the uncovered category, CV-4). A blocked entry's card says so and never claims a
-confirmation is being awaited. `MultiParty` semantics are protocol v0.2; until then a host composes multi-party approval
+confirmation is being awaited. `MultiParty` semantics are reserved for v0.3 or later (see *Reserved for v0.3 and later*); until then a host composes multi-party approval
 *above* the gate: one entry per approver, the executor bound to the composite (`compositeRef` on each constituent entry),
 each constituent card stating on its face that it is one of N approvals for a named composite, and no constituent's approval
 alone reaches the executor.
