@@ -809,20 +809,6 @@
         "oracle": null
       },
       {
-        "id": "gate/multiparty-blocked",
-        "file": "gate/11-multiparty-blocked.json",
-        "rules": [
-          "AZ-4"
-        ],
-        "set": "gate",
-        "oracle": {
-          "mustFailOn": [
-            "dotnet@1.0.0-beta.1"
-          ],
-          "defect": "A `MultiParty` requirement is routed to the single-card branch — one approval satisfies a joint requirement"
-        }
-      },
-      {
         "id": "gate/referral-blocked",
         "file": "gate/12-referral-blocked.json",
         "rules": [
@@ -1265,6 +1251,65 @@
         "file": "decide/23-execution-detail-typed.json",
         "rules": [
           "DK-1"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
+        "id": "decide/multiparty-reject-folds",
+        "file": "decide/24-multiparty-reject-folds.json",
+        "rules": [
+          "AZ-4",
+          "DK-1"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
+        "id": "decide/multiparty-non-approver-refused",
+        "file": "decide/25-multiparty-non-approver-refused.json",
+        "rules": [
+          "AZ-4",
+          "AZ-2"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
+        "id": "decide/multiparty-approver-twice-refused",
+        "file": "decide/26-multiparty-approver-twice-refused.json",
+        "rules": [
+          "AZ-4"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
+        "id": "decide/multiparty-amendment-refused",
+        "file": "decide/27-multiparty-amendment-refused.json",
+        "rules": [
+          "AZ-4",
+          "DK-2"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
+        "id": "decide/multiparty-after-fold-refused",
+        "file": "decide/28-multiparty-after-fold-refused.json",
+        "rules": [
+          "DK-1",
+          "AZ-4"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
+        "id": "decide/multiparty-expired-then-resubmit",
+        "file": "decide/29-multiparty-expired-then-resubmit.json",
+        "rules": [
+          "DK-1",
+          "AZ-4"
         ],
         "set": "decide",
         "oracle": null
