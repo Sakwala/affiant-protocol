@@ -1,7 +1,7 @@
 {
   "id": "decide/multiparty-after-fold-refused",
   "rules": ["DK-1", "AZ-4"],
-  "title": "Once a MultiParty entry has folded, every later decision is refused decision-not-pending, whatever kind it is and whoever the listed approver making it: the row keeps the records that folded it and gains no more.",
+  "title": "A listed approver who has not decided, deciding after the fold, is refused decision-not-pending: the row keeps the records that folded it and gains no more.",
   "given": {
     "clock": "2026-09-28T09:00:00.000Z",
     "store": "memory",
