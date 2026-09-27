@@ -1230,6 +1230,27 @@
         "oracle": null
       },
       {
+        "id": "decide/multiparty-partial-stays-pending",
+        "file": "decide/20-multiparty-partial-stays-pending.json",
+        "rules": [
+          "AZ-4",
+          "DK-1"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
+        "id": "decide/multiparty-all-approve",
+        "file": "decide/21-multiparty-all-approve.json",
+        "rules": [
+          "AZ-4",
+          "DK-1",
+          "AZ-1"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
         "id": "sequence-a/approve-round-trip",
         "file": "sequence-a/01-approve-round-trip.json",
         "rules": [
