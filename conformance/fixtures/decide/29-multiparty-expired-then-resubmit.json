@@ -1,7 +1,7 @@
 {
   "id": "decide/multiparty-expired-then-resubmit",
   "rules": ["DK-1", "AZ-4"],
-  "title": "Resubmitting an expired MultiParty entry files a successor with the same requirement object and no approval records: the approvals a superseded row carried are its own history, not a head start for the row that replaces it.",
+  "title": "Resubmitting an expired MultiParty entry under an unchanged policy files a successor with the same requirement object and no approval records: the approvals a superseded row carried are its own history, not a head start for the row that replaces it.",
   "given": {
     "clock": "2026-09-28T09:31:00.000Z",
     "store": "memory",
