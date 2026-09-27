@@ -75,6 +75,6 @@ thing, which `1.0.0-beta.3.1`'s vendored driver at the `v0.2.0` fixture format c
 
 | File | What it is |
 |---|---|
-| [`dotnet-1.0.0-beta.3.1.json`](dotnet-1.0.0-beta.3.1.json) | The machine-readable run, copied unchanged from `conformance/results/dotnet-1.0.0-beta.3.1.json` in the `Sakwala/affiant` scratch worktree. `protocolTag` in that document is the branch commit `36f3dd5282916e94c911402d0b8ed46a35d1a8c8` (this run's local pin had no tag); `implementation.commit` is `995502f348dac38926a5478a7fcfb70e3f758c91`. Validates against [`../../results.schema.json`](../../results.schema.json). |
+| [`results.json`](results.json) | The machine-readable run, copied unchanged from `conformance/results/dotnet-1.0.0-beta.3.1.json` in the `Sakwala/affiant` scratch worktree. `protocolTag` in that document is the branch commit `36f3dd5282916e94c911402d0b8ed46a35d1a8c8` (this run's local pin had no tag); `implementation.commit` is `995502f348dac38926a5478a7fcfb70e3f758c91`. Validates against [`../../results.schema.json`](../../results.schema.json). |
 
 This is the record of one run at one moment (2026-09-27T21:36:51.591Z) and is not updated in place.
