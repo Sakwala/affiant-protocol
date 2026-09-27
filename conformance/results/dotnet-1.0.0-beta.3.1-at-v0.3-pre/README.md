@@ -1,6 +1,6 @@
 # The .NET conformance run — `1.0.0-beta.3.1` at the v0.3 pre-release
 
-The negative-oracle run for the native `MultiParty` pre-release (B-57e), published as the evidence for the third table
+The negative-oracle run for the native `MultiParty` pre-release, published as the evidence for the third table
 of [`../../ORACLE.md`](../../ORACLE.md), "The list for `1.0.0-beta.3.1` at the v0.3 pre-release". This is a **local**
 run — the .NET repository's own `PROTOCOL_PIN` is never moved off `v0.2.0` for it; the pin was pointed at this
 branch's head only inside a scratch worktree, for this run, and restored afterward. This run directory is rewritten
@@ -55,7 +55,7 @@ One row per fixture the [`ORACLE.md`](../../ORACLE.md) third table lists, plus t
 
 | Fixture | Outcome | First diff / reason | Failed for the recorded defect? |
 |---|---|---|---|
-| `gate/multiparty-files-one-entry` | error | `InvalidOperationException: The node must be of type 'JsonValue'.` | **No** — the driver's fixture loader throws on the `MultiParty` requirement object before the gate runs; it never reaches the single-card routing the table's row names. It still counts as a failure under M-10. |
+| `gate/multiparty-files-one-entry` | error | `InvalidOperationException: The node must be of type 'JsonValue'.` | **No** — the driver's fixture loader throws on the `MultiParty` requirement object before the gate runs; it never reaches the single-card routing the table's row names. It still counts as a failure regardless of the specific mechanism. |
 | `gate/multiparty-verdict-too-few-approvers` | error | `InvalidOperationException: The node must be of type 'JsonValue'.` | **No** — same loader exception, before any verdict validation runs. |
 | `gate/multiparty-verdict-required-out-of-range` | error | `InvalidOperationException: The node must be of type 'JsonValue'.` | **No** — same loader exception. |
 | `gate/multiparty-verdict-duplicate-approvers` | error | `InvalidOperationException: The node must be of type 'JsonValue'.` | **No** — same loader exception; the driver never reaches the verdict's `uniqueItems` check. |

@@ -672,10 +672,10 @@
   "0.3.0": {
     "protocolVersion": "0.3.0",
     "schemas": "schemas/0.3.0",
-    "$note": "The pre-release set written to the native MultiParty design (INVARIANTS.md AZ-4; the ratified design 2026-09-28-affiant-native-multiparty-design.md). Documents live under conformance/fixtures/v0.3/, authored only for the schemas M-2 through M-7 and M-13 changed: requirement.schema.json (new), docket-entry.schema.json (approvals, decision.by, typed executionDetail, compositeRef removed), attestation.schema.json (the multi-party attestor), evidence-card-request.schema.json (card.multiParty) and error-code.schema.json (three appended codes). Every other 0.3.0 schema is byte-identical in shape to its 0.1.0 counterpart but for its $id and version string, so the 0.1.0 documents under conformance/fixtures/v0.1/ validate against it unchanged (common.schema.json's protocolVersion is a semver pattern, not a fixed value) and are not duplicated here; those schemas are listed in definitionsOnly with a note rather than re-authoring sixty-nine documents for a shape that did not change. A POSITIVE must validate against the schema the row names; a NEGATIVE must fail it, each a single deliberate mutation of a named positive, in the same convention as 0.1.0.",
+    "$note": "The pre-release set written to the native MultiParty design (INVARIANTS.md AZ-4; https://github.com/Sakwala/affiant-protocol/issues/41). Documents live under conformance/fixtures/v0.3/, authored only for the schemas that changed: requirement.schema.json (new), docket-entry.schema.json (approvals, decision.by, typed executionDetail, compositeRef removed), attestation.schema.json (the multi-party attestor), evidence-card-request.schema.json (card.multiParty) and error-code.schema.json (three appended codes). Every other 0.3.0 schema is byte-identical in shape to its 0.1.0 counterpart but for its $id and version string, so the 0.1.0 documents under conformance/fixtures/v0.1/ validate against it unchanged (common.schema.json's protocolVersion is a semver pattern, not a fixed value) and are not duplicated here; those schemas are listed in definitionsOnly with a note rather than re-authoring sixty-nine documents for a shape that did not change. A POSITIVE must validate against the schema the row names; a NEGATIVE must fail it, each a single deliberate mutation of a named positive, in the same convention as 0.1.0.",
     "derivedFrom": {
       "reference": "authored here ahead of @affiant/core's pre-release; the core's emitted documents replace these at v0.3.0",
-      "values": "Same tenant, ids and approvers as the B-57c1 conformance fixtures (gate/multiparty-files-one-entry, decide/multiparty-all-approve), so the schema documents and the behaviour fixtures tell one story.",
+      "values": "Same tenant, ids and approvers as the conformance fixtures (gate/multiparty-files-one-entry, decide/multiparty-all-approve), so the schema documents and the behaviour fixtures tell one story.",
       "date": "2026-09-28"
     },
     "definitionsOnly": [
@@ -703,7 +703,7 @@
         "file": "v0.3/requirement-multiparty.json",
         "schema": "schemas/0.3.0/requirement.schema.json",
         "kind": "positive",
-        "notes": "The MultiParty branch of the requirement object (M-2): three distinct approvers, required 3 — the values B-57c1's gate/multiparty-files-one-entry uses."
+        "notes": "The MultiParty branch of the requirement object: three distinct approvers, required 3 — the values gate/multiparty-files-one-entry uses."
       },
       {
         "id": "v0.3/requirement-one-approver",
@@ -724,14 +724,14 @@
         "file": "v0.3/attestation-multi-party.json",
         "schema": "schemas/0.3.0/attestation.schema.json",
         "kind": "positive",
-        "notes": "The fold's entry-level attestation (M-4): kind multi-party, composed of the three approvers' own member attestors in record order — the values B-57c1's decide/multiparty-all-approve uses."
+        "notes": "The fold's entry-level attestation: kind multi-party, composed of the three approvers' own member attestors in record order — the values decide/multiparty-all-approve uses."
       },
       {
         "id": "v0.3/error-code-approver-not-listed",
         "file": "v0.3/error-code-approver-not-listed.json",
         "schema": "schemas/0.3.0/error-code.schema.json",
         "kind": "positive",
-        "notes": "One of the three codes M-7 appends at the end of the registry."
+        "notes": "One of the three codes appended at the end of the registry."
       },
       {
         "id": "v0.3/docket-entry-multiparty-pending",
@@ -752,14 +752,14 @@
         "file": "v0.3/docket-entry-reviewer-executed.json",
         "schema": "schemas/0.3.0/docket-entry.schema.json",
         "kind": "positive",
-        "notes": "A ReviewerConfirmation row, executed, with a typed executionDetail ({ code, rows }) and decision.by — the typed-detail correlation applies to every requirement kind, not only MultiParty (M-5)."
+        "notes": "A ReviewerConfirmation row, executed, with a typed executionDetail ({ code, rows }) and decision.by — the typed-detail correlation applies to every requirement kind, not only MultiParty."
       },
       {
         "id": "v0.3/docket-entry-composite-ref-present",
         "file": "v0.3/docket-entry-composite-ref-present.json",
         "schema": "schemas/0.3.0/docket-entry.schema.json",
         "kind": "negative",
-        "notes": "compositeRef is gone from 0.3.0 (M-6); additionalProperties: false refuses a row still carrying it."
+        "notes": "compositeRef is gone from 0.3.0; additionalProperties: false refuses a row still carrying it."
       },
       {
         "id": "v0.3/docket-entry-requirement-string",
@@ -773,14 +773,14 @@
         "file": "v0.3/docket-entry-execution-detail-string.json",
         "schema": "schemas/0.3.0/docket-entry.schema.json",
         "kind": "negative",
-        "notes": "executionDetail as a bare string — a string is no longer a legal value at 0.3.0 (M-5) — refused."
+        "notes": "executionDetail as a bare string — a string is no longer a legal value at 0.3.0 — refused."
       },
       {
         "id": "v0.3/evidence-card-request-multiparty",
         "file": "v0.3/evidence-card-request-multiparty.json",
         "schema": "schemas/0.3.0/evidence-card-request.schema.json",
         "kind": "positive",
-        "notes": "The card for the same filing as gate/multiparty-files-one-entry: multiParty set, all three approvers undecided, required 3 (M-13)."
+        "notes": "The card for the same filing as gate/multiparty-files-one-entry: multiParty set, all three approvers undecided, required 3."
       }
     ]
   },

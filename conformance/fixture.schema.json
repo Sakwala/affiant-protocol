@@ -319,7 +319,7 @@
               "required": ["requirement"],
               "properties": {
                 "requirement": {
-                  "description": "A kind name, or — from 0.3.0, and the only way to state MultiParty — the requirement object (M-2, M-8): the host policy's own `approvers` and `required`, which the fixture states exactly because the gate validates them and never invents either (AZ-4).",
+                  "description": "A kind name, or — from 0.3.0, and the only way to state MultiParty — the requirement object: the host policy's own `approvers` and `required`, which the fixture states exactly because the gate validates them and never invents either (AZ-4).",
                   "oneOf": [
                     { "$ref": "#/$defs/requirementKind" },
                     { "$ref": "#/$defs/requirementGiven" }
@@ -954,11 +954,11 @@
         "status": { "type": "string", "enum": ["pending", "approved", "rejected", "expired"] },
         "execution": { "type": ["string", "null"], "enum": ["unexecuted", "executed", "failed", null] },
         "executionDetail": {
-          "description": "From 0.3.0, a partial matcher over the typed executionDetail (M-5): `code`, when stated, is compared exactly; the row's other properties are the host's own and this clause says nothing about them unless it states one. `null` asserts the row carries no detail.",
+          "description": "From 0.3.0, a partial matcher over the typed executionDetail: `code`, when stated, is compared exactly; the row's other properties are the host's own and this clause says nothing about them unless it states one. `null` asserts the row carries no detail.",
           "$ref": "#/$defs/executionDetailMatcher"
         },
         "requirement": {
-          "description": "A kind name, or — from 0.3.0 — a partial matcher over the requirement object (M-8): `kind`, `approvers` and `required` are each checked only when stated, but a stated `approvers` is the whole list, in order, the same convention `approvals` uses.",
+          "description": "A kind name, or — from 0.3.0 — a partial matcher over the requirement object: `kind`, `approvers` and `required` are each checked only when stated, but a stated `approvers` is the whole list, in order, the same convention `approvals` uses.",
           "oneOf": [
             { "$ref": "#/$defs/requirementKind" },
             { "$ref": "#/$defs/requirementPartialMatcher" }
@@ -966,7 +966,7 @@
         },
         "blocked": { "$ref": "#/$defs/blocked" },
         "approvals": {
-          "description": "From 0.3.0, the WHOLE list of approval records, in record order (M-3, M-8): `null` exactly when `requirement.kind` is not MultiParty; `[]` at filing; one entry per decision folded onto the row so far, each `{ approver, decision, reason?, attestation? }`.",
+          "description": "From 0.3.0, the WHOLE list of approval records, in record order: `null` exactly when `requirement.kind` is not MultiParty; `[]` at filing; one entry per decision folded onto the row so far, each `{ approver, decision, reason?, attestation? }`.",
           "oneOf": [
             { "type": "null" },
             { "type": "array", "items": { "$ref": "#/$defs/approvalRecordMatcher" } }
@@ -990,7 +990,7 @@
                 "kind": { "type": "string", "enum": ["approve", "reject"] },
                 "reason": { "type": ["string", "null"] },
                 "by": {
-                  "description": "From 0.3.0, the principal whose act folded this row (M-4): required on every decided row, and the reviewer for a single-reviewer kind.",
+                  "description": "From 0.3.0, the principal whose act folded this row: required on every decided row, and the reviewer for a single-reviewer kind.",
                   "type": "string"
                 }
               }
@@ -1077,7 +1077,7 @@
         },
         {
           "title": "multi-party",
-          "description": "From 0.3.0 (M-4, M-8): the fold's own attestation, composed of the approvers of the records that folded the row, in record order — never a Standing Order's, and never any attestor but a person's own.",
+          "description": "From 0.3.0: the fold's own attestation, composed of the approvers of the records that folded the row, in record order — never a Standing Order's, and never any attestor but a person's own.",
           "type": "object",
           "additionalProperties": false,
           "required": ["kind", "approvers"],
@@ -1091,7 +1091,7 @@
     },
 
     "memberOrRelayAttestor": {
-      "description": "The two attestor kinds an approval record may carry (AZ-3, M-3): a MultiParty decision is always a person's, member or member-via-relay, never a Standing Order's.",
+      "description": "The two attestor kinds an approval record may carry (AZ-3): a MultiParty decision is always a person's, member or member-via-relay, never a Standing Order's.",
       "oneOf": [
         {
           "title": "member",
@@ -1152,7 +1152,7 @@
     },
 
     "requirementPartialMatcher": {
-      "description": "A partial matcher over the 0.3.0 requirement object (M-8): a fixture states only the facts its rule is about. A stated `approvers` is the whole list, in order — the same convention `approvals` uses.",
+      "description": "A partial matcher over the 0.3.0 requirement object: a fixture states only the facts its rule is about. A stated `approvers` is the whole list, in order — the same convention `approvals` uses.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -1163,7 +1163,7 @@
     },
 
     "approvalRecordMatcher": {
-      "description": "A closed matcher over one approval record (M-3, M-8): the approver and the decision are required; `reason` and `attestation` are checked only when the fixture states them. `expect.entry.approvals` states the whole list of these, in record order.",
+      "description": "A closed matcher over one approval record: the approver and the decision are required; `reason` and `attestation` are checked only when the fixture states them. `expect.entry.approvals` states the whole list of these, in record order.",
       "type": "object",
       "additionalProperties": false,
       "required": ["approver", "decision"],
@@ -1265,14 +1265,14 @@
         "fields": { "type": "array", "items": { "$ref": "#/$defs/cardFieldMatcher" } },
         "presentation": { "type": "array", "items": { "$ref": "#/$defs/cardPresentationMatcher" } },
         "multiParty": {
-          "description": "From 0.3.0, the card's MultiParty facts (M-13), stated whole: `null` for a card not built from a MultiParty row, otherwise the approvers list — each naming whether that approver has decided — and the required count.",
+          "description": "From 0.3.0, the card's MultiParty facts, stated whole: `null` for a card not built from a MultiParty row, otherwise the approvers list — each naming whether that approver has decided — and the required count.",
           "$ref": "#/$defs/cardMultiPartyMatcher"
         }
       }
     },
 
     "cardMultiPartyMatcher": {
-      "description": "The card's MultiParty facts (M-13, M-8), stated whole rather than partially: a card carrying an approver a fixture did not expect is a fact the same clause exists to catch.",
+      "description": "The card's MultiParty facts, stated whole rather than partially: a card carrying an approver a fixture did not expect is a fact the same clause exists to catch.",
       "oneOf": [
         { "type": "null" },
         {
