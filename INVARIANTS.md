@@ -524,10 +524,9 @@ approvers.length`. An implementation validates both and never invents either; a 
 policy fault refused at evaluation with `wireup-invalid`, nothing filed (CV-1). A `MultiParty` write is **one** entry:
 its Affidavit is the proposal, its id derives as any other (GT-4), a retry replays it, and it files `pending` with
 `approvals: []` and no `blocked` marker. A decision on it is an **approval record** `{ approver, decision, reason, at,
-attestation }` written by the gate under AZ-2 and AZ-3 with two more checks, in this order after them: the principal
-MUST be one of the entry's `approvers` (`approver-not-listed`) and MUST NOT have a record already
+attestation }` written by the gate under AZ-2 and AZ-3 with two more checks, in this order after them: the deciding **person** — the `member` principal's id, or the member a relay asserted (AZ-3) — MUST be one of the entry's `approvers` (`approver-not-listed`), and `approvals[].approver` and `decision.by` name that person, never the relay; that person MUST NOT have a record already
 (`approver-already-decided`); an amendment map on a `MultiParty` decision is refused (`decision-not-amendable`) and
-nothing is recorded. Each approval's attestation is `member` or `member-via-relay`, never `standing-order`. The entry's
+nothing is recorded. Each approval's attestation is `member` or `member-via-relay`, never `standing-order`. The expiry and pending checks of DK-1 precede every `MultiParty` check: an expired entry answers `decision-expired` and preserves nothing; a folded entry answers `decision-not-pending` to any caller. The entry's
 status **folds** from its records under DK-1: the `required`-th `approve` folds it `approved` in the same guarded
 transition that records that approval, with an entry-level attestation whose `by` is `{ kind: "multi-party",
 approvers: [the attestors of the approvals that folded it, in record order] }`; the first `reject` folds it
