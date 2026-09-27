@@ -80,7 +80,7 @@
     },
     "multiParty": {
       "title": "MultiPartyAttestor",
-      "description": "The fold of a MultiParty entry's required-th approve (M-4, AZ-4). Written by the gate in the same guarded transition that records the fold, never by a person or a caller directly — there is no decision a caller can make that produces this kind on its own. approvers lists the attestors of the approval records that folded the entry, in record order; each is itself a member or member-via-relay attestation, never a standing-order, because a MultiParty approver always acts as a person.",
+      "description": "The fold of a MultiParty entry's required-th approve (AZ-4). Written by the gate in the same guarded transition that records the fold, never by a person or a caller directly — there is no decision a caller can make that produces this kind on its own. approvers lists the attestors of the approval records that folded the entry, in record order; each is itself a member or member-via-relay attestation, never a standing-order, because a MultiParty approver always acts as a person.",
       "type": "object",
       "additionalProperties": false,
       "required": ["kind", "approvers"],

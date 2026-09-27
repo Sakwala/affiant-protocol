@@ -122,13 +122,13 @@ above. This is the pre-release's whole diff:
 | Change | Where | Why |
 |---|---|---|
 | The requirement object | `requirement.schema.json` (new), `docket-entry.requirement` `$ref`s it | One wire shape for all four requirement kinds instead of a bare kind string, so `MultiParty`'s `approvers` and `required` — the host policy's own values, validated and never invented (AZ-4) — have somewhere to live on the row itself |
-| `approvals` | `docket-entry.schema.json` | A `MultiParty` entry's status folds from its approvers' own records, not from a status flip nobody attributed (M-3, AZ-4) |
-| `decision.by` | `docket-entry.schema.json` `$defs.decisionRecord` | Every decided row names the principal whose act folded it, so a reader never reconstructs who caused the fold from the approvals list (M-4) |
-| Typed `executionDetail` | `docket-entry.schema.json` `$defs.executionDetail` | An object with a `code` from the host's own vocabulary, never a string a reader must parse (M-5) |
-| `compositeRef` removed | `docket-entry.schema.json` | There is no composition above the gate at 0.3.0: a host that needs several approvals asks for `MultiParty` instead of stitching several entries together under a shared label (M-6) |
+| `approvals` | `docket-entry.schema.json` | A `MultiParty` entry's status folds from its approvers' own records, not from a status flip nobody attributed (AZ-4) |
+| `decision.by` | `docket-entry.schema.json` `$defs.decisionRecord` | Every decided row names the principal whose act folded it, so a reader never reconstructs who caused the fold from the approvals list |
+| Typed `executionDetail` | `docket-entry.schema.json` `$defs.executionDetail` | An object with a `code` from the host's own vocabulary, never a string a reader must parse |
+| `compositeRef` removed | `docket-entry.schema.json` | There is no composition above the gate at 0.3.0: a host that needs several approvals asks for `MultiParty` instead of stitching several entries together under a shared label |
 | The `multi-party` attestor | `attestation.schema.json` `$defs.multiParty`, `by.oneOf` | The fold's own attestation, composed of the approval records' attestations and nothing else (AZ-1, AZ-3) |
 | `card.multiParty` | `evidence-card-request.schema.json` | The roster and its progress, so a reviewer surface reads who has decided from the card rather than deriving it itself |
-| Three refusal codes | `error-code.schema.json` | `approver-not-listed`, `approver-already-decided`, `decision-not-amendable` name the three ways a `MultiParty` decision is refused that no existing code covered (M-7) |
+| Three refusal codes | `error-code.schema.json` | `approver-not-listed`, `approver-already-decided`, `decision-not-amendable` name the three ways a `MultiParty` decision is refused that no existing code covered |
 
 ## What changed from the seed
 
