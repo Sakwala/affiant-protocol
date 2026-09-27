@@ -672,9 +672,18 @@ const MATCHER_OVERRIDES = {
 /** An Ajv holding a relaxed copy of every v0.1 schema, for the partial matcher check. */
 const partialAjv = new Ajv2020({ allErrors: true, strict: false });
 addFormats(partialAjv);
+// The matcher cross-check reads the NEWEST versioned section's schemas, not v0.1's by
+// name — a fixture matcher describes the wire as it stands now, and by 0.3.0 that is
+// `schemas/0.3.0/`, where `requirement` and `docket-entry` disagree in shape with the
+// frozen v0.1.0 files (`schemas/0.1.0/` is `v01SchemasDir`, kept for the seed check
+// above; unused here now). `v01Documents` keeps its v0.1-era name below because most
+// of what it resolves is unchanged since v0.1.0 (`common`, `provenance-tag`,
+// `binding`, …), which the MATCHER_OVERRIDES table above still addresses by those
+// stems.
+const newestSchemasDir = join(repoRoot, manifest[newestVersionKey].schemas);
 const v01Documents = new Map();
-for (const name of schemaFilesIn(v01SchemasDir)) {
-  const document = readJson(join(v01SchemasDir, name));
+for (const name of schemaFilesIn(newestSchemasDir)) {
+  const document = readJson(join(newestSchemasDir, name));
   v01Documents.set(name.replace(/\.schema\.json$/, ''), document);
   partialAjv.addSchema(relaxDocument(document));
 }
@@ -1939,6 +1948,12 @@ function checkMatcherShapes(section) {
     for (const [key, value] of Object.entries(matcher)) {
       if (DERIVED_MATCHER_KEYS.has(key)) continue;
       if (key === 'fields' || key === 'affidavit' || key === 'amendedAffidavit') continue;
+      // From 0.3.0 `expect.entry.requirement` is either the bare `kind` name (RUNNER
+      // §4.1's shorthand, which the wire schema does not spell as a literal string) or
+      // a partial object matcher over the requirement object — the string form has no
+      // wire counterpart to check against and is not a type mismatch, so it is skipped
+      // rather than routed through the generic single-`$ref` override mechanism.
+      if (family === 'entry' && key === 'requirement' && typeof value === 'string') continue;
       const override = MATCHER_OVERRIDES[`${family}.${key}`];
       const target = override ?? [stem, `/properties/${key}`];
       check(`${family}.${key}`, id, value, target[0], target[1], `${path}.${key}`);
