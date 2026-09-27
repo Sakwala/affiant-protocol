@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://affiant.dev/schemas/0.3.0/attestation.schema.json",
   "title": "Attestation",
-  "description": "Who agreed to a write, when, and to which entry (INVARIANTS.md AZ-1). Every executed write carries one: an implementation that cannot attribute a write refuses it. The MODE is the kind of `by` — there is no separate mode field for it to drift from. AZ-3 is what the three kinds encode: a human-verified session attests member; a machine caller may NEVER attest member, so a decision a person makes through a trusted relay attests member-via-relay naming both the person and the relay, and a capture a policy auto-approves attests standing-order naming the policy and the version that fired. entryId is repeated here rather than left implicit because the attestation is the fragment a host exports, signs or ships to an audit sink, and a record that cannot name its own subject is not evidence.",
+  "description": "Who agreed to a write, when, and to which entry (INVARIANTS.md AZ-1). Every executed write carries one: an implementation that cannot attribute a write refuses it. The MODE is the kind of `by` — there is no separate mode field for it to drift from. AZ-3 is what the three kinds encode: a human-verified session attests member; a machine caller may NEVER attest member, so a decision a person makes through a trusted relay attests member-via-relay naming both the person and the relay, and a capture a policy auto-approves attests standing-order naming the policy and the version that fired. entryId is repeated here rather than left implicit because the attestation is the fragment a host exports, signs or ships to an audit sink, and a record that cannot name its own subject is not evidence. From 0.3.0 a fourth kind, multi-party, attests a MultiParty entry's fold: it is composed entirely of the approval records' own member or member-via-relay attestations and nothing else (AZ-3, AZ-4).",
   "type": "object",
   "additionalProperties": false,
   "required": ["by", "at", "entryId"],
@@ -13,7 +13,8 @@
       "oneOf": [
         { "$ref": "#/$defs/member" },
         { "$ref": "#/$defs/memberViaRelay" },
-        { "$ref": "#/$defs/standingOrder" }
+        { "$ref": "#/$defs/standingOrder" },
+        { "$ref": "#/$defs/multiParty" }
       ]
     },
     "at": {
@@ -74,6 +75,27 @@
           "description": "The version of that policy.",
           "type": "string",
           "minLength": 1
+        }
+      }
+    },
+    "multiParty": {
+      "title": "MultiPartyAttestor",
+      "description": "The fold of a MultiParty entry's required-th approve (M-4, AZ-4). Written by the gate in the same guarded transition that records the fold, never by a person or a caller directly — there is no decision a caller can make that produces this kind on its own. approvers lists the attestors of the approval records that folded the entry, in record order; each is itself a member or member-via-relay attestation, never a standing-order, because a MultiParty approver always acts as a person.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "approvers"],
+      "properties": {
+        "kind": { "const": "multi-party" },
+        "approvers": {
+          "description": "The attestors of the approval records that folded the entry, in the order they were recorded.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "oneOf": [
+              { "$ref": "#/$defs/member" },
+              { "$ref": "#/$defs/memberViaRelay" }
+            ]
+          }
         }
       }
     }

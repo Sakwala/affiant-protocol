@@ -44,6 +44,18 @@
     {
       "const": "execution-already-recorded",
       "description": "PROVISIONAL. An execution outcome was reported against a row that already carries one. The first report stands and the row is untouched: a host that retries a write reports ONCE, when it knows the outcome, because an outbox is a retry of an already-attested write and not a second fact about what happened (DK-1, DK-4, AZ-5)."
+    },
+    {
+      "const": "approver-not-listed",
+      "description": "A decision arrived on a MultiParty entry from a principal who is not one of its requirement.approvers. Checked after AZ-2/AZ-3's authorization checks and before any record is written; nothing is recorded (AZ-4)."
+    },
+    {
+      "const": "approver-already-decided",
+      "description": "A decision arrived on a MultiParty entry from an approver who already has an approval record on it. Approvers decide once; a second decision from the same approver is refused and the existing record is untouched (AZ-4)."
+    },
+    {
+      "const": "decision-not-amendable",
+      "description": "An amendment map arrived on a MultiParty decision. A MultiParty approval or rejection is a vote, not a correction to the proposal, so amendments are refused whole and nothing is recorded (AZ-4)."
     }
   ],
   "enum": [
@@ -56,6 +68,9 @@
     "decision-lost-race",
     "wireup-invalid",
     "entry-not-found",
-    "execution-already-recorded"
+    "execution-already-recorded",
+    "approver-not-listed",
+    "approver-already-decided",
+    "decision-not-amendable"
   ]
 }
