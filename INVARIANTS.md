@@ -82,7 +82,7 @@ named on the record.
 `decision-expired`, `decision-lost-race`, `execution-already-recorded` (DK-1), `approver-not-listed`,
 `approver-already-decided`, `decision-not-amendable` (AZ-4, 0.3.0). Three names are **provisional** until the
 `ErrorCode` registry schema lands — `requirement-not-implemented`, `coverage-refused` and `execution-already-recorded`; the
-other seven are fixed by this text. A refusal carries its code and a human-readable reason; an implementation MAY add codes
+other ten are fixed by this text. A refusal carries its code and a human-readable reason; an implementation MAY add codes
 but MUST NOT reuse these names for other meanings. The registry names gate refusals only: a caller's programming error — an
 amendment naming a field the Affidavit does not propose, a verdict naming a requirement outside the four — is a
 language-level error, not a refusal code.
@@ -381,7 +381,8 @@ and never an error (GT-4). **Expiry is a queryable state:** an entry past `expir
 not any sweep has run (the boundary is inclusive: at `expiresAt` the entry is expired); the store exposes `expireDue(now)`
 and the core owns no timer — the host schedules the sweep (DK-3). A decision arriving after `expiresAt` is refused with
 `decision-expired`, and — when it came from a principal who could have decided — any amendments it carried are **preserved
-on the row** with the act's instant and principal, for resubmission. **Resubmission** creates a new entry whose lineage names
+on the row** with the act's instant and principal, for resubmission — never under `MultiParty`, where no amendment is ever
+accepted (AZ-4) and a late one is not preserved either. **Resubmission** creates a new entry whose lineage names
 the entry it supersedes, prefilled from the preserved amendments (each prefilled value a `UserStated` tag with a
 `reviewer-act` binding to that act), with an id derived from the superseded entry's id so a repeated resubmit replays; the
 superseded entry keeps its terminal state and records its successor; an entry that is not `expired` cannot be resubmitted.
@@ -389,8 +390,8 @@ The row keeps the Affidavit **as proposed** (never edited) and, once an amendmen
 `amendedAffidavit`, plus the name of the tool that proposed it. **A successor and a preserved late amendment are each
 recorded once**: a second record, *whatever it carries*, changes nothing and returns the entry as it stands — the first
 one is the record, and a later one does not displace it (DK-4: a recorded fact is never edited in place). `deferred` and the referral outcome (an entry handed to
-another reviewer) are **reserved**: `ReferralRequired` and `MultiParty` verdicts file `pending` with a `blocked` marker
-(AZ-4) in v0.1. This clause is the design authority the next .NET release adopts, not a description of it; the reservation
+another reviewer) are **reserved**: `ReferralRequired` verdicts (and `MultiParty` in an implementation that has not
+reached 0.3.0) file `pending` with a `blocked` marker (AZ-4). This clause is the design authority the next .NET release adopts, not a description of it; the reservation
 exists because those transitions have not run anywhere yet, and any fixture that names one is deleted back to *reserved* if
 the reference implementation's design diverges. The shipped .NET gate writes `Deferred` on a `ReferralRequired` verdict today
 (`src/Affiant.Core/Services/ReviewGate.cs:382`); the parity manifest carries that until the transition is specified.
@@ -399,8 +400,9 @@ vocabulary (the rulebook reserves none) and whose other properties are the host'
 parse; a report carrying a string is a caller error, not a refusal. A `MultiParty` entry's status **folds** from its
 approval records (AZ-4) under the same guarded compare-and-set: the record and the fold it causes are one transition,
 so two approvals racing for the `required`-th place fold the entry once. A decided row carries `decision.by`, the
-principal whose act folded it. Resubmitting an expired `MultiParty` entry files a successor with the same requirement
-object and no approval records.
+principal whose act folded it. Resubmitting an expired `MultiParty` entry files its successor through the whole pipeline (GT-1) with
+`approvals: []`; the successor's requirement is the policy chain's verdict for it — the same object when the
+policy is unchanged.
 *Why:* this is the one surface both implementations genuinely share, so it was written first; an execution state that can
 be flipped after the fact is an audit record that lies. *Checked by:* `decide/approve`, `decide/reject`,
 `decide/second-decision-refused`, `decide/expired-amendments-preserved`, `decide/blocked-refused`,
@@ -531,15 +533,18 @@ status **folds** from its records under DK-1: the `required`-th `approve` folds 
 transition that records that approval, with an entry-level attestation whose `by` is `{ kind: "multi-party",
 approvers: [the attestors of the approvals that folded it, in record order] }`; the first `reject` folds it
 `rejected`; either fold writes `decision: { kind, reason, at, by }` naming the approver whose record folded it, and
-every later decision is refused `decision-not-pending`. Expiry, resubmission (DK-1: the successor files with the same
-requirement object and `approvals: []`), execution (DK-1, AZ-5, AZ-7) and rehydration (DK-5) treat the entry as any
+every later decision is refused `decision-not-pending`. Expiry, resubmission (DK-1: the successor is filed through
+the whole pipeline (GT-1) with `approvals: []`; its requirement is the policy chain's verdict for it — the same
+object when the policy is unchanged), execution (DK-1, AZ-5, AZ-7) and rehydration (DK-5) treat the entry as any
 other. A level an implementation does not run — `ReferralRequired` at 0.3.0, and `MultiParty` in an implementation
 that has not reached 0.3.0 — files `pending` with the requirement recorded verbatim and `blocked: { code, … }`,
 refuses every decision on it (`decision-not-pending`, with the blocked code in the details), never executes it, and
 never degrades to a weaker requirement. Codes: `requirement-not-implemented` (with `level`), and `coverage-refused`
 (with the tool name and the uncovered category, CV-4). A blocked entry's card says so and never claims a confirmation
 is being awaited. There is no composition above the gate at 0.3.0: `compositeRef` left the row and the filing
-surface, and a host that needs several approvals asks for `MultiParty`.
+surface, and a host that needs several approvals asks for `MultiParty`. The card of a `MultiParty` entry carries
+`multiParty: { approvers: [{ id, decided }], required }` read from the record — `decided` is each approver's
+recorded decision or `null` — and the gate adds no sentence for it.
 *Why:* the shipped .NET gate routes `MultiParty` to the single-card branch — a joint requirement silently gets one
 approval (`src/Affiant.Core/Services/ReviewGate.cs:387`); and the v0.2 composition above the gate kept the approver,
 the round and the cause of a failure in fields no store could constrain, which the first running host showed
@@ -554,7 +559,7 @@ approvers.length` has run in a host as of this pre-release.
 `decide/multiparty-late-amendments-not-preserved`, `decide/multiparty-approvals-in-record-order`,
 `gate/multiparty-verdict-duplicate-approvers`, `gate/multiparty-verdict-required-zero`,
 `decide/multiparty-wrong-tenant-not-found`, `decide/multiparty-refile-replays`; `suite: two approvals racing for the required-th place fold
-the entry once` (the store contract of `@affiant/core/testing`, run by every store). *Source:* the running host's
+the entry once`, `suite: cardFor reflects the approval records` (the store contract of `@affiant/core/testing`, run by every store). *Source:* the running host's
 interim composition and its evidence (Orrery, 2026-09-27); the owner's rulings of 2026-09-28 on
 [affiant-protocol #41–#46](https://github.com/Sakwala/affiant-protocol/issues/41).
 
@@ -564,7 +569,8 @@ client's history, a chat transcript or a framework checkpoint can stand in for t
 already-attested write, never a second authorization path; the outcome of the retry is reported once (DK-1). AZ-1 governs
 what the record must contain; this rule governs that there is no other path to the executor.
 *Checked by:* `decide/execution-executed`, `decide/execution-on-pending-refused`, `decide/execution-recorded-once`,
-`decide/execution-second-report-refused`, `sequence-a/approve-round-trip`, `sequence-a/rehydration-order`.
+`decide/execution-second-report-refused`, `sequence-a/approve-round-trip`, `sequence-a/rehydration-order`,
+`decide/multiparty-executed-with-typed-detail`.
 
 ### AZ-6 — A degraded implementation never weakens an authorization rule *(v0.1)*
 **MUST.** In degraded mode (no model, no transport) an implementation may limit the host to deterministic operations; it MUST
@@ -679,10 +685,13 @@ no Durable Object storage reachable from core sources` (fails the build).
 ### CV-1 — Hard-fail at wire-up; there is no disable switch *(v0.1)*
 **MUST.** A misconfiguration the framework can detect fails at wire-up with `wireup-invalid` naming the missing or invalid
 piece: no store, no inference port, no projection port, no authorization port, no default time-to-live or an invalid one, a
-policy that declares a threshold while no scorer is wired, a write-capable tool in an uncovered category (CV-4). Two
+policy that declares a threshold while no scorer is wired, a write-capable tool in an uncovered category (CV-4). Three
 policy faults cannot be seen at wire-up and are refused **at evaluation** with the same code, nothing filed: a verdict that
-carries an invalid time-to-live, and an evaluation that throws. No option turns the gate off for a tool it covers.
-*Checked by:* `gate/threshold-without-scorer`, `sequence-a/coverage-refused-at-wire-up`; `suite: createGate wire-up
+carries an invalid time-to-live, an evaluation that throws, and a `MultiParty` verdict that fails AZ-4's validation (fewer
+than two distinct approvers, or `required` outside `1…approvers.length`). No option turns the gate off for a tool it covers.
+*Checked by:* `gate/threshold-without-scorer`, `sequence-a/coverage-refused-at-wire-up`,
+`gate/multiparty-verdict-too-few-approvers`, `gate/multiparty-verdict-required-out-of-range`,
+`gate/multiparty-verdict-duplicate-approvers`, `gate/multiparty-verdict-required-zero`; `suite: createGate wire-up
 refusals`.
 
 ### CV-2 — The fail-closed call-site rule *(v0.1)*
