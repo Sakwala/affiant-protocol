@@ -157,8 +157,8 @@ and typing `executionDetail` as a string. So every one of the thirteen new fixtu
 `gate/multiparty-blocked` (retired at 0.3.0; the row stands for that release at that tag) stays on the beta.1 table above,
 because that table is a statement about `1.0.0-beta.1` at that tag, unaffected by this pre-release.
 
-**This list has not yet been run.** The run's location, once it exists, is
-`results/dotnet-1.0.0-beta.3.1-at-v0.3-pre/`.
+**This list has been run**, locally, against `1.0.0-beta.3.1`: `results/dotnet-1.0.0-beta.3.1-at-v0.3-pre/`. 13 of 13
+failed or errored, 0 passed.
 
 ## The run
 
