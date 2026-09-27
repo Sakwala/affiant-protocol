@@ -48,7 +48,7 @@ invariants in [`../INVARIANTS.md`](../INVARIANTS.md); every rule cited below is 
 
 | Key | Required | What it is |
 |---|---|---|
-| `id` | yes | A stable id, unique across the set, prefixed by the directory it lives in. **Never renamed** — a parity manifest cites it by name, so a rename silently changes what a published document refers to. |
+| `id` | yes | A stable id, unique across the set, prefixed by the directory it lives in. **Never renamed** — a parity manifest cites it by name, so a rename silently changes what a published document refers to. A fixture that stops being true is **retired**, never renamed and never rewritten: its id moves to the index's `retired` list with the tag that retired it and why, its file is removed, and published runs made at earlier tags go on reporting it. |
 | `rules` | yes | The rulebook ids this fixture checks. At least one. The coverage lint checks both directions: every rule must be cited by a fixture, and every id a fixture names must exist. |
 | `title` | yes | What the fixture asserts, in a sentence somebody can read without opening the JSON. It is the test name in every runner. |
 | `given` | yes | The wiring, the acts, and the turn they happen in. |
@@ -378,7 +378,10 @@ the manifest (`ORACLE.md`, `fixtures/MANIFEST.json`).
 [`fixtures/MANIFEST.json`](fixtures/MANIFEST.json), section `"conformance"`, lists every promoted document with its `id`,
 its `file`, the `rules` it checks, the `set` it belongs to, and its `oracle` — either `null`, or the release it MUST fail
 against and the shipped defect it refutes ([`ORACLE.md`](ORACLE.md)). A driver runs **every fixture the manifest lists**;
-running a subset and reporting a pass is the failure mode the whole arrangement exists to prevent. The `"adapter"`
+running a subset and reporting a pass is the failure mode the whole arrangement exists to prevent. Beside `fixtures`,
+`"conformance"` may carry a `retired` list — the tombstones of fixtures that stopped being true: each entry names the
+id, the file it once lived in, the tag it was retired at and why, so a driver never runs one but a published run made
+at an earlier tag may still report its id without the lint refusing it. The `"adapter"`
 section beside it is indexed the same way and scoped differently — a driver runs it once per adapter its implementation
 ships and declares, and not at all where it ships none ([`ADAPTER-RUNNER.md`](ADAPTER-RUNNER.md),
 [`DRIVER.md`](DRIVER.md) §7).
