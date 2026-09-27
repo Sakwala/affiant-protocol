@@ -25,7 +25,7 @@ holds for all 19.
 | The aggregate confidence is a mean over the non-`Empty` fields, so a mostly-empty Affidavit can report high confidence | AF-2 | `sequence-a/typed-inputs-on-the-card`, `sequence-a/mandatory-field-left-empty` |
 | Every Affidavit is create-shaped: `EntityId` and every `PreviousValue` are hard-coded null | AF-3 | `gate/update-previous-values` |
 | The time-to-live is stamped from one global default before the policy chain runs | GT-4 | `gate/ttl-from-verdict`, `gate/ttl-from-policy-default` |
-| A `MultiParty` requirement is routed to the single-card branch — one approval satisfies a joint requirement | AZ-4 | `gate/multiparty-blocked` |
+| A `MultiParty` requirement is routed to the single-card branch — one approval satisfies a joint requirement | AZ-4 | `gate/multiparty-blocked` (retired at 0.3.0; the row stands for that release at that tag) |
 | Substance (a value with `Empty` provenance) is checked at test time only; the runtime files hollow Affidavits | GT-3 | `gate/substance-hollow-refused`, `gate/substance-zero-field-refused` |
 | The gate carries no conversation identity; isolation is the host's scoping discipline alone (the shipped adapters resolve the context store from the application's root provider) | GT-2 | `sequence-a/interleaved-conversations` |
 | A re-file with the same id broadcasts a card with a freshly computed deadline | GT-4 | `sequence-a/replay-keeps-the-deadline` |
@@ -141,6 +141,24 @@ implementation repository, and so does the published run document: a result docu
 sibling packages from nuget.org, an isolated `NUGET_PACKAGES`, this branch's fixture tree, implementation commit
 `436c5e23822b44a2857fb2a0232df900545a72f8`, over the 67 documents the tree held that day: 62 passed, 3 failed, 2 could
 not load, and every one of the five listed here did not pass.
+
+## The list for `1.0.0-beta.3.1` at the v0.3 pre-release
+
+The shipped .NET packages at `1.0.0-beta.3.1` record `MultiParty` verbatim and file it `blocked` — correct at v0.2,
+absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation, no `decision.by`,
+and typing `executionDetail` as a string. So every one of the thirteen new fixtures must fail or error on it.
+
+| Shipped defect | Rule | Fixtures that must fail on `1.0.0-beta.3.1` |
+|---|---|---|
+| The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by` | AZ-4 | `gate/multiparty-files-one-entry`, `decide/multiparty-partial-stays-pending`, `decide/multiparty-all-approve`, `decide/multiparty-reject-folds`, `decide/multiparty-non-approver-refused`, `decide/multiparty-approver-twice-refused`, `decide/multiparty-amendment-refused`, `decide/multiparty-after-fold-refused`, `decide/multiparty-expired-then-resubmit`, `decide/multiparty-executed-with-typed-detail` |
+| `executionDetail` is typed as a string, never `{ code, … }` | DK-1 | `decide/execution-detail-typed`, `decide/multiparty-executed-with-typed-detail` |
+| The release does not validate the verdict's `approvers` / `required` correlation before filing | AZ-4, CV-1 | `gate/multiparty-verdict-too-few-approvers`, `gate/multiparty-verdict-required-out-of-range` |
+
+`gate/multiparty-blocked` (retired at 0.3.0; the row stands for that release at that tag) stays on the beta.1 table above,
+because that table is a statement about `1.0.0-beta.1` at that tag, unaffected by this pre-release.
+
+**This list has not yet been run.** The run's location, once it exists, is
+`results/dotnet-1.0.0-beta.3.1-at-v0.3-pre/`.
 
 ## The run
 
