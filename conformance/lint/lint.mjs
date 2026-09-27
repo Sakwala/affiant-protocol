@@ -1177,9 +1177,11 @@ function checkOracle(section) {
     if (entry.oracle === null || entry.oracle === undefined) continue;
     inManifest.set(entry.id, entry.oracle);
   }
+  const retiredIds = new Set((section.retired ?? []).map((f) => f.id));
   for (const [id, rows] of table) {
     const stated = inManifest.get(id);
     if (stated === undefined) {
+      if (retiredIds.has(id)) continue;
       fail(`oracle: ORACLE.md says ${id} must fail on the defective release and the manifest gives it no oracle entry`);
       continue;
     }
