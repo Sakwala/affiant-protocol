@@ -334,7 +334,7 @@ replays to and what a resubmission's `supersedes` points at. The Affidavit's own
 the material: it is produced after inference runs, inference is not deterministic, and the id must be fixed before
 inference runs, so a retry can be recognised before its Affidavit even exists.
 *Checked by:* `gate/ttl-from-verdict`, `gate/ttl-from-policy-default`, `gate/ttl-from-gate-default`,
-`sequence-a/replay-keeps-the-deadline`, `sequence-a/expiry-then-resubmit`; `suite: policy ttl validation`.
+`sequence-a/replay-keeps-the-deadline`, `sequence-a/expiry-then-resubmit`, `decide/multiparty-refile-replays`; `suite: policy ttl validation`.
 *Source:* `src/Affiant.Core/Services/ReviewGate.cs` `FileForReviewCoreAsync` (time-to-live stamped before policy; fresh
 time-to-live on re-file).
 
@@ -410,7 +410,8 @@ be flipped after the fact is an audit record that lies. *Checked by:* `decide/ap
 `sequence-a/late-amendments-preserved`, `sequence-a/replay-keeps-the-deadline`,
 `sequence-a/mandatory-field-reviewer-approves`, `decide/multiparty-all-approve`, `decide/multiparty-reject-folds`,
 `decide/multiparty-after-fold-refused`, `decide/multiparty-expired-then-resubmit`,
-`decide/multiparty-executed-with-typed-detail`, `decide/execution-detail-typed`, `decide/multiparty-partial-stays-pending`;
+`decide/multiparty-executed-with-typed-detail`, `decide/execution-detail-typed`, `decide/multiparty-partial-stays-pending`,
+`decide/multiparty-late-amendments-not-preserved`;
 the once-only sentence by the store contract's cases
 `deadline/preserves-the-first-record-not-the-second` and `lineage/keeps-the-first-successor-not-the-second`
 (`suite: @affiant/core/testing` store contract), each of which files a *second, different* record and asserts the first
@@ -481,7 +482,7 @@ shows as outside the guarantee.
 *Checked by:* `decide/approve`, `decide/reject`, `decide/relay-member-via-relay`, `gate/standing-order-by-the-book`,
 `gate/standing-order-bound-input`, `sequence-a/approve-round-trip`, `sequence-a/optional-field-empty-standing-order-fires`,
 `sequence-a/reject-round-trip`, `sequence-c/relay-auto-approve-bound-external`,
-`sequence-c/relayed-decision-member-via-relay`, `decide/multiparty-all-approve`. *Source:* the .NET `DocketEntry` gains the record in the conformance release;
+`sequence-c/relayed-decision-member-via-relay`, `decide/multiparty-all-approve`, `decide/multiparty-approvals-in-record-order`. *Source:* the .NET `DocketEntry` gains the record in the conformance release;
 until then the parity manifest names it.
 
 ### AZ-2 — Tenant-scoped, fail-closed decision authorization with the approver's identity on the record *(v0.1)*
@@ -497,7 +498,7 @@ resubmission.
 identity is unresolved; a rule the framework enforces is the only version of this check that every host gets.
 *Checked by:* `decide/approve`, `decide/unresolved-identity`, `decide/wrong-tenant`, `decide/authorization-declined`,
 `decide/authorization-throws`, `sequence-c/relay-may-not-attest-member`, `sequence-c/relay-decision-other-tenant-not-found`,
-`decide/multiparty-non-approver-refused`;
+`decide/multiparty-non-approver-refused`, `decide/multiparty-wrong-tenant-not-found`;
 `suite: gate refuses with a scope-blind store`.
 
 ### AZ-3 — What identity may attest what *(v0.1)*
@@ -512,7 +513,7 @@ An approval record under
 and nothing else.
 *Checked by:* `decide/relay-member-via-relay`, `decide/relay-without-assertion-refused`,
 `sequence-c/relayed-decision-member-via-relay`, `sequence-c/relay-may-not-attest-member`, `decide/multiparty-all-approve`,
-`decide/multiparty-non-approver-refused`; `suite: decide types (type-level)`.
+`decide/multiparty-non-approver-refused`, `decide/multiparty-approve-via-relay`; `suite: decide types (type-level)`.
 
 ### AZ-4 — Requirement levels fail closed on authorization, not on evidence; native `MultiParty`; the `blocked` marker and its codes *(v0.1; `MultiParty` semantics 0.3.0)*
 **MUST.** Requirement kinds: `StandingOrder`, `ReviewerConfirmation`, `ReferralRequired`, `MultiParty`. From 0.3.0 the
@@ -550,7 +551,10 @@ approvers.length` has run in a host as of this pre-release.
 `decide/multiparty-all-approve`, `decide/multiparty-reject-folds`, `decide/multiparty-non-approver-refused`,
 `decide/multiparty-approver-twice-refused`, `decide/multiparty-amendment-refused`,
 `decide/multiparty-after-fold-refused`, `decide/multiparty-expired-then-resubmit`, `gate/referral-blocked`,
-`gate/coverage-refused-declared`, `decide/blocked-refused`; `suite: two approvals racing for the required-th place fold
+`gate/coverage-refused-declared`, `decide/blocked-refused`, `decide/multiparty-approve-via-relay`,
+`decide/multiparty-late-amendments-not-preserved`, `decide/multiparty-approvals-in-record-order`,
+`gate/multiparty-verdict-duplicate-approvers`, `gate/multiparty-verdict-required-zero`,
+`decide/multiparty-wrong-tenant-not-found`, `decide/multiparty-refile-replays`; `suite: two approvals racing for the required-th place fold
 the entry once` (the store contract of `@affiant/core/testing`, run by every store). *Source:* the running host's
 interim composition and its evidence (Orrery, 2026-09-27); the owner's rulings of 2026-09-28 on
 [affiant-protocol #41–#46](https://github.com/Sakwala/affiant-protocol/issues/41).
