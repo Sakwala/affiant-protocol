@@ -971,7 +971,12 @@
           "AZ-4"
         ],
         "set": "gate",
-        "oracle": null
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
       },
       {
         "id": "gate/multiparty-verdict-too-few-approvers",
@@ -981,7 +986,12 @@
           "CV-1"
         ],
         "set": "gate",
-        "oracle": null
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release does not validate the verdict's `approvers` / `required` correlation before filing"
+        }
       },
       {
         "id": "gate/multiparty-verdict-required-out-of-range",
@@ -991,7 +1001,12 @@
           "CV-1"
         ],
         "set": "gate",
-        "oracle": null
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release does not validate the verdict's `approvers` / `required` correlation before filing"
+        }
       },
       {
         "id": "decide/approve",
@@ -1223,7 +1238,12 @@
           "DK-1"
         ],
         "set": "decide",
-        "oracle": null
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
       },
       {
         "id": "decide/multiparty-all-approve",
@@ -1234,7 +1254,12 @@
           "AZ-1"
         ],
         "set": "decide",
-        "oracle": null
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
       },
       {
         "id": "decide/multiparty-executed-with-typed-detail",
@@ -1244,7 +1269,12 @@
           "AZ-5"
         ],
         "set": "decide",
-        "oracle": null
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
       },
       {
         "id": "decide/execution-detail-typed",
@@ -1253,7 +1283,12 @@
           "DK-1"
         ],
         "set": "decide",
-        "oracle": null
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "`executionDetail` is typed as a string, never `{ code, … }`"
+        }
       },
       {
         "id": "decide/multiparty-reject-folds",
@@ -1263,7 +1298,12 @@
           "DK-1"
         ],
         "set": "decide",
-        "oracle": null
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
       },
       {
         "id": "decide/multiparty-non-approver-refused",
@@ -1273,7 +1313,12 @@
           "AZ-2"
         ],
         "set": "decide",
-        "oracle": null
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
       },
       {
         "id": "decide/multiparty-approver-twice-refused",
@@ -1282,7 +1327,12 @@
           "AZ-4"
         ],
         "set": "decide",
-        "oracle": null
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
       },
       {
         "id": "decide/multiparty-amendment-refused",
@@ -1292,7 +1342,12 @@
           "DK-2"
         ],
         "set": "decide",
-        "oracle": null
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
       },
       {
         "id": "decide/multiparty-after-fold-refused",
@@ -1302,7 +1357,12 @@
           "AZ-4"
         ],
         "set": "decide",
-        "oracle": null
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
       },
       {
         "id": "decide/multiparty-expired-then-resubmit",
@@ -1312,7 +1372,12 @@
           "AZ-4"
         ],
         "set": "decide",
-        "oracle": null
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
       },
       {
         "id": "sequence-a/approve-round-trip",
