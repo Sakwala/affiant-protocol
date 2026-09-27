@@ -752,7 +752,8 @@ arrived at v0.2.0 and left this list; the rest have none, and no consumer is wai
 holding the fixtures back for work nobody has scheduled.
 
 - **Attestation export** — the portable document shape (a file an adopter hands to an auditor), PROV-O aligned.
-- **`MultiParty` and multi-step review semantics**, and the referral outcome — taken from a running host, not a whiteboard.
+- **Multi-step (sequential) review**, approver substitution and delegation, a quorum below `approvers.length` as a
+  conformance claim, and the referral outcome — taken from a running host, not a whiteboard.
 - **The queued-inference fixture** (AZ-6).
 - **`binding` promoted from SHOULD to MUST** (PV-2).
 - **The `ErrorCode` registry schema** (fixes the three provisional names) and **the telemetry-key registry schema** (with
@@ -762,6 +763,18 @@ holding the fixtures back for work nobody has scheduled.
 
 ## Changelog
 
+- 2026-09-28 — **v0.3.0-pre.1 (pre-release): native `MultiParty`, taken from a running host.** `schemas/0.3.0/` is the
+  first schema change since v0.1.0: the requirement is an object (`{ kind, … }`; `MultiParty` carries the host policy's
+  `approvers` and `required`), a `MultiParty` write is one Docket entry whose approvals are records (`approvals[]`,
+  one per approver, each with its own attestation) from which the status folds, the fold's attestation is a new
+  `multi-party` attestor, a decided row names who folded it (`decision.by`), `executionDetail` is an object with a
+  `code` and never a string, and `compositeRef` is gone — the v0.2 composition above the gate is withdrawn. Three
+  refusal codes are appended to the registry. Thirteen fixtures are authored here from the first running host's
+  cases; `decide/blocked-refused` moves to a `ReferralRequired` verdict; `gate/multiparty-blocked` is retired. The
+  fixture format states the requirement object, the approvals list, the typed detail and the card's `multiParty`.
+  Every new fixture is on the negative oracle's third table against `.NET 1.0.0-beta.3.1`. **Pre-release:** the text
+  is finalised as `v0.3.0` from the running host's evidence; until then the TypeScript packages carrying it publish
+  under `alpha`.
 - 2026-09-15 — **v0.2.0: the first adapter, and the three coverage rules it was owed.** `conformance/fixtures/adapter/`
   carries twelve fixtures in a manifest section of its own, authored here against the first adapter
   (`@affiant/adapter-ai-sdk`, `Sakwala/affiant-ts`): nine for CV-2's fail-closed call site — a write tool called with an
