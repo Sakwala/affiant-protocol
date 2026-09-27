@@ -127,7 +127,7 @@ above. This is the pre-release's whole diff:
 | Typed `executionDetail` | `docket-entry.schema.json` `$defs.executionDetail` | An object with a `code` from the host's own vocabulary, never a string a reader must parse (M-5) |
 | `compositeRef` removed | `docket-entry.schema.json` | There is no composition above the gate at 0.3.0: a host that needs several approvals asks for `MultiParty` instead of stitching several entries together under a shared label (M-6) |
 | The `multi-party` attestor | `attestation.schema.json` `$defs.multiParty`, `by.oneOf` | The fold's own attestation, composed of the approval records' attestations and nothing else (AZ-1, AZ-3) |
-| `card.multiParty` | `evidence-card-request.schema.json` | The roster and its progress, so a reviewer surface reads who has decided from the card rather than deriving it itself (D-7, M-13) |
+| `card.multiParty` | `evidence-card-request.schema.json` | The roster and its progress, so a reviewer surface reads who has decided from the card rather than deriving it itself |
 | Three refusal codes | `error-code.schema.json` | `approver-not-listed`, `approver-already-decided`, `decision-not-amendable` name the three ways a `MultiParty` decision is refused that no existing code covered (M-7) |
 
 ## What changed from the seed
