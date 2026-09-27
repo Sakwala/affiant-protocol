@@ -192,8 +192,8 @@ else — **from 0.3.0, `approvals` joins that list** (M-3, M-8):
 From 0.3.0, `requirement` on `expect.entry` (and `expect.superseded`) is a kind name or a **partial** matcher over the
 requirement object, `{ kind?, approvers?, required? }` — a stated `approvers` is the whole list, in order, the same
 convention as `approvals` (M-8). `executionDetail` is `null` or a partial matcher over the typed object: `{ code? }`,
-where `code` is compared exactly and other properties are the host's own and unconstrained (M-5, M-8); the bare-string
-form left the format with B-57c2, and the five fixtures that carried it are amended to the typed shape. *(0.3.0)*
+where `code` is compared exactly and other properties are the host's own and unconstrained; the bare-string
+form left the format at 0.3.0, and the five fixtures that carried it are amended to the typed shape. *(0.3.0)*
 
 `affidavit` and `amendedAffidavit` take a partial Affidavit matcher: `operationType` (`create` \| `update`),
 `entityType`, `entityId`, `aggregateConfidence`, `populatedConfidence`, `emptyFieldCount`, and `fields`. **Stating

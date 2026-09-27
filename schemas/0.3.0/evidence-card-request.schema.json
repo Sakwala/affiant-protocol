@@ -108,7 +108,7 @@
       "type": "boolean"
     },
     "multiParty": {
-      "description": "The MultiParty roster and its progress, or null when the entry's requirement is not MultiParty (M-13, D-7). On the envelope rather than left for a surface to derive from the Affidavit, because which approvers have decided is state the gate holds and the card is the one place a reviewer surface reads it from; the gate itself writes no sentence about it (G-33).",
+      "description": "The MultiParty roster and its progress, or null when the entry's requirement is not MultiParty. On the envelope rather than left for a surface to derive from the Affidavit, because which approvers have decided is state the gate holds and the card is the one place a reviewer surface reads it from; the gate itself writes no sentence about it.",
       "oneOf": [
         {
           "type": "object",
