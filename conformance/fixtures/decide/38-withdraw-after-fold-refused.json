@@ -1,7 +1,7 @@
 {
   "id": "decide/withdraw-after-fold-refused",
   "rules": ["DK-1"],
-  "title": "A withdraw of an approved entry is refused decision-not-pending: withdraw is a guarded compare-and-set from pending only, and the row is byte-identical to what the approval left.",
+  "title": "A withdraw of an approved entry is refused decision-not-pending: withdraw is a guarded compare-and-set from pending only, and the row's status, execution, attestation and decision are unchanged from what the approval left.",
   "given": {
     "clock": "2026-09-04T09:00:00.000Z",
     "store": "memory",

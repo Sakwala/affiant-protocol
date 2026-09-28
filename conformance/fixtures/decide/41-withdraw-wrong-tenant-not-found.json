@@ -1,7 +1,7 @@
 {
   "id": "decide/withdraw-wrong-tenant-not-found",
   "rules": ["DK-1", "AZ-2"],
-  "title": "A withdraw made from another tenant is reported as entry not found, exactly as an id that never existed: the tenant boundary is checked before the pending check (DK-1's order).",
+  "title": "A withdraw made from another tenant is reported as entry not found, exactly as an id that never existed: a wrong-tenant withdraw of a pending entry is refused entry-not-found and the row is unchanged.",
   "given": {
     "clock": "2026-09-28T09:00:00.000Z",
     "store": "memory",

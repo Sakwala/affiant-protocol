@@ -1,7 +1,7 @@
 {
   "id": "decide/withdraw-replay-returns-withdrawn",
   "rules": ["DK-1", "GT-4"],
-  "title": "Refiling the same proposal after it was withdrawn is the same entry, not a second one: the id derives as any other filing's does, so the retry replays the withdrawn row unchanged, informationally, and no new row is stored (GT-4).",
+  "title": "Refiling the same proposal after it was withdrawn is the same entry, not a second one: the id derives as any other filing's does, so the retry reads status withdrawn and the store holds exactly one row (GT-4).",
   "given": {
     "clock": "2026-09-28T09:00:00.000Z",
     "store": "memory",

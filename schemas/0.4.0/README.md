@@ -5,7 +5,8 @@ withdrawal transition (DK-1) written in: a host-initiated terminal state on a pe
 abandoned, https://github.com/Sakwala/affiant-protocol/issues/48. This is the second schema change since v0.1.0
 (`schemas/0.1.0/README.md`'s versioning policy: while the major is `0`, a schema-breaking change bumps the minor).
 `0.1.0/` and `0.3.0/` stay frozen; the seed one directory up (`../`, version `0.0.1-seed`) is a description of the
-wire the shipped .NET framework sends today, and all three remain incompatible with this one.
+wire the shipped .NET framework sends today. The seed and `0.1.0/` remain incompatible with this one; every `0.3.0/`
+document validates against this one unchanged.
 
 Read [`../../INVARIANTS.md`](../../INVARIANTS.md) alongside these files. Every rule this directory encodes is
 numbered there (`AF-n` Affidavit shape, `PV-n` provenance and bindings, `GT-n` the gate pipeline, `DK-n` the
@@ -125,12 +126,12 @@ This is the withdrawal transition's whole diff:
 | `decisionRecord.kind` gains `withdraw` | `docket-entry.schema.json` `$defs.decisionRecord.kind` | DK-1 | `decide/withdraw-pending-multiparty` |
 | `decisionRecord.reason` required on a rejection **and a withdrawal** | `docket-entry.schema.json` `$defs.decisionRecord.reason` | DK-1 | `suite: a withdraw step without a reason is a caller error and records nothing` (`@affiant/core/testing`) |
 | `decisionRecord.by` names the withdrawing principal | `docket-entry.schema.json` `$defs.decisionRecord.by` | DK-1 | `decide/withdraw-pending-multiparty` |
-| `attestation` is `null` on a withdrawn row | `docket-entry.schema.json` `properties.attestation` | AZ-1, DK-1 | `wire/docket-entry-withdrawn` |
-| `outcome` gains `withdrawn` | `decision-result.schema.json` `properties.outcome` | DK-1 | `wire/decision-result-withdrawn` |
-| `docketTransition` names `withdrawn` among the states | `notification.schema.json` `$defs.docketTransition` | DK-1 | `notification/transition-to-withdrawn` |
+| `attestation` is `null` on a withdrawn row | `docket-entry.schema.json` `properties.attestation` | AZ-1, DK-1 | description only; the schema does not constrain it |
+| `outcome` gains `withdrawn` | `decision-result.schema.json` `properties.outcome` | DK-1 | `v0.4/decision-result-withdrawn` |
+| `docketTransition` names `withdrawn` among the states | `notification.schema.json` `$defs.docketTransition` | DK-1 | `v0.4/notification-transition-to-withdrawn` |
 
 `error-code.schema.json` and `common.schema.json` are not in the table above: no new error code is registered for
-a withdrawal refusal (DK-1, W-3), and `common.schema.json` changed only its `$id`.
+a withdrawal refusal (DK-1), and `common.schema.json` changed its `$id` and its two version descriptions.
 
 ## What changed from 0.1.0
 

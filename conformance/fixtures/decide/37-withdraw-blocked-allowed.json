@@ -1,7 +1,7 @@
 {
   "id": "decide/withdraw-blocked-allowed",
   "rules": ["DK-1", "AZ-4"],
-  "title": "A pending entry carrying a blocked marker is withdrawn: pending is pending, and this is the one exit a blocked entry has short of expiry (W-4).",
+  "title": "A pending entry carrying a blocked marker is withdrawn: pending is pending, and this is the one exit a blocked entry has short of expiry.",
   "given": {
     "clock": "2026-09-04T09:00:00.000Z",
     "store": "memory",
