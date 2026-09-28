@@ -367,8 +367,8 @@ enforce. *Checked by:* `sequence-a/approve-round-trip`; `suite: gate/wrap never 
 
 ## DK — the Docket, states and expiry
 
-### DK-1 — The review-outcome state machine *(v0.1; referral transitions reserved)*
-**MUST.** States: `pending` → one of `approved`, `rejected`, `expired`. An `approved` row carries an execution outcome as a
+### DK-1 — The review-outcome state machine *(v0.1; referral transitions reserved; withdrawal 0.4.0)*
+**MUST.** States: `pending` → one of `approved`, `rejected`, `expired`, `withdrawn`. An `approved` row carries an execution outcome as a
 separate property: `execution: "unexecuted"` when approved and the executor has not reported, then `"executed"` or
 `"failed"` — an approved-but-failed write MUST be distinguishable from an approved-and-committed one on the row. **The
 execution outcome is recorded once**, under a guarded transition from `unexecuted`; a second report is refused with
@@ -386,6 +386,14 @@ accepted (AZ-4) and a late one is not preserved either. **Resubmission** creates
 the entry it supersedes, prefilled from the preserved amendments (each prefilled value a `UserStated` tag with a
 `reviewer-act` binding to that act), with an id derived from the superseded entry's id so a repeated resubmit replays; the
 superseded entry keeps its terminal state and records its successor; an entry that is not `expired` cannot be resubmitted.
+The host **withdraws** a `pending` entry whose subject it has abandoned — `withdraw(entryId, reason)` — under the same
+guarded compare-and-set, in the same order as any other decision: tenant scope first (`entry-not-found`), expiry second
+(`decision-expired`, nothing preserved), pending third (`decision-not-pending`, the row returned as it stands and nothing
+changed). The row records `decision: { kind: "withdraw", reason, at, by }`: `reason` is required and `by` names the
+principal who withdrew; `attestation` stays `null` (nothing was agreed, AZ-1) and `execution` stays `null`; its approval
+records are kept as they stand. Every later decision or execution report on a withdrawn entry is refused exactly as on a
+folded row, and preserves nothing. A withdrawn entry is not resubmittable — the host's next request for the same subject
+is a new entry (GT-4). A `blocked` `pending` entry may be withdrawn.
 The row keeps the Affidavit **as proposed** (never edited) and, once an amendment is accepted, the accepted state as a separate
 `amendedAffidavit`, plus the name of the tool that proposed it. **A successor and a preserved late amendment are each
 recorded once**: a second record, *whatever it carries*, changes nothing and returns the entry as it stands — the first
@@ -404,7 +412,8 @@ principal whose act folded it. Resubmitting an expired `MultiParty` entry files 
 `approvals: []`; the successor's requirement is the policy chain's verdict for it — the same object when the
 policy is unchanged.
 *Why:* this is the one surface both implementations genuinely share, so it was written first; an execution state that can
-be flipped after the fact is an audit record that lies. *Checked by:* `decide/approve`, `decide/reject`,
+be flipped after the fact is an audit record that lies; the first running host cancelled the subject of a pending
+`MultiParty` entry, which then folded `approved` and executed `failed` (2026-09-28). *Checked by:* `decide/approve`, `decide/reject`,
 `decide/second-decision-refused`, `decide/expired-amendments-preserved`, `decide/blocked-refused`,
 `decide/execution-executed`, `decide/execution-failed`, `decide/execution-on-pending-refused`,
 `decide/execution-recorded-once`, `decide/execution-second-report-refused`, `decide/resubmit-prefills`,
@@ -413,7 +422,13 @@ be flipped after the fact is an audit record that lies. *Checked by:* `decide/ap
 `sequence-a/mandatory-field-reviewer-approves`, `decide/multiparty-all-approve`, `decide/multiparty-reject-folds`,
 `decide/multiparty-after-fold-refused`, `decide/multiparty-expired-then-resubmit`,
 `decide/multiparty-executed-with-typed-detail`, `decide/execution-detail-typed`, `decide/multiparty-partial-stays-pending`,
-`decide/multiparty-late-amendments-not-preserved`;
+`decide/multiparty-late-amendments-not-preserved`; `decide/withdraw-pending-multiparty`,
+`decide/withdraw-pending-reviewer-confirmation`, `decide/withdraw-blocked-allowed`, `decide/withdraw-after-fold-refused`,
+`decide/withdraw-expired-refused`, `decide/withdraw-twice-refused`, `decide/withdraw-without-reason-refused`,
+`decide/withdraw-wrong-tenant-not-found`, `decide/decide-after-withdraw-refused`,
+`decide/execution-on-withdrawn-refused`, `decide/withdraw-replay-returns-withdrawn`; the store contract's case
+(`@affiant/core/testing`) asserting that a withdrawal racing the approval that would fold the entry resolves as exactly
+one applies;
 the once-only sentence by the store contract's cases
 `deadline/preserves-the-first-record-not-the-second` and `lineage/keeps-the-first-successor-not-the-second`
 (`suite: @affiant/core/testing` store contract), each of which files a *second, different* record and asserts the first
