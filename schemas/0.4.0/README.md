@@ -1,6 +1,6 @@
-# Schemas — v0.4.0 (pre-release)
+# Schemas — v0.4.0
 
-JSON Schema (draft 2020-12) for the Affiant wire format, **as the v0.4 pre-release designs it** — `0.3.0` with the
+JSON Schema (draft 2020-12) for the Affiant wire format, as `v0.4.0` defines it — `0.3.0` with the
 withdrawal transition (DK-1) written in: a host-initiated terminal state on a pending entry whose subject it has
 abandoned, https://github.com/Sakwala/affiant-protocol/issues/48. This is the second schema change since v0.1.0
 (`schemas/0.1.0/README.md`'s versioning policy: while the major is `0`, a schema-breaking change bumps the minor).
@@ -124,7 +124,7 @@ This is the withdrawal transition's whole diff:
 |---|---|---|---|
 | `status` gains `withdrawn` | `docket-entry.schema.json` `$defs.status` | DK-1 | `decide/withdraw-pending-multiparty`, `decide/withdraw-pending-reviewer-confirmation`, `decide/withdraw-blocked-allowed` |
 | `decisionRecord.kind` gains `withdraw` | `docket-entry.schema.json` `$defs.decisionRecord.kind` | DK-1 | `decide/withdraw-pending-multiparty` |
-| `decisionRecord.reason` required on a rejection **and a withdrawal** | `docket-entry.schema.json` `$defs.decisionRecord.reason` | DK-1 | `suite: a withdraw step without a reason is a caller error and records nothing` (`@affiant/core/testing`) |
+| `decisionRecord.reason` required on a rejection **and a withdrawal** | `docket-entry.schema.json` `$defs.decisionRecord.reason` | DK-1 | `suite: a withdraw step without a reason is a caller error and records nothing` |
 | `decisionRecord.by` names the withdrawing principal | `docket-entry.schema.json` `$defs.decisionRecord.by` | DK-1 | `decide/withdraw-pending-multiparty` |
 | `attestation` is `null` on a withdrawn row | `docket-entry.schema.json` `properties.attestation` | AZ-1, DK-1 | description only; the schema does not constrain it |
 | `outcome` gains `withdrawn` | `decision-result.schema.json` `properties.outcome` | DK-1 | `v0.4/decision-result-withdrawn` |
@@ -136,7 +136,7 @@ a withdrawal refusal (DK-1), and `common.schema.json` changed its `$id` and its 
 ## What changed from 0.1.0
 
 Everything else in this directory is unchanged from [`schemas/0.1.0/`](../0.1.0/) other than the version strings
-above. This is the pre-release's whole diff:
+above. This is the version's whole diff:
 
 | Change | Where | Why |
 |---|---|---|
