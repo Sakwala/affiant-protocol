@@ -1,6 +1,6 @@
 # INVARIANTS — the rules every Affiant implementation enforces
 
-**Status: v0.3 pre-release text** (the v0.2 text of 2026-09-15, amended 2026-09-28 for
+**Status: v0.3.0 text** (the v0.2 text of 2026-09-15, amended 2026-09-28 for
 native `MultiParty` — see the changelog), written against a working
 implementation. Every rule has a permanent id, a full
 statement in RFC 2119 words, the reason where it is not obvious, and a *Checked by* line naming the fixtures, suites or lints
@@ -533,7 +533,10 @@ status **folds** from its records under DK-1: the `required`-th `approve` folds 
 transition that records that approval, with an entry-level attestation whose `by` is `{ kind: "multi-party",
 approvers: [the attestors of the approvals that folded it, in record order] }`; the first `reject` folds it
 `rejected`; either fold writes `decision: { kind, reason, at, by }` naming the approver whose record folded it, and
-every later decision is refused `decision-not-pending`. Expiry, resubmission (DK-1: the successor is filed through
+every later decision is refused `decision-not-pending`. A rejected entry is terminal: it cannot be resubmitted
+(DK-1), and a host's next request for the same subject is a new entry — a new id from new id-material (GT-4),
+`approvals: []`, `lineage` null — with no Docket link to the rejected one; `lineage.supersedes` names only an
+`expired` entry. Expiry, resubmission (DK-1: the successor is filed through
 the whole pipeline (GT-1) with `approvals: []`; its requirement is the policy chain's verdict for it — the same
 object when the policy is unchanged), execution (DK-1, AZ-5, AZ-7) and rehydration (DK-5) treat the entry as any
 other. A level an implementation does not run — `ReferralRequired` at 0.3.0, and `MultiParty` in an implementation
@@ -548,8 +551,10 @@ recorded decision or `null` — and the gate adds no sentence for it.
 *Why:* the shipped .NET gate routes `MultiParty` to the single-card branch — a joint requirement silently gets one
 approval (`src/Affiant.Core/Services/ReviewGate.cs:387`); and the v0.2 composition above the gate kept the approver,
 the round and the cause of a failure in fields no store could constrain, which the first running host showed
-(2026-09-27). `required` is a value so that a quorum is a policy decision and not a schema change; only `required =
-approvers.length` has run in a host as of this pre-release.
+(2026-09-27). `required` is a value so that a quorum is a policy decision and not a schema change; a quorum below the list has
+run in the first host since 2026-09-28 — three approvers, `required` 2: the second approve folded the entry, the
+third approver's later decision was refused `decision-not-pending`, and two approvals racing for the second place
+folded it once.
 *Checked by:* `gate/multiparty-files-one-entry`, `gate/multiparty-verdict-too-few-approvers`,
 `gate/multiparty-verdict-required-out-of-range`, `decide/multiparty-partial-stays-pending`,
 `decide/multiparty-all-approve`, `decide/multiparty-reject-folds`, `decide/multiparty-non-approver-refused`,
@@ -560,7 +565,10 @@ approvers.length` has run in a host as of this pre-release.
 `gate/multiparty-verdict-duplicate-approvers`, `gate/multiparty-verdict-required-zero`,
 `decide/multiparty-wrong-tenant-not-found`, `decide/multiparty-refile-replays`; `suite: two approvals racing for the required-th place fold
 the entry once`, `suite: cardFor reflects the approval records` (the store contract of `@affiant/core/testing`, run by every store). *Source:* the running host's
-interim composition and its evidence (Orrery, 2026-09-27); the owner's rulings of 2026-09-28 on
+interim composition and its evidence (Orrery, 2026-09-27); the running host's native unit and its refutation
+(Orrery W-86, 2026-09-28): a quorum of two of three, approvals and the fold attestation in record order, a
+rejection terminal with the next request a new entry; the open question of a withdrawal short of expiry is
+[affiant-protocol #48](https://github.com/Sakwala/affiant-protocol/issues/48); the owner's rulings of 2026-09-28 on
 [affiant-protocol #41–#46](https://github.com/Sakwala/affiant-protocol/issues/41).
 
 ### AZ-5 — The Docket is the sole record of approval authority *(v0.1)*
@@ -775,6 +783,15 @@ holding the fixtures back for work nobody has scheduled.
 
 ## Changelog
 
+- 2026-09-28 — **v0.3.0: the pre-release text finalised from the running host's evidence.** The first host ran the
+  native `MultiParty` unit through its own routes and put it in production the same day (Orrery W-86, 2026-09-28): a
+  quorum below the list (two of three) folds at the `required`-th approve and refuses the rest; approvals and the
+  fold attestation carry record order; a rejection is terminal and the host's next request is a new entry with no
+  lineage. AZ-4's *Why* and fold sentences say so; no schema, vector or fixture changed. One question stays open for
+  a later version — a host has no withdrawal of a pending entry short of expiry
+  ([#48](https://github.com/Sakwala/affiant-protocol/issues/48)). The TypeScript packages that carry this text
+  (`@affiant/core@0.1.0-alpha.6`, `@affiant/store-postgres@0.1.0-alpha.3`) pin the pre-release's commit; their
+  reading of these fixtures at `v0.3.0` is published here when they move the pin to the tag.
 - 2026-09-28 — **v0.3.0-pre.1 (pre-release): native `MultiParty`, taken from a running host.** `schemas/0.3.0/` is the
   first schema change since v0.1.0: the requirement is an object (`{ kind, … }`; `MultiParty` carries the host policy's
   `approvers` and `required`), a `MultiParty` write is one Docket entry whose approvals are records (`approvals[]`,
