@@ -424,11 +424,12 @@ be flipped after the fact is an audit record that lies; the first running host c
 `decide/multiparty-executed-with-typed-detail`, `decide/execution-detail-typed`, `decide/multiparty-partial-stays-pending`,
 `decide/multiparty-late-amendments-not-preserved`; `decide/withdraw-pending-multiparty`,
 `decide/withdraw-pending-reviewer-confirmation`, `decide/withdraw-blocked-allowed`, `decide/withdraw-after-fold-refused`,
-`decide/withdraw-expired-refused`, `decide/withdraw-twice-refused`, `decide/withdraw-without-reason-refused`,
+`decide/withdraw-expired-refused`, `decide/withdraw-twice-refused`,
 `decide/withdraw-wrong-tenant-not-found`, `decide/decide-after-withdraw-refused`,
-`decide/execution-on-withdrawn-refused`, `decide/withdraw-replay-returns-withdrawn`; the store contract's case
-(`@affiant/core/testing`) asserting that a withdrawal racing the approval that would fold the entry resolves as exactly
-one applies;
+`decide/execution-on-withdrawn-refused`, `decide/withdraw-replay-returns-withdrawn`;
+`suite: a withdraw step without a reason is a caller error and records nothing` (`@affiant/core/testing`); the store
+contract's case (`@affiant/core/testing`) asserting that a withdrawal racing the approval that would fold the entry
+resolves as exactly one applies;
 the once-only sentence by the store contract's cases
 `deadline/preserves-the-first-record-not-the-second` and `lineage/keeps-the-first-successor-not-the-second`
 (`suite: @affiant/core/testing` store contract), each of which files a *second, different* record and asserts the first

@@ -173,7 +173,7 @@ Approved, Rejected, Expired, Deferred`. So every `withdraw` fixture must fail or
 
 | Shipped defect | Rule | Fixtures that must fail on `1.0.0-beta.3.1` |
 |---|---|---|
-| The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`) | DK-1 | `decide/withdraw-pending-multiparty`, `decide/withdraw-pending-reviewer-confirmation`, `decide/withdraw-blocked-allowed`, `decide/withdraw-after-fold-refused`, `decide/withdraw-expired-refused`, `decide/withdraw-twice-refused`, `decide/withdraw-without-reason-refused`, `decide/withdraw-wrong-tenant-not-found`, `decide/decide-after-withdraw-refused`, `decide/execution-on-withdrawn-refused`, `decide/withdraw-replay-returns-withdrawn` |
+| The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`) | DK-1 | `decide/withdraw-pending-multiparty`, `decide/withdraw-pending-reviewer-confirmation`, `decide/withdraw-blocked-allowed`, `decide/withdraw-after-fold-refused`, `decide/withdraw-expired-refused`, `decide/withdraw-twice-refused`, `decide/withdraw-wrong-tenant-not-found`, `decide/decide-after-withdraw-refused`, `decide/execution-on-withdrawn-refused`, `decide/withdraw-replay-returns-withdrawn` |
 
 **No run yet.** The run against this table is unit B-68o's, at the `v0.4` head, after B-68c and B-68r; this table states
 what must be true and carries no result until that unit publishes one — nothing here claims a run occurred.
