@@ -1,11 +1,11 @@
-# Schemas — v0.3.0 (pre-release)
+# Schemas — v0.4.0 (pre-release)
 
-JSON Schema (draft 2020-12) for the Affiant wire format, **as the v0.3 pre-release designs it** — v0.1 with the
-native `MultiParty` design (https://github.com/Sakwala/affiant-protocol/issues/41) written in. This is
-the first schema change since v0.1.0 (`schemas/0.1.0/README.md`'s versioning policy: while the major is `0`, a
-schema-breaking change bumps the minor). `0.1.0/` stays frozen; the seed one directory up (`../`, version
-`0.0.1-seed`) is a description of the wire the shipped .NET framework sends today, and both remain incompatible
-with this one.
+JSON Schema (draft 2020-12) for the Affiant wire format, **as the v0.4 pre-release designs it** — `0.3.0` with the
+withdrawal transition (DK-1) written in: a host-initiated terminal state on a pending entry whose subject it has
+abandoned, https://github.com/Sakwala/affiant-protocol/issues/48. This is the second schema change since v0.1.0
+(`schemas/0.1.0/README.md`'s versioning policy: while the major is `0`, a schema-breaking change bumps the minor).
+`0.1.0/` and `0.3.0/` stay frozen; the seed one directory up (`../`, version `0.0.1-seed`) is a description of the
+wire the shipped .NET framework sends today, and all three remain incompatible with this one.
 
 Read [`../../INVARIANTS.md`](../../INVARIANTS.md) alongside these files. Every rule this directory encodes is
 numbered there (`AF-n` Affidavit shape, `PV-n` provenance and bindings, `GT-n` the gate pipeline, `DK-n` the
@@ -18,7 +18,7 @@ a schema's description and `INVARIANTS.md` differ, **`INVARIANTS.md` wins and th
 schema-breaking change bumps the minor. Every envelope carries it (`INVARIANTS.md` SR-4) — the Affidavit, the
 Evidence Card request, the Docket entry, the decision result, every notification and the telemetry-key registry.
 A consumer **refuses** a payload whose major differs from the version it targets, and **MAY warn** on a newer
-minor it does not know. The string for this directory is `0.3.0`.
+minor it does not know. The string for this directory is `0.4.0`.
 
 The seed predates the field and carries the version only at fixture-set level, in
 [`../../conformance/fixtures/MANIFEST.json`](../../conformance/fixtures/MANIFEST.json).
@@ -113,6 +113,24 @@ not also offer a reviewer surface an approve button that cannot work.
 **The per-field constraints and the warnings moved onto the card envelope too.** Same reason, and it is the
 ruling that closes the two open questions v0.1 opened with:
 [Presentation lives on the card envelope](#presentation-lives-on-the-card-envelope).
+
+## What changed from 0.3.0
+
+Everything else in this directory is unchanged from [`schemas/0.3.0/`](../0.3.0/) other than the version strings.
+This is the withdrawal transition's whole diff:
+
+| Change | Where | Rule | Fixture |
+|---|---|---|---|
+| `status` gains `withdrawn` | `docket-entry.schema.json` `$defs.status` | DK-1 | `decide/withdraw-pending-multiparty`, `decide/withdraw-pending-reviewer-confirmation`, `decide/withdraw-blocked-allowed` |
+| `decisionRecord.kind` gains `withdraw` | `docket-entry.schema.json` `$defs.decisionRecord.kind` | DK-1 | `decide/withdraw-pending-multiparty` |
+| `decisionRecord.reason` required on a rejection **and a withdrawal** | `docket-entry.schema.json` `$defs.decisionRecord.reason` | DK-1 | `decide/withdraw-without-reason-refused` |
+| `decisionRecord.by` names the withdrawing principal | `docket-entry.schema.json` `$defs.decisionRecord.by` | DK-1 | `decide/withdraw-pending-multiparty` |
+| `attestation` is `null` on a withdrawn row | `docket-entry.schema.json` `properties.attestation` | AZ-1, DK-1 | `wire/docket-entry-withdrawn` |
+| `outcome` gains `withdrawn` | `decision-result.schema.json` `properties.outcome` | DK-1 | `wire/decision-result-withdrawn` |
+| `docketTransition` names `withdrawn` among the states | `notification.schema.json` `$defs.docketTransition` | DK-1 | `notification/transition-to-withdrawn` |
+
+`error-code.schema.json` and `common.schema.json` are not in the table above: no new error code is registered for
+a withdrawal refusal (DK-1, W-3), and `common.schema.json` changed only its `$id`.
 
 ## What changed from 0.1.0
 
