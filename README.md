@@ -36,7 +36,7 @@ Versions are git tags. Each implementation pins a tag and bumps it in its own pu
 
 ## Status
 
-- 2026-09-28 — **`v0.3.0` tagged: the native `MultiParty` text finalised from the running host's evidence.** The
+- 2026-09-28 — **`v0.3.0`: the native `MultiParty` text finalised from the running host's evidence.** The
   schemas, `INVARIANTS.md` and the fixtures are unchanged from `v0.3.0-pre.1`; AZ-4's *Why*, fold and *Source*
   sentences state what the first host's native unit proved (Orrery W-86, 2026-09-28). No reading moves here yet:
   `conformance/parity/` holds no `typescript-v0.3.json` and `conformance/results/` no `typescript-0.1.0-alpha.6`;
