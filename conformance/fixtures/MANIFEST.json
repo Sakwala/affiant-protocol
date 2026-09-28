@@ -1949,7 +1949,12 @@
           "AZ-4"
         ],
         "set": "decide",
-        "oracle": null
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+        }
       },
       {
         "id": "decide/withdraw-pending-reviewer-confirmation",
@@ -1959,7 +1964,12 @@
           "AZ-4"
         ],
         "set": "decide",
-        "oracle": null
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+        }
       },
       {
         "id": "decide/withdraw-blocked-allowed",
@@ -1969,7 +1979,12 @@
           "AZ-4"
         ],
         "set": "decide",
-        "oracle": null
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+        }
       },
       {
         "id": "decide/withdraw-after-fold-refused",
@@ -1978,7 +1993,12 @@
           "DK-1"
         ],
         "set": "decide",
-        "oracle": null
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+        }
       },
       {
         "id": "decide/withdraw-expired-refused",
@@ -1987,7 +2007,12 @@
           "DK-1"
         ],
         "set": "decide",
-        "oracle": null
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+        }
       },
       {
         "id": "decide/withdraw-twice-refused",
@@ -1996,7 +2021,12 @@
           "DK-1"
         ],
         "set": "decide",
-        "oracle": null
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+        }
       },
       {
         "id": "sequence-a/approve-round-trip",
