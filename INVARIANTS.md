@@ -1,7 +1,7 @@
 # INVARIANTS — the rules every Affiant implementation enforces
 
-**Status: v0.3.0 text** (the v0.2 text of 2026-09-15, amended 2026-09-28 for
-native `MultiParty` — see the changelog), written against a working
+**Status: `0.4.0` text, pre-release** (`v0.3.0` is frozen; this text amends it, 2026-09-28, for the withdrawal
+transition — see the changelog), written against a working
 implementation. Every rule has a permanent id, a full
 statement in RFC 2119 words, the reason where it is not obvious, and a *Checked by* line naming the fixtures, suites or lints
 that fail when the rule is broken. The skeleton of 2026-09-04 carried the same ids as one-liners; nothing was renumbered.
@@ -367,8 +367,8 @@ enforce. *Checked by:* `sequence-a/approve-round-trip`; `suite: gate/wrap never 
 
 ## DK — the Docket, states and expiry
 
-### DK-1 — The review-outcome state machine *(v0.1; referral transitions reserved)*
-**MUST.** States: `pending` → one of `approved`, `rejected`, `expired`. An `approved` row carries an execution outcome as a
+### DK-1 — The review-outcome state machine *(v0.1; referral transitions reserved; withdrawal 0.4.0)*
+**MUST.** States: `pending` → one of `approved`, `rejected`, `expired`, `withdrawn`. An `approved` row carries an execution outcome as a
 separate property: `execution: "unexecuted"` when approved and the executor has not reported, then `"executed"` or
 `"failed"` — an approved-but-failed write MUST be distinguishable from an approved-and-committed one on the row. **The
 execution outcome is recorded once**, under a guarded transition from `unexecuted`; a second report is refused with
@@ -386,6 +386,14 @@ accepted (AZ-4) and a late one is not preserved either. **Resubmission** creates
 the entry it supersedes, prefilled from the preserved amendments (each prefilled value a `UserStated` tag with a
 `reviewer-act` binding to that act), with an id derived from the superseded entry's id so a repeated resubmit replays; the
 superseded entry keeps its terminal state and records its successor; an entry that is not `expired` cannot be resubmitted.
+The host **withdraws** a `pending` entry whose subject it has abandoned — `withdraw(entryId, reason)` — under the same
+guarded compare-and-set, in the same order as any other decision: tenant scope first (`entry-not-found`), expiry second
+(`decision-expired`, nothing preserved), pending third (`decision-not-pending`, the row returned as it stands and nothing
+changed). The row records `decision: { kind: "withdraw", reason, at, by }`: `reason` is required and `by` names the
+principal who withdrew; `attestation` stays `null` (nothing was agreed, AZ-1) and `execution` stays `null`; its approval
+records are kept as they stand. Every later decision or execution report on a withdrawn entry is refused exactly as on a
+folded row, and preserves nothing. A withdrawn entry is not resubmittable — the host's next request for the same subject
+is a new entry (GT-4). A `blocked` `pending` entry may be withdrawn.
 The row keeps the Affidavit **as proposed** (never edited) and, once an amendment is accepted, the accepted state as a separate
 `amendedAffidavit`, plus the name of the tool that proposed it. **A successor and a preserved late amendment are each
 recorded once**: a second record, *whatever it carries*, changes nothing and returns the entry as it stands — the first
@@ -404,7 +412,8 @@ principal whose act folded it. Resubmitting an expired `MultiParty` entry files 
 `approvals: []`; the successor's requirement is the policy chain's verdict for it — the same object when the
 policy is unchanged.
 *Why:* this is the one surface both implementations genuinely share, so it was written first; an execution state that can
-be flipped after the fact is an audit record that lies. *Checked by:* `decide/approve`, `decide/reject`,
+be flipped after the fact is an audit record that lies; the first running host cancelled the subject of a pending
+`MultiParty` entry, which then folded `approved` and executed `failed` (2026-09-28). *Checked by:* `decide/approve`, `decide/reject`,
 `decide/second-decision-refused`, `decide/expired-amendments-preserved`, `decide/blocked-refused`,
 `decide/execution-executed`, `decide/execution-failed`, `decide/execution-on-pending-refused`,
 `decide/execution-recorded-once`, `decide/execution-second-report-refused`, `decide/resubmit-prefills`,
@@ -413,7 +422,13 @@ be flipped after the fact is an audit record that lies. *Checked by:* `decide/ap
 `sequence-a/mandatory-field-reviewer-approves`, `decide/multiparty-all-approve`, `decide/multiparty-reject-folds`,
 `decide/multiparty-after-fold-refused`, `decide/multiparty-expired-then-resubmit`,
 `decide/multiparty-executed-with-typed-detail`, `decide/execution-detail-typed`, `decide/multiparty-partial-stays-pending`,
-`decide/multiparty-late-amendments-not-preserved`;
+`decide/multiparty-late-amendments-not-preserved`; `decide/withdraw-pending-multiparty`,
+`decide/withdraw-pending-reviewer-confirmation`, `decide/withdraw-blocked-allowed`, `decide/withdraw-after-fold-refused`,
+`decide/withdraw-expired-refused`, `decide/withdraw-twice-refused`, `decide/withdraw-without-reason-refused`,
+`decide/withdraw-wrong-tenant-not-found`, `decide/decide-after-withdraw-refused`,
+`decide/execution-on-withdrawn-refused`, `decide/withdraw-replay-returns-withdrawn`; the store contract's case
+(`@affiant/core/testing`) asserting that a withdrawal racing the approval that would fold the entry resolves as exactly
+one applies;
 the once-only sentence by the store contract's cases
 `deadline/preserves-the-first-record-not-the-second` and `lineage/keeps-the-first-successor-not-the-second`
 (`suite: @affiant/core/testing` store contract), each of which files a *second, different* record and asserts the first
@@ -446,8 +461,8 @@ amendment, supersession. **Retention never ages out an `approved` + `unexecuted`
 that a write was authorised and has not happened (AZ-5). **Retention removes a terminal row — other than an `approved` +
 `unexecuted` row, which the sentence before this one keeps however old — whose terminal instant is strictly before
 `olderThan`; a row whose terminal instant equals `olderThan` is kept.** A row's **terminal instant** is the instant it
-left `pending`: the decision instant for a row a person or a policy decided, and `expiresAt` for a row that expired,
-swept or not (DK-1 reads expiry as a state, so a row that nobody swept has the same terminal instant as one that was
+left `pending`: the decision instant for a row a person or a policy decided, `expiresAt` for a row that expired,
+swept or not, and the withdrawal's instant for a withdrawn row (DK-1 reads expiry as a state, so a row that nobody swept has the same terminal instant as one that was
 swept late). No field of an Affidavit is redacted by the framework; a host that must redact does so before filing and
 the tag records it.
 *Why (the boundary):* "older than" excludes the instant itself, and a boundary nobody wrote down is a boundary two
@@ -539,7 +554,8 @@ every later decision is refused `decision-not-pending`. A rejected entry is term
 `expired` entry. Expiry, resubmission (DK-1: the successor is filed through
 the whole pipeline (GT-1) with `approvals: []`; its requirement is the policy chain's verdict for it — the same
 object when the policy is unchanged), execution (DK-1, AZ-5, AZ-7) and rehydration (DK-5) treat the entry as any
-other. A level an implementation does not run — `ReferralRequired` at 0.3.0, and `MultiParty` in an implementation
+other. A host that abandons an entry's subject withdraws it (DK-1); after a fold there is no withdrawal — the host
+reports the execution outcome instead. A level an implementation does not run — `ReferralRequired` at 0.3.0, and `MultiParty` in an implementation
 that has not reached 0.3.0 — files `pending` with the requirement recorded verbatim and `blocked: { code, … }`,
 refuses every decision on it (`decision-not-pending`, with the blocked code in the details), never executes it, and
 never degrades to a weaker requirement. Codes: `requirement-not-implemented` (with `level`), and `coverage-refused`

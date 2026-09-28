@@ -26,6 +26,7 @@ Versions are git tags. Each implementation pins a tag and bumps it in its own pu
 | `v0.1.3` | PV-3 states who establishes presence — the implementation, from the utterance; five fixtures authored here, one amended; 68 documents |
 | `v0.2.0` | The adapter fixture section (12 documents), `ADAPTER-RUNNER.md`, the adapter claims lint for CV-5 and its self-test corpus, `adapters[]` on the parity manifest, and the DK-4 and DK-1 sentences. CV-2, CV-3 and CV-5 stop being exempt. No wire schema under `schemas/0.1.0/`, no canonical vector and no existing conformance fixture changes; `fixture.schema.json` and `parity/MANIFEST.schema.json`, which describe the *formats* rather than the wire, do |
 | `v0.3.0` | The `0.3.0` schemas: the requirement recorded as an object, `MultiParty` approval records the status folds from, `decision.by`, typed `executionDetail`, `compositeRef` withdrawn. Thirteen fixtures authored here from the first running host's cases. Three refusal codes appended to the registry. Fixtures read by the TypeScript driver at the pre-release commit `247948c`, 99 of 99, published in `Sakwala/affiant-ts` as `typescript-v0.3.json` and moving here with the pin |
+| `v0.4.0-pre` | the `0.4.0` schemas: `withdrawn`, the `withdraw` decision kind; pre-release, no tag yet — the tag is the owner's |
 
 ## Implementations
 
@@ -36,6 +37,8 @@ Versions are git tags. Each implementation pins a tag and bumps it in its own pu
 
 ## Status
 
+- 2026-09-28 — the withdrawal transition designed from the first host's evidence (issue #48), on branch `v0.4`,
+  pre-release.
 - 2026-09-28 — **`v0.3.0`: the native `MultiParty` text finalised from the running host's evidence.** The
   schemas, `INVARIANTS.md` and the fixtures are unchanged from `v0.3.0-pre.1`; AZ-4's *Why*, fold and *Source*
   sentences state what the first host's native unit proved (Orrery W-86, 2026-09-28). No reading moves here yet:
