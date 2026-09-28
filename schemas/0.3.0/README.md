@@ -134,6 +134,9 @@ above. This is the pre-release's whole diff:
 `$ref`s `docket-entry.schema.json`'s `status` and `execution` `$defs`) are not in the table above because their
 own shape is untouched — they changed only transitively, by carrying the objects the table lists.
 
+**Follow-up for `v0.3.0`:** the `common` schema should pin `protocolVersion` to the directory's version as a
+`const`, so a stamp cannot drift.
+
 ## What changed from the seed
 
 | Seed (`../`) | 0.3.0 (here) | Change |
