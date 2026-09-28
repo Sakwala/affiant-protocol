@@ -175,8 +175,12 @@ Approved, Rejected, Expired, Deferred`. So every `withdraw` fixture must fail or
 |---|---|---|
 | The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`) | DK-1 | `decide/withdraw-pending-multiparty`, `decide/withdraw-pending-reviewer-confirmation`, `decide/withdraw-blocked-allowed`, `decide/withdraw-after-fold-refused`, `decide/withdraw-expired-refused`, `decide/withdraw-twice-refused`, `decide/withdraw-wrong-tenant-not-found`, `decide/decide-after-withdraw-refused`, `decide/execution-on-withdrawn-refused`, `decide/withdraw-replay-returns-withdrawn` |
 
-**No run yet.** The run against this table is unit B-68o's, at the `v0.4` head, after B-68c and B-68r; this table states
-what must be true and carries no result until that unit publishes one — nothing here claims a run occurred.
+**This list has been run**, locally, against `1.0.0-beta.3.1`: [`results/dotnet-1.0.0-beta.3.1-at-v0.4-pre/`](results/dotnet-1.0.0-beta.3.1-at-v0.4-pre/).
+Ten of ten failed or errored, 0 passed. Eight failed with `reason: "not-implemented: step kind \"withdraw\" is not
+bound."` — the release recognises no `withdraw` step, the table's own recorded defect, read directly off the
+driver's message. Two — `decide/withdraw-pending-multiparty` and `decide/withdraw-replay-returns-withdrawn` — error
+earlier, in the same `MultiParty`-requirement-object fixture-loader crash the v0.3 pre-release run recorded, before
+the `withdraw` step is ever reached.
 
 ## The run
 
