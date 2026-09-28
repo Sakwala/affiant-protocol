@@ -2,19 +2,21 @@
 
 JSON Schema (draft 2020-12) for the Affiant wire format.
 
-## Three directories
+## Four directories
 
-There are three schema sets here, side by side, and they describe different things.
+There are four schema sets here, side by side, and they describe different things.
 
 | Directory | Version | What it is |
 |---|---|---|
 | `schemas/*.schema.json` | `0.0.1-seed` | **The seed.** A description of the wire one shipped implementation sends *today*, read off its models and checked against example payloads. Eight schemas. Frozen: nothing in it changes. |
 | [`schemas/0.1.0/`](0.1.0/) | `0.1.0` | **The designed protocol.** Twenty-one schemas written to [`../INVARIANTS.md`](../INVARIANTS.md), covering the Docket row, the attestation record, bindings, money, the refusal registry and the telemetry registry — none of which the seed had a schema for at all. Frozen. |
 | [`schemas/0.3.0/`](0.3.0/) | `0.3.0` | **The pre-release.** Written to the native `MultiParty` design; frozen at `v0.3.0`. A full copy of `0.1.0/` with the requirement recorded as an object, `MultiParty` approvals as records the entry's status folds from, a typed `executionDetail`, the new `multi-party` attestor, the card's `multiParty` roster, three refusal codes, and `compositeRef` withdrawn — see [`0.3.0/README.md`](0.3.0/README.md#what-changed-from-010). |
+| [`schemas/0.4.0/`](0.4.0/) | `0.4.0` | **The withdrawal transition.** A full copy of `0.3.0/` with `status` and the decision kind widened; pre-release — see [`0.4.0/README.md`](0.4.0/README.md#what-changed-from-030). |
 
-They are **not compatible**, on purpose, and all three stay: the seed is what an adopter of the shipped .NET
-packages is looking at right now, v0.1 is what both implementations were first brought to, and 0.3.0 is where the
-native `MultiParty` design lands ahead of `v0.3.0` being tagged. Each has its own fixture set in
+The seed, v0.1 and 0.3.0 are **not compatible** with each other, on purpose, and all four stay: the seed is what an
+adopter of the shipped .NET packages is looking at right now, v0.1 is what both implementations were first brought to,
+0.3.0 is where the native `MultiParty` design lands ahead of `v0.3.0` being tagged, and every `0.3.0` document remains
+valid against `0.4.0`. Each has its own fixture set in
 [`../conformance/fixtures/`](../conformance/fixtures/) (`wire/` for the seed, `v0.1/` for v0.1) and all are
 checked by the same lint on every push.
 

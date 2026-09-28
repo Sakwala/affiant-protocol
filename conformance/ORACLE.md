@@ -165,6 +165,23 @@ per-mechanism demonstration is the .NET catch-up driver's first run at `v0.3.0`.
 `decide/approve` and `decide/reject`, which now state `decision.by`, fail on `1.0.0-beta.3.1` for that fact alone —
 not part of this twenty-fixture list, and left for the .NET catch-up driver's parity manifest.
 
+## The list for `1.0.0-beta.3.1` at the v0.4 pre-release
+
+The shipped .NET packages at `1.0.0-beta.3.1` record no withdrawal transition: the driver has no `withdraw` step and
+`ReviewStatus` (`src/Affiant.Abstractions/Models/DocketEntry.cs`) has no `Withdrawn` — the enum today is `Pending,
+Approved, Rejected, Expired, Deferred`. So every `withdraw` fixture must fail or error on it.
+
+| Shipped defect | Rule | Fixtures that must fail on `1.0.0-beta.3.1` |
+|---|---|---|
+| The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`) | DK-1 | `decide/withdraw-pending-multiparty`, `decide/withdraw-pending-reviewer-confirmation`, `decide/withdraw-blocked-allowed`, `decide/withdraw-after-fold-refused`, `decide/withdraw-expired-refused`, `decide/withdraw-twice-refused`, `decide/withdraw-wrong-tenant-not-found`, `decide/decide-after-withdraw-refused`, `decide/execution-on-withdrawn-refused`, `decide/withdraw-replay-returns-withdrawn` |
+
+**This list has been run**, locally, against `1.0.0-beta.3.1`: [`results/dotnet-1.0.0-beta.3.1-at-v0.4-pre/`](results/dotnet-1.0.0-beta.3.1-at-v0.4-pre/).
+Ten of ten failed or errored, 0 passed. Eight failed with `reason: "not-implemented: step kind \"withdraw\" is not
+bound."` — the release recognises no `withdraw` step, the table's own recorded defect, read directly off the
+driver's message. Two — `decide/withdraw-pending-multiparty` and `decide/withdraw-replay-returns-withdrawn` — error
+earlier, in the same `MultiParty`-requirement-object fixture-loader crash the v0.3 pre-release run recorded, before
+the `withdraw` step is ever reached.
+
 ## The run
 
 - [`results/dotnet-1.0.0-beta.1/ORACLE-RUN.md`](results/dotnet-1.0.0-beta.1/ORACLE-RUN.md) — this list, run: every
