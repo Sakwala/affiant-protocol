@@ -1,6 +1,6 @@
 # INVARIANTS — the rules every Affiant implementation enforces
 
-**Status: v0.4.1 text** (the v0.4.0 text of 2026-09-29, amended 2026-09-29 from the first host's evidence
+**Status: v0.4.1 text** (the v0.4.0 text of 2026-09-28, amended 2026-09-29 from the first host's evidence
 — see the changelog), written against a working
 implementation. Every rule has a permanent id, a full
 statement in RFC 2119 words, the reason where it is not obvious, and a *Checked by* line naming the fixtures, suites or lints
@@ -396,7 +396,7 @@ refused exactly as on a folded row, and preserves nothing; an execution report o
 row that is not `approved` (`decision-not-pending`), and `execution` stays `null`. A withdrawn entry is not
 resubmittable — the host's next request for the same subject is a new entry from new id-material (GT-4); a re-file with
 the same id-material replays the withdrawn row. A `blocked` `pending` entry may be withdrawn.
-A resubmit of an entry that is not `expired` — rejected, withdrawn, or still pending — is refused `decision-not-pending` and files nothing.
+A resubmit of an entry that is not `expired` is refused `decision-not-pending` and files nothing.
 The row keeps the Affidavit **as proposed** (never edited) and, once an amendment is accepted, the accepted state as a separate
 `amendedAffidavit`, plus the name of the tool that proposed it. **A successor and a preserved late amendment are each
 recorded once**: a second record, *whatever it carries*, changes nothing and returns the entry as it stands — the first
