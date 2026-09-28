@@ -37,6 +37,11 @@ Versions are git tags. Each implementation pins a tag and bumps it in its own pu
 
 ## Status
 
+- 2026-09-28 — **the v0.4 pre-release's two `canonicalHash` values re-derived at `0.4.0`.** `decide/amend-recompute` and
+  `sequence-a/approve-round-trip` expect the hash of a document the implementation produces; the canonical form carries
+  `protocolVersion` (SR-1, SR-4), so the values derived at `0.3.0` cannot match once the conformance section reads
+  `0.4.0`. Re-derived from the reference implementation at this pre-release; no other fixture changes. A produced
+  document's hash moves with the section's `protocolVersion` from now on.
 - 2026-09-28 — the withdrawal transition designed from the first host's evidence (issue #48), on branch `v0.4`,
   pre-release.
 - 2026-09-28 — **`v0.3.0`: the native `MultiParty` text finalised from the running host's evidence.** The
