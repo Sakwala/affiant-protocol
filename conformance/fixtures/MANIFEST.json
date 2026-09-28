@@ -2029,6 +2029,65 @@
         }
       },
       {
+        "id": "decide/withdraw-wrong-tenant-not-found",
+        "file": "decide/41-withdraw-wrong-tenant-not-found.json",
+        "rules": [
+          "DK-1",
+          "AZ-2"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+        }
+      },
+      {
+        "id": "decide/decide-after-withdraw-refused",
+        "file": "decide/42-decide-after-withdraw-refused.json",
+        "rules": [
+          "DK-1"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+        }
+      },
+      {
+        "id": "decide/execution-on-withdrawn-refused",
+        "file": "decide/43-execution-on-withdrawn-refused.json",
+        "rules": [
+          "DK-1",
+          "AZ-5"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+        }
+      },
+      {
+        "id": "decide/withdraw-replay-returns-withdrawn",
+        "file": "decide/44-withdraw-replay-returns-withdrawn.json",
+        "rules": [
+          "DK-1",
+          "GT-4"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+        }
+      },
+      {
         "id": "sequence-a/approve-round-trip",
         "file": "sequence-a/01-approve-round-trip.json",
         "rules": [
