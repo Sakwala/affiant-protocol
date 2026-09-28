@@ -387,13 +387,15 @@ the entry it supersedes, prefilled from the preserved amendments (each prefilled
 `reviewer-act` binding to that act), with an id derived from the superseded entry's id so a repeated resubmit replays; the
 superseded entry keeps its terminal state and records its successor; an entry that is not `expired` cannot be resubmitted.
 The host **withdraws** a `pending` entry whose subject it has abandoned — `withdraw(entryId, reason)` — under the same
-guarded compare-and-set, in the same order as any other decision: tenant scope first (`entry-not-found`), expiry second
+guarded compare-and-set: tenant scope first (`entry-not-found`), expiry second
 (`decision-expired`, nothing preserved), pending third (`decision-not-pending`, the row returned as it stands and nothing
 changed). The row records `decision: { kind: "withdraw", reason, at, by }`: `reason` is required and `by` names the
-principal who withdrew; `attestation` stays `null` (nothing was agreed, AZ-1) and `execution` stays `null`; its approval
-records are kept as they stand. Every later decision or execution report on a withdrawn entry is refused exactly as on a
-folded row, and preserves nothing. A withdrawn entry is not resubmittable — the host's next request for the same subject
-is a new entry (GT-4). A `blocked` `pending` entry may be withdrawn.
+principal who withdrew; `attestation` stays `null` (nothing was agreed, AZ-1), `execution` stays `null`, and `decidedAt` is
+the withdrawal's instant; its approval records are kept as they stand. Every later decision on a withdrawn entry is
+refused exactly as on a folded row, and preserves nothing; an execution report on a withdrawn entry is refused as on any
+row that is not `approved` (`decision-not-pending`), and `execution` stays `null`. A withdrawn entry is not
+resubmittable — the host's next request for the same subject is a new entry from new id-material (GT-4); a re-file with
+the same id-material replays the withdrawn row. A `blocked` `pending` entry may be withdrawn.
 The row keeps the Affidavit **as proposed** (never edited) and, once an amendment is accepted, the accepted state as a separate
 `amendedAffidavit`, plus the name of the tool that proposed it. **A successor and a preserved late amendment are each
 recorded once**: a second record, *whatever it carries*, changes nothing and returns the entry as it stands — the first
@@ -427,7 +429,8 @@ be flipped after the fact is an audit record that lies; the first running host c
 `decide/withdraw-expired-refused`, `decide/withdraw-twice-refused`,
 `decide/withdraw-wrong-tenant-not-found`, `decide/decide-after-withdraw-refused`,
 `decide/execution-on-withdrawn-refused`, `decide/withdraw-replay-returns-withdrawn`;
-`suite: a withdraw step without a reason is a caller error and records nothing` (`@affiant/core/testing`); the store
+`suite: a withdraw step without a reason is a caller error and records nothing` (`@affiant/core/testing`);
+`suite: resubmit of a withdrawn entry is a caller error and files nothing` (`@affiant/core/testing`); the store
 contract's case (`@affiant/core/testing`) asserting that a withdrawal racing the approval that would fold the entry
 resolves as exactly one applies;
 the once-only sentence by the store contract's cases
@@ -555,8 +558,7 @@ every later decision is refused `decision-not-pending`. A rejected entry is term
 `expired` entry. Expiry, resubmission (DK-1: the successor is filed through
 the whole pipeline (GT-1) with `approvals: []`; its requirement is the policy chain's verdict for it — the same
 object when the policy is unchanged), execution (DK-1, AZ-5, AZ-7) and rehydration (DK-5) treat the entry as any
-other. A host that abandons an entry's subject withdraws it (DK-1); after a fold there is no withdrawal — the host
-reports the execution outcome instead. A level an implementation does not run — `ReferralRequired` at 0.3.0, and `MultiParty` in an implementation
+other. A host that abandons an entry's subject may withdraw it (DK-1); after a fold there is no withdrawal (DK-1). A level an implementation does not run — `ReferralRequired` at 0.3.0, and `MultiParty` in an implementation
 that has not reached 0.3.0 — files `pending` with the requirement recorded verbatim and `blocked: { code, … }`,
 refuses every decision on it (`decision-not-pending`, with the blocked code in the details), never executes it, and
 never degrades to a weaker requirement. Codes: `requirement-not-implemented` (with `level`), and `coverage-refused`
@@ -800,6 +802,10 @@ holding the fixtures back for work nobody has scheduled.
 
 ## Changelog
 
+- 2026-09-28 — **v0.4.0-pre (pre-release): the withdrawal transition.** A `pending` entry gains `withdrawn`:
+  `withdraw(entryId, reason)` records `decision.kind: "withdraw"`; no new refusal code; a withdrawn entry is not
+  resubmittable; the transition is defined for every requirement kind. From the first running host's cancelled subject
+  ([#48](https://github.com/Sakwala/affiant-protocol/issues/48)).
 - 2026-09-28 — **v0.3.0: the pre-release text finalised from the running host's evidence.** The first host ran the
   native `MultiParty` unit through its own routes and put it in production the same day (Orrery W-86, 2026-09-28): a
   quorum below the list (two of three) folds at the `required`-th approve and refuses the rest; approvals and the

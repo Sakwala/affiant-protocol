@@ -112,7 +112,7 @@ GT-2), `entry` (the entry this step acts on: a label from an earlier `as`, or, a
 | `file` | `toolName`, `operation`, `schema?`, `preparedFields?`, `args?`, `operationLabel?` | The host files a proposal it assembled — Sequence C's way in (GT-1). |
 | `decide` | `decision` | Approve, amend or reject (DK-1, AZ-1, AZ-2). `decision` is `{ kind: "approve" \| "reject", amendments?, reason? }`. |
 | `resubmit` | — | File an expired entry again (DK-1). A resubmission is a **new** entry, never a reopened one. |
-| `withdraw` | `reason` | The host withdraws a pending entry whose subject is gone (DK-1). `reason` is required. |
+| `withdraw` | `reason` | The host withdraws a pending entry whose subject is gone (DK-1). `reason` is required. Its result is the entry or an error, as `decide`. *(0.4.0)* |
 | `markExecuted` | `outcome`, `detail?` | The host's executor reports what it did (DK-1, AZ-5, AZ-7): `outcome` is `"executed"` or `"failed"`. The framework never performs the write. From 0.3.0, `detail` is `{ code, … } | null` — an object naming the host's own `code`, never a string a reader must parse. *(0.3.0)* |
 | `expireDue` | `limit`, `scope?` | The host-scheduled sweep (DK-3). Bounded and paged: `limit` is how many the sweep may take. |
 | `get` | — | Read the entry as it stands, with the deadline applied (DK-1). |

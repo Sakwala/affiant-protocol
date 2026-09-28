@@ -175,8 +175,8 @@ Approved, Rejected, Expired, Deferred`. So every `withdraw` fixture must fail or
 |---|---|---|
 | The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`) | DK-1 | `decide/withdraw-pending-multiparty`, `decide/withdraw-pending-reviewer-confirmation`, `decide/withdraw-blocked-allowed`, `decide/withdraw-after-fold-refused`, `decide/withdraw-expired-refused`, `decide/withdraw-twice-refused`, `decide/withdraw-wrong-tenant-not-found`, `decide/decide-after-withdraw-refused`, `decide/execution-on-withdrawn-refused`, `decide/withdraw-replay-returns-withdrawn` |
 
-**No run yet.** The run against this table is unit B-68o's, at the `v0.4` head, after B-68c and B-68r; this table states
-what must be true and carries no result until that unit publishes one — nothing here claims a run occurred.
+**No run yet.** This table states what must be true and carries no result until a run is published — nothing here
+claims a run occurred.
 
 ## The run
 
