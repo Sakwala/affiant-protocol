@@ -112,6 +112,7 @@ GT-2), `entry` (the entry this step acts on: a label from an earlier `as`, or, a
 | `file` | `toolName`, `operation`, `schema?`, `preparedFields?`, `args?`, `operationLabel?` | The host files a proposal it assembled — Sequence C's way in (GT-1). |
 | `decide` | `decision` | Approve, amend or reject (DK-1, AZ-1, AZ-2). `decision` is `{ kind: "approve" \| "reject", amendments?, reason? }`. |
 | `resubmit` | — | File an expired entry again (DK-1). A resubmission is a **new** entry, never a reopened one. |
+| `withdraw` | `reason` | The host withdraws a pending entry whose subject is gone (DK-1). `reason` is required. |
 | `markExecuted` | `outcome`, `detail?` | The host's executor reports what it did (DK-1, AZ-5, AZ-7): `outcome` is `"executed"` or `"failed"`. The framework never performs the write. From 0.3.0, `detail` is `{ code, … } | null` — an object naming the host's own `code`, never a string a reader must parse. *(0.3.0)* |
 | `expireDue` | `limit`, `scope?` | The host-scheduled sweep (DK-3). Bounded and paged: `limit` is how many the sweep may take. |
 | `get` | — | Read the entry as it stands, with the deadline applied (DK-1). |
@@ -154,7 +155,7 @@ about the rest, so an unrelated addition to a Docket row does not break thirty d
 
 ### 4.1 `expect.entry` (and `expect.superseded`)
 
-`status` (`pending` \| `approved` \| `rejected` \| `expired`), `execution` (`unexecuted` \| `executed` \| `failed` \|
+`status` (`pending` \| `approved` \| `rejected` \| `expired` \| `withdrawn`), `execution` (`unexecuted` \| `executed` \| `failed` \|
 `null`), `executionDetail`, `requirement`, `blocked`, `toolName`, `channel`, `tenantId`, `conversationId`,
 `attestation`, `decision`, `amendments`, `preservedAmendments`, `lineage`, `expiresAtOffsetMs`, `affidavit`,
 `amendedAffidavit`, `canonicalDiffersFromProposal`.
@@ -174,7 +175,9 @@ else — **from 0.3.0, `approvals` joins that list**:
 - **`decision` is `{ kind, reason }` only**, or `null` — and, from 0.3.0, `by?`: the principal whose act folded the row
   (required on every decided row in the wire shape; for a single reviewer, that reviewer). The attestation says who
   may be held to this; the decision says what they chose, why, and — from 0.3.0 — who. A Standing Order produces an
-  attestation and no decision record. *(`by` is 0.3.0)*
+  attestation and no decision record. *(`by` is 0.3.0)* From 0.4.0, `kind` also takes `"withdraw"`; `reason` and `by`
+  are matchable on a withdrawal exactly as on any other decision, and `status` accepts `withdrawn` as the same plain
+  string match every other status value is — neither needs a new matcher shape. *(`withdraw` is 0.4.0)*
 - **`expiresAtOffsetMs` is an offset**, in milliseconds, from the instant the entry was filed — a fixture cannot state an
   absolute deadline it did not compute (GT-4).
 - **`lineage`** is `{ supersedes?, supersededBy? }`, where the sentinel **`"@some"`** asserts only that the link is

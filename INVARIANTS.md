@@ -1,7 +1,7 @@
 # INVARIANTS — the rules every Affiant implementation enforces
 
-**Status: v0.3.0 text** (the v0.2 text of 2026-09-15, amended 2026-09-28 for
-native `MultiParty` — see the changelog), written against a working
+**Status: `0.4.0` text, pre-release** (`v0.3.0` is frozen; this text amends it, 2026-09-28, for the withdrawal
+transition — see the changelog), written against a working
 implementation. Every rule has a permanent id, a full
 statement in RFC 2119 words, the reason where it is not obvious, and a *Checked by* line naming the fixtures, suites or lints
 that fail when the rule is broken. The skeleton of 2026-09-04 carried the same ids as one-liners; nothing was renumbered.
@@ -461,8 +461,8 @@ amendment, supersession. **Retention never ages out an `approved` + `unexecuted`
 that a write was authorised and has not happened (AZ-5). **Retention removes a terminal row — other than an `approved` +
 `unexecuted` row, which the sentence before this one keeps however old — whose terminal instant is strictly before
 `olderThan`; a row whose terminal instant equals `olderThan` is kept.** A row's **terminal instant** is the instant it
-left `pending`: the decision instant for a row a person or a policy decided, and `expiresAt` for a row that expired,
-swept or not (DK-1 reads expiry as a state, so a row that nobody swept has the same terminal instant as one that was
+left `pending`: the decision instant for a row a person or a policy decided, `expiresAt` for a row that expired,
+swept or not, and the withdrawal's instant for a withdrawn row (DK-1 reads expiry as a state, so a row that nobody swept has the same terminal instant as one that was
 swept late). No field of an Affidavit is redacted by the framework; a host that must redact does so before filing and
 the tag records it.
 *Why (the boundary):* "older than" excludes the instant itself, and a boundary nobody wrote down is a boundary two
@@ -554,7 +554,8 @@ every later decision is refused `decision-not-pending`. A rejected entry is term
 `expired` entry. Expiry, resubmission (DK-1: the successor is filed through
 the whole pipeline (GT-1) with `approvals: []`; its requirement is the policy chain's verdict for it — the same
 object when the policy is unchanged), execution (DK-1, AZ-5, AZ-7) and rehydration (DK-5) treat the entry as any
-other. A level an implementation does not run — `ReferralRequired` at 0.3.0, and `MultiParty` in an implementation
+other. A host that abandons an entry's subject withdraws it (DK-1); after a fold there is no withdrawal — the host
+reports the execution outcome instead. A level an implementation does not run — `ReferralRequired` at 0.3.0, and `MultiParty` in an implementation
 that has not reached 0.3.0 — files `pending` with the requirement recorded verbatim and `blocked: { code, … }`,
 refuses every decision on it (`decision-not-pending`, with the blocked code in the details), never executes it, and
 never degrades to a weaker requirement. Codes: `requirement-not-implemented` (with `level`), and `coverage-refused`
