@@ -165,6 +165,19 @@ per-mechanism demonstration is the .NET catch-up driver's first run at `v0.3.0`.
 `decide/approve` and `decide/reject`, which now state `decision.by`, fail on `1.0.0-beta.3.1` for that fact alone —
 not part of this twenty-fixture list, and left for the .NET catch-up driver's parity manifest.
 
+## The list for `1.0.0-beta.3.1` at the v0.4 pre-release
+
+The shipped .NET packages at `1.0.0-beta.3.1` record no withdrawal transition: the driver has no `withdraw` step and
+`ReviewStatus` (`src/Affiant.Abstractions/Models/DocketEntry.cs`) has no `Withdrawn` — the enum today is `Pending,
+Approved, Rejected, Expired, Deferred`. So every `withdraw` fixture must fail or error on it.
+
+| Shipped defect | Rule | Fixtures that must fail on `1.0.0-beta.3.1` |
+|---|---|---|
+| The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`) | DK-1 | `decide/withdraw-pending-multiparty`, `decide/withdraw-pending-reviewer-confirmation`, `decide/withdraw-blocked-allowed`, `decide/withdraw-after-fold-refused`, `decide/withdraw-expired-refused`, `decide/withdraw-twice-refused`, `decide/withdraw-without-reason-refused`, `decide/withdraw-wrong-tenant-not-found`, `decide/decide-after-withdraw-refused`, `decide/execution-on-withdrawn-refused`, `decide/withdraw-replay-returns-withdrawn` |
+
+**No run yet.** The run against this table is unit B-68o's, at the `v0.4` head, after B-68c and B-68r; this table states
+what must be true and carries no result until that unit publishes one — nothing here claims a run occurred.
+
 ## The run
 
 - [`results/dotnet-1.0.0-beta.1/ORACLE-RUN.md`](results/dotnet-1.0.0-beta.1/ORACLE-RUN.md) — this list, run: every
