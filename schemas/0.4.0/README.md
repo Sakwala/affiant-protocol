@@ -125,7 +125,7 @@ This is the withdrawal transition's whole diff:
 | `status` gains `withdrawn` | `docket-entry.schema.json` `$defs.status` | DK-1 | `decide/withdraw-pending-multiparty`, `decide/withdraw-pending-reviewer-confirmation`, `decide/withdraw-blocked-allowed` |
 | `decisionRecord.kind` gains `withdraw` | `docket-entry.schema.json` `$defs.decisionRecord.kind` | DK-1 | `decide/withdraw-pending-multiparty` |
 | `decisionRecord.reason` required on a rejection **and a withdrawal** | `docket-entry.schema.json` `$defs.decisionRecord.reason` | DK-1 | `suite: a withdraw step without a reason is a caller error and records nothing` |
-| `decisionRecord.by` names the withdrawing principal | `docket-entry.schema.json` `$defs.decisionRecord.by` | DK-1 | `decide/withdraw-pending-multiparty` |
+| `decisionRecord.by` names the withdrawing principal, or the member a relay asserted for it (AZ-3) | `docket-entry.schema.json` `$defs.decisionRecord.by` | DK-1 | `decide/withdraw-pending-multiparty` |
 | `attestation` is `null` on a withdrawn row | `docket-entry.schema.json` `properties.attestation` | AZ-1, DK-1 | description only; the schema does not constrain it |
 | `outcome` gains `withdrawn` | `decision-result.schema.json` `properties.outcome` | DK-1 | `v0.4/decision-result-withdrawn` |
 | `docketTransition` names `withdrawn` among the states | `notification.schema.json` `$defs.docketTransition` | DK-1 | `v0.4/notification-transition-to-withdrawn` |

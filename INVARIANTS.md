@@ -389,8 +389,8 @@ superseded entry keeps its terminal state and records its successor; an entry th
 The host **withdraws** a `pending` entry whose subject it has abandoned — `withdraw(entryId, reason)` — under the same
 guarded compare-and-set: tenant scope first (`entry-not-found`), expiry second
 (`decision-expired`, nothing preserved), pending third (`decision-not-pending`, the row left as it stands and nothing
-changed). The row records `decision: { kind: "withdraw", reason, at, by }`: `reason` is required and `by` names who withdrew under the rule a decision's `by` follows (AZ-3: the
-member, or the member a relay asserted, never the relay); `attestation` stays `null` (nothing was agreed, AZ-1), `execution` stays `null`, and `decidedAt` is
+changed). The row records `decision: { kind: "withdraw", reason, at, by }`: `reason` is required and `by` names the withdrawing principal — the member a relay asserted for it (AZ-3) when one is asserted,
+otherwise the caller's own id; `attestation` stays `null` (nothing was agreed, AZ-1), `execution` stays `null`, and `decidedAt` is
 the withdrawal's instant; its approval records are kept as they stand. Every later decision on a withdrawn entry is
 refused exactly as on a folded row, and preserves nothing; an execution report on a withdrawn entry is refused as on any
 row that is not `approved` (`decision-not-pending`), and `execution` stays `null`. A withdrawn entry is not
@@ -802,7 +802,7 @@ holding the fixtures back for work nobody has scheduled.
 
 ## Changelog
 
-- 2026-09-28 — **v0.4.0: the withdrawal text finalised on the implementation's evidence.** No schema, vector or fixture change from `v0.4.0-pre.1` beyond the two `canonicalHash` values re-derived at `0.4.0` (#52); DK-1's withdrawal paragraph now says `by` follows the rule a decision's `by` follows (AZ-3) and names the two suite cases as the core's own. The TypeScript packages that carry this text (`@affiant/core@0.1.0-alpha.8`, `@affiant/store-postgres@0.1.0-alpha.6`, `@affiant/contract@0.1.0-alpha.4`) pin #52's merge commit `52e1a3d` and read 109 of 109 on Node, Bun and workerd, and a fresh consumer of the published packages withdrew a pending entry through `gate.withdraw` (2026-09-28). **No host has run the transition at this version** — the first host's cancel route (the host whose cancelled subject opened [#48](https://github.com/Sakwala/affiant-protocol/issues/48)) is queued, and its evidence, when it arrives, is the next text amendment, not a claim made here. The .NET catch-up is `Sakwala/affiant#153`.
+- 2026-09-28 — **v0.4.0: the withdrawal text finalised on the implementation's evidence.** No schema, vector or fixture change from `v0.4.0-pre.1` beyond the two `canonicalHash` values re-derived at `0.4.0` (#52); DK-1's withdrawal paragraph now says `by` names the withdrawing principal, or the member a relay asserted for it (AZ-3), and names the two suite cases as the core's own. The TypeScript packages that carry this text (`@affiant/core@0.1.0-alpha.8`, `@affiant/store-postgres@0.1.0-alpha.6`, `@affiant/contract@0.1.0-alpha.4`) pin #52's merge commit `52e1a3d` and read 109 of 109 on Node, Bun and workerd, and a fresh consumer of the published packages withdrew a pending entry through `gate.withdraw` (2026-09-28). **No host has run the transition at this version** — the first host's cancel route (the host whose cancelled subject opened [#48](https://github.com/Sakwala/affiant-protocol/issues/48)) is queued, and its evidence, when it arrives, is the next text amendment, not a claim made here. The .NET catch-up is `Sakwala/affiant#153`.
 - 2026-09-28 — **v0.4.0-pre (pre-release): the withdrawal transition.** A `pending` entry gains `withdrawn`:
   `withdraw(entryId, reason)` records `decision.kind: "withdraw"`; no new refusal code; a withdrawn entry is not
   resubmittable; the transition is defined for every requirement kind. From the first running host's cancelled subject
