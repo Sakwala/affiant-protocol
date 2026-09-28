@@ -1100,7 +1100,29 @@
       "schemas/0.4.0/telemetry-key.schema.json",
       "schemas/0.4.0/tool-result.schema.json"
     ],
-    "fixtures": []
+    "fixtures": [
+      {
+        "id": "v0.4/docket-entry-withdrawn",
+        "file": "v0.4/docket-entry-withdrawn.json",
+        "schema": "schemas/0.4.0/docket-entry.schema.json",
+        "kind": "positive",
+        "notes": "A withdrawn MultiParty row: one approval record kept (DK-4), decision.kind \"withdraw\" with reason and by, attestation null (nothing was agreed, AZ-1), execution null. Same tenant, entry and approver values as v0.3/docket-entry-multiparty-approved, decided withdraw instead of approve."
+      },
+      {
+        "id": "v0.4/decision-result-withdrawn",
+        "file": "v0.4/decision-result-withdrawn.json",
+        "schema": "schemas/0.4.0/decision-result.schema.json",
+        "kind": "positive",
+        "notes": "The withdrawn entry reported back: outcome \"withdrawn\", attestation null, execution null — a report, never an authorization (AZ-5)."
+      },
+      {
+        "id": "v0.4/notification-transition-to-withdrawn",
+        "file": "v0.4/notification-transition-to-withdrawn.json",
+        "schema": "schemas/0.4.0/notification.schema.json",
+        "kind": "positive",
+        "notes": "The docket-transition envelope for a withdrawal: from \"pending\" to \"withdrawn\", execution null — a withdrawal carries no execution outcome (DK-1)."
+      }
+    ]
   },
   "conformance": {
     "protocolVersion": "0.3.0",
