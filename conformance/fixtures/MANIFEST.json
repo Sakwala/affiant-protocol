@@ -1920,6 +1920,63 @@
         }
       },
       {
+        "id": "decide/withdraw-pending-multiparty",
+        "file": "decide/35-withdraw-pending-multiparty.json",
+        "rules": [
+          "DK-1",
+          "AZ-4"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
+        "id": "decide/withdraw-pending-reviewer-confirmation",
+        "file": "decide/36-withdraw-pending-reviewer-confirmation.json",
+        "rules": [
+          "DK-1",
+          "AZ-4"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
+        "id": "decide/withdraw-blocked-allowed",
+        "file": "decide/37-withdraw-blocked-allowed.json",
+        "rules": [
+          "DK-1",
+          "AZ-4"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
+        "id": "decide/withdraw-after-fold-refused",
+        "file": "decide/38-withdraw-after-fold-refused.json",
+        "rules": [
+          "DK-1"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
+        "id": "decide/withdraw-expired-refused",
+        "file": "decide/39-withdraw-expired-refused.json",
+        "rules": [
+          "DK-1"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
+        "id": "decide/withdraw-twice-refused",
+        "file": "decide/40-withdraw-twice-refused.json",
+        "rules": [
+          "DK-1"
+        ],
+        "set": "decide",
+        "oracle": null
+      },
+      {
         "id": "sequence-a/approve-round-trip",
         "file": "sequence-a/01-approve-round-trip.json",
         "rules": [
