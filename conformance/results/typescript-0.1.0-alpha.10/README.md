@@ -16,16 +16,18 @@ as their releases left them — [`../typescript-0.1.0-alpha.9/`](../typescript-0
 [`../typescript-0.1.0-alpha.0/`](../typescript-0.1.0-alpha.0/) — because a published run is evidence of what happened at
 one ref.
 
+Re-read 2026-09-29 after the repository's Workers toolchain moved to `@cloudflare/vitest-pool-workers` 0.22 (workerd `1.20260815.1`): the workerd runtime measures Unicode `17.0`, where the 2026-09-28 run measured `16.0`; the counts are unchanged.
+
 ## Provenance
 
 | | |
 |---|---|
 | Implementation | [`Sakwala/affiant-ts`](https://github.com/Sakwala/affiant-ts) — `@affiant/core` at **`0.1.0-alpha.10`**. When this run was produced, that version was not yet on npm; the publish follows the same day |
 | Adapter | `@affiant/adapter-ai-sdk` at **`0.1.0-alpha.0`**, against the `ai` package at the version the suites resolved, **`7.0.101`**. It is the one adapter this implementation ships and declares, so the `adapter` section runs once, against it ([`../../DRIVER.md`](../../DRIVER.md) §7) |
-| Runtimes | `node` (the run below), and the same suite under `bun` and inside `workerd` in that repository's CI, where the failing set must be identical on each (RT-1). Each runtime's `unicodeVersion` is measured by probe rather than declared — 17.0 on Node and Bun, 16.0 on workerd |
+| Runtimes | `node` (the run below), and the same suite under `bun` and inside `workerd` in that repository's CI, where the failing set must be identical on each (RT-1). Each runtime's `unicodeVersion` is measured by probe rather than declared — 17.0 on Node, Bun and workerd |
 | Driver | that repository's `packages/conformance-driver`; `src/adapter.ts` is the `adapter` section's runner and `src/adapters/ai-sdk.ts` the binding for this adapter |
 | Protocol ref the fixtures came from | **`v0.4.1`** — a text-only patch to `v0.4.0`: the fixtures are byte-identical, the tag being what that repository pins in `packages/contract/protocol/PIN` and vendors byte for byte, with the vendored copy checksummed against the tag on every run. The run published here before this one read at `v0.4.0` |
-| Run produced | 2026-09-28T19:58:47.912Z |
+| Run produced | 2026-09-29T02:19:55.816Z |
 
 ## Totals
 
