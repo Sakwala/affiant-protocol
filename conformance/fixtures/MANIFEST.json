@@ -1499,48 +1499,68 @@
       },
       {
         "id": "gate/draft-consumed-on-file",
-        "file": "34-draft-consumed-on-file.json",
+        "file": "gate/34-draft-consumed-on-file.json",
         "rules": [
           "GT-7",
           "PV-3"
         ],
         "set": "gate",
-        "oracle": null
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+        }
       },
       {
         "id": "gate/draft-left-by-a-refused-file",
-        "file": "35-draft-left-by-a-refused-file.json",
+        "file": "gate/35-draft-left-by-a-refused-file.json",
         "rules": [
           "GT-7",
           "PV-3",
           "PV-2"
         ],
         "set": "gate",
-        "oracle": null
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+        }
       },
       {
         "id": "gate/draft-never-files",
-        "file": "36-draft-never-files.json",
+        "file": "gate/36-draft-never-files.json",
         "rules": [
           "GT-7",
           "PV-3",
           "PV-2"
         ],
         "set": "gate",
-        "oracle": null
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+        }
       },
       {
         "id": "gate/draft-without-a-port-refused",
-        "file": "37-draft-without-a-port-refused.json",
+        "file": "gate/37-draft-without-a-port-refused.json",
         "rules": [
           "GT-7"
         ],
         "set": "gate",
-        "oracle": null
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+        }
       },
       {
         "id": "gate/file-without-a-port-grades-this-turn",
-        "file": "38-file-without-a-port-grades-this-turn.json",
+        "file": "gate/38-file-without-a-port-grades-this-turn.json",
         "rules": [
           "GT-7",
           "PV-3"

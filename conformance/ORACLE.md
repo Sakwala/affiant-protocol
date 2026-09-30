@@ -182,6 +182,19 @@ driver's message. Two — `decide/withdraw-pending-multiparty` and `decide/withd
 earlier, in the same `MultiParty`-requirement-object fixture-loader crash the v0.3 pre-release run recorded, before
 the `withdraw` step is ever reached.
 
+## The list for `1.0.0-beta.3.1` at the v0.5 pre-release
+
+The shipped .NET packages at `1.0.0-beta.3.1` have no conversation draft: the driver has no `draft` step, the gate has
+no draft port, and the `utterance-span` binding has no `MessageId`. So every `draft` fixture must fail or error on it.
+`gate/file-without-a-port-grades-this-turn` is not on the list: a file with no port wired grades from this turn alone,
+which is what the release does, and it passes.
+
+| Shipped defect | Rule | Fixtures that must fail on `1.0.0-beta.3.1` |
+|---|---|---|
+| The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId` | GT-7 | `gate/draft-carries-a-conversation-tag-across-turns`, `gate/draft-changed-value-does-not-carry`, `gate/draft-later-hit-replaces-the-earlier`, `gate/draft-inferred-does-not-carry`, `gate/draft-expired-does-not-carry`, `gate/draft-other-conversation-does-not-carry`, `gate/draft-consumed-on-file`, `gate/draft-left-by-a-refused-file`, `gate/draft-never-files`, `gate/draft-without-a-port-refused` |
+
+This list has not yet been run.
+
 ## The run
 
 - [`results/dotnet-1.0.0-beta.1/ORACLE-RUN.md`](results/dotnet-1.0.0-beta.1/ORACLE-RUN.md) — this list, run: every

@@ -14,10 +14,10 @@ There are four schema sets here, side by side, and they describe different thing
 | [`schemas/0.4.0/`](0.4.0/) | `0.4.0` | **The withdrawal transition.** A full copy of `0.3.0/` with `status` and the decision kind widened; pre-release — see [`0.4.0/README.md`](0.4.0/README.md#what-changed-from-030). |
 | [`schemas/0.5.0/`](0.5.0/) | `0.5.0` | **The conversation draft.** A full copy of `0.4.0/` with `messageId` on the utterance-span binding and a `draft` record; pre-release — see [`0.5.0/README.md`](0.5.0/README.md#what-changed-from-040). |
 
-The seed, v0.1 and 0.3.0 are **not compatible** with each other, on purpose, and all four stay: the seed is what an
+The seed, v0.1 and 0.3.0 are **not compatible** with each other, on purpose, and all five stay: the seed is what an
 adopter of the shipped .NET packages is looking at right now, v0.1 is what both implementations were first brought to,
 0.3.0 is where the native `MultiParty` design lands ahead of `v0.3.0` being tagged, and every `0.3.0` document remains
-valid against `0.4.0`. Each has its own fixture set in
+valid against `0.5.0`. Each has its own fixture set in
 [`../conformance/fixtures/`](../conformance/fixtures/) (`wire/` for the seed, `v0.1/` for v0.1) and all are
 checked by the same lint on every push.
 

@@ -56,6 +56,7 @@
                 "$ref": "https://affiant.dev/schemas/0.5.0/provenance-tag.schema.json"
               },
               {
+                "type": "object",
                 "properties": {
                   "source": {
                     "const": "Conversation"
@@ -71,9 +72,13 @@
                         "const": "utterance-span"
                       },
                       "ref": {
+                        "type": "object",
                         "required": [
                           "messageId"
-                        ]
+                        ],
+                        "properties": {
+                          "messageId": true
+                        }
                       }
                     }
                   }
