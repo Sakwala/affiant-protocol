@@ -1528,6 +1528,38 @@
         }
       },
       {
+        "id": "gate/draft-carries-a-conversation-tag-across-turns",
+        "file": "gate/28-draft-carries-a-conversation-tag-across-turns.json",
+        "rules": [
+          "GT-7",
+          "PV-3",
+          "PV-2"
+        ],
+        "set": "gate",
+        "oracle": null
+      },
+      {
+        "id": "gate/draft-changed-value-does-not-carry",
+        "file": "gate/29-draft-changed-value-does-not-carry.json",
+        "rules": [
+          "GT-7",
+          "PV-3"
+        ],
+        "set": "gate",
+        "oracle": null
+      },
+      {
+        "id": "gate/draft-later-hit-replaces-the-earlier",
+        "file": "gate/30-draft-later-hit-replaces-the-earlier.json",
+        "rules": [
+          "GT-7",
+          "PV-3",
+          "PV-2"
+        ],
+        "set": "gate",
+        "oracle": null
+      },
+      {
         "id": "decide/approve",
         "file": "decide/01-approve.json",
         "rules": [
