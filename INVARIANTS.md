@@ -230,15 +230,15 @@ and `hash` = SHA-256 as 64 lowercase hexadecimal characters over the UTF-8 bytes
 that span, which is what was there when the value was read. No hit, no binding.
 
 *Across turns (v0.5.0).* Where the gate holds a draft (GT-7), the finder gains one clause, and for each proposed field the
-order is: (i) the finder hits in this turn's utterance → `Conversation`, bound to this turn's span, as above, and the
-draft's field of that name is replaced by it — the newest statement wins; (ii) no hit, the draft holds the field, and the
+order is: (i) the finder hits in this turn's utterance → `Conversation`, bound to this turn's span, as above (what the draft holds
+afterwards is GT-7's, written by `draft` only); (ii) no hit, the draft holds the field, and the
 proposed value text equals the drafted value text under the finder's own comparison (ordinal, ASCII case folded, nothing
 else) → the drafted tag's source and binding carry unchanged, and the tag is minted this turn with this turn's port
 confidence (PV-1's clamp), because confidence is the port's opinion of the value now and the binding is the evidence of
 where it was said; (iii) otherwise → `Inferred`, unbound, as above. The finder still reads one utterance: a draft is read,
 never searched, so "earlier turns are not searched" stands, and a value the model changed is a different value text and
 carries nothing. The comparison is the finder's own because the earlier hit was found under it, so "the same text" means
-the same thing on both turns. The draft holds one tag per field: the carried tag is the inference tag of the filed field's
+the same thing on both turns. The draft holds one tag per field, the newest statement winning: the carried tag is the inference tag of the filed field's
 chain as a hit on this turn would be, and the tags a later hit replaced are not in the chain, which is the history of tags
 on that Affidavit (PV-1).
 
@@ -262,7 +262,7 @@ beyond ASCII. *Checked by:* `gate/inference-conversation-and-inferred`,
 `gate/inference-port-span-fails-the-boundary`, `gate/inference-case-folds-and-the-digest-is-the-utterances`,
 `gate/inference-empty-value-is-nothing-reported`, `gate/draft-carries-a-conversation-tag-across-turns`,
 `gate/draft-changed-value-does-not-carry`, `gate/draft-later-hit-replaces-the-earlier`,
-`gate/draft-inferred-does-not-carry`, `sequence-a/picker-external-binding`,
+`gate/draft-merges-by-field-name`, `gate/draft-inferred-does-not-carry`, `sequence-a/picker-external-binding`,
 `sequence-a/late-amendments-preserved`; `suite: gate types (type-level:
 mintInference cannot name UserStated)`. *Source:*
 [`Sakwala/affiant#123`](https://github.com/Sakwala/affiant/issues/123); `Sakwala/affiant`
@@ -384,13 +384,23 @@ enforce. *Checked by:* `sequence-a/approve-round-trip`; `suite: gate/wrap never 
 **MUST.** The gate has a second entry point, `draft(proposal, ctx)`. It runs GT-1's first four steps — the explicit turn
 context, the deterministic interceptors, the one structured inference against the unmodified turn, the merge — exactly as
 `file` does, and then, instead of projection, substance refusal, policy and filing, it writes the **graded fields** into
-**the draft** and returns them. The graded fields are exactly those whose tag in force after the merge is `Conversation`
+**the draft** and returns the record it wrote (the shape of the record below). The graded fields are exactly those whose tag in force after the merge is `Conversation`
 with an `utterance-span` binding; a field tagged anything else is not held (an `External` or `Computed` tag is minted
 afresh by its interceptor on every call, an `Inferred` or `Default` tag has no binding to carry, and a `UserStated` tag
 exists only after filing). `draft` never projects, never runs policy and never files. The draft is held by the host
 through a host-supplied **draft port** — `get`, `put` and `consume` — and its key is the tenant, the conversation id and
-the tool name, so that two conversations never observe each other's draft (GT-2). On a later turn's `file`, the finder
-reads the draft as PV-3's *Across turns* paragraph states.
+the tool name, so that two conversations never observe each other's draft (GT-2). The draft is read by `draft` and by a `file`
+of a proposal that runs the inference steps — the wrapped-tool path's filing included — as PV-3's *Across turns* paragraph
+states; a resubmission (GT-4) and a proposal entering after the merge with prepared fields never read or consume it.
+
+**Writing.** Only `draft` writes, and it writes the whole record the gate computed: the existing fields, with every field
+the finder hit this turn replaced or added, merged by field name. A field the port reported this turn without a hit removes
+nothing — a changed value is not a statement, and the draft is the record of what the person stated. `file` writes
+nothing: it consumes the draft on filing or leaves it. `draft` takes no prepared fields: a call that supplies them is a
+caller error, not a refusal — a draft filled by anything but the finder would be a host asserting `Conversation`
+(`suite: a draft call with prepared fields is a caller error and holds nothing`). The draft never adds a field to an
+Affidavit: AF-1's field list is the proposal's, so a drafted field the proposal does not name stays in the draft and is
+absent from the Affidavit.
 
 **No port wired.** `file` carries nothing from any earlier turn and grades every field from this turn's utterance alone —
 the reading of every rule before this one — and `draft` is refused `wireup-invalid` (CV-1): a host that calls `draft` and
@@ -398,7 +408,7 @@ silently gets nothing has graded from a proxy in a new form.
 
 **Lifecycle.** A `file` that files an entry — created, or replayed under GT-4 — consumes the draft. A `file` refused
 before filing (`substance-refused`, `coverage-refused`, `wireup-invalid`) leaves it. The host bounds the draft by a
-time-to-live and by the conversation, and the port MAY answer "no draft" at any time; the cost is a downgrade to
+time-to-live, counted from the instant of the write, and by the conversation, and the port MAY answer "no draft" at any time; the cost is a downgrade to
 `Inferred`, never a wrong tag.
 
 **The record.** The draft's shape is `schemas/0.5.0/draft.schema.json`: `protocolVersion`, `tenantId`, `conversationId`,
@@ -417,7 +427,8 @@ running the same steps on the earlier turn. A draft is working state, not a reco
 *Checked by:* `gate/draft-carries-a-conversation-tag-across-turns`, `gate/draft-changed-value-does-not-carry`,
 `gate/draft-later-hit-replaces-the-earlier`, `gate/draft-inferred-does-not-carry`, `gate/draft-expired-does-not-carry`,
 `gate/draft-other-conversation-does-not-carry`, `gate/draft-consumed-on-file`, `gate/draft-left-by-a-refused-file`,
-`gate/draft-never-files`, `gate/draft-without-a-port-refused`, `gate/file-without-a-port-grades-this-turn`; the schema
+`gate/draft-never-files`, `gate/draft-without-a-port-refused`, `gate/file-without-a-port-grades-this-turn`,
+`gate/draft-does-not-add-a-field`, `gate/draft-other-tool-does-not-carry`, `gate/draft-merges-by-field-name`; the schema
 documents `v0.5/draft-record`, `v0.5/draft-record-inferred-refused` and `v0.5/affidavit-carried-binding`.
 *Source:* a running host's multi-turn capture, 2026-09-30.
 

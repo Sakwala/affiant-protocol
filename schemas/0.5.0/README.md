@@ -125,7 +125,7 @@ This is the conversation draft's whole diff:
 | The `draft` record: the fields whose `Conversation` tag and `utterance-span` binding an earlier turn established, keyed by tenant, conversation and tool | `draft.schema.json` (new) | GT-7 | `v0.5/draft-record`, `v0.5/draft-record-inferred-refused` |
 
 Every `0.4.0` document is a valid `0.5.0` document, and no canonical hash moves: `messageId` is optional, and an
-absent key is omitted from the canonical form (SR-1). `common.schema.json` changed its `$id` only.
+absent key is omitted from the canonical form (SR-1). `common.schema.json` changed its `$id` and two descriptions that name the directory's own version (the top-level `description` and `$defs.protocolVersion`'s); nothing else.
 
 ## What changed from 0.3.0
 
