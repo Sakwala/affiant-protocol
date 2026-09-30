@@ -116,8 +116,6 @@ GT-2), `entry` (the entry this step acts on: a label from an earlier `as`, or, a
 | `wrap-execute` | `tool`, `args` | A model calls a wrapped tool — Sequence A's way in (GT-6, CV-4). The fixture describes the tool; the driver supplies an `execute` that **fails if the gate ever calls it**, which makes GT-6 a tripwire on every such fixture. `args` is the field-name → value map the model passed. |
 | `file` | `toolName`, `operation`, `schema?`, `preparedFields?`, `args?`, `operationLabel?` | The host files a proposal it assembled — Sequence C's way in (GT-1). |
 | `draft` | `toolName`, `operation`, `schema?`, `args?` | The host drafts a proposal: the context, the interceptors, the inference and the merge run and the graded fields are held in the draft under the step's tenant, conversation and tool; nothing files (GT-7). A `draft` takes no prepared fields and no card label; a `draft` supplying prepared fields is a caller error, not a refusal (GT-7). *(0.5.0)* |
-
-`args`, on a `file` or a `draft` step, is the proposal's arguments as given: it is part of GT-4's id-material (the tool, the operation and the arguments), so two `file` steps that differ only in `args` file two entries and two that agree replay one.
 | `decide` | `decision` | Approve, amend or reject (DK-1, AZ-1, AZ-2). `decision` is `{ kind: "approve" \| "reject", amendments?, reason? }`. |
 | `resubmit` | — | File an expired entry again (DK-1). A resubmission is a **new** entry, never a reopened one. |
 | `withdraw` | `reason` | The host withdraws a pending entry whose subject is gone (DK-1). `reason` is required. Its result is the entry or an error, as `decide`. *(0.4.0)* |
@@ -125,6 +123,8 @@ GT-2), `entry` (the entry this step acts on: a label from an earlier `as`, or, a
 | `expireDue` | `limit`, `scope?` | The host-scheduled sweep (DK-3). Bounded and paged: `limit` is how many the sweep may take. |
 | `get` | — | Read the entry as it stands, with the deadline applied (DK-1). |
 | `rehydrate` | `page`, `scope?` | One page of what a reconnecting client needs (DK-5). `page` is `{ limit, cursor? }`. |
+
+`args`, on a `file` step, is the proposal's arguments as given: it is part of GT-4's id-material (the tool, the operation and the arguments).
 
 `tool` (on `wrap-execute`) is `{ name, description?, entityType, entityId?, writeCapable?, executedBy?: "host" |
 "provider", hostedMcp?, omitExecute?, operationLabel?, fields }`, where `entityId` `null` (or absent) means a
