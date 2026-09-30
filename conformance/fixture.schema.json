@@ -401,7 +401,7 @@
     },
 
     "ctx": {
-      "description": "The turn every step runs in (GT-2): explicit in every property, nothing ambient. A step may override the principal, the tenant or the conversation.",
+      "description": "The turn every step runs in (GT-2): explicit in every property, nothing ambient. A step may override the principal, the tenant, the conversation or the turn (GT-7).",
       "type": "object",
       "additionalProperties": false,
       "required": ["tenantId", "conversationId", "channel"],
