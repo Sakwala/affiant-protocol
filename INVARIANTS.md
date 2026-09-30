@@ -407,8 +407,8 @@ absent from the Affidavit.
 the reading of every rule before this one — and `draft` is refused `wireup-invalid` (CV-1): a host that calls `draft` and
 silently gets nothing has graded from a proxy in a new form.
 
-**Lifecycle.** A `file` that ran the inference steps and files an entry — created, or replayed under GT-4 — consumes the draft. A `file` refused
-before filing (`substance-refused`, `coverage-refused`, `wireup-invalid`) leaves it. The host bounds the draft by a
+**Lifecycle.** A `file` that ran the inference steps and files an entry — created, or replayed under GT-4 — consumes the draft. A `file` that does not
+file leaves it; a filing that a coverage refusal marks `blocked` (CV-4, AZ-4) files, and consumes. The host bounds the draft by a
 time-to-live, counted from the instant of the write, and by the conversation, and the port MAY answer "no draft" at any time; the cost is a downgrade to
 `Inferred`, never a wrong tag.
 
