@@ -84,6 +84,7 @@ state that invalid verdict. *(0.3.0)* |
 | `entities` | no | What the host's entities hold **now**, keyed `"<entityType>/<entityId>"` (AF-3). The projection port reads this table, so a fixture states the world rather than the answer: an update names an entity, and the previous values are whatever the table says it holds. An entity not in the table **does not exist**, and the port answers "nothing to project" — which is not the same as "every field was empty". |
 | `uncovered` | no | Tools the host declared it cannot intercept (CV-4): `{ tool, category: "no-execute" \| "provider-executed" \| "hosted-mcp" }`. |
 | `sessions` | no | Whether a rehydration surface is wired (DK-5). Defaults to `true`. |
+| `draft` | no | `{ ttlMs }` — the reference in-memory draft port and the time-to-live of what it holds (GT-7). Absent, no port is wired: `file` carries nothing from an earlier turn and a `draft` step is refused `wireup-invalid`. *(0.5.0)* |
 
 ### 2.2 `given.ctx`
 
@@ -95,21 +96,26 @@ A principal is either `{ "kind": "member", "id": … }` — a human-verified ses
 "relay"?: { channelIdentity, messageId }, "assertedMember"?: … }` — a machine caller, which may *assert* a person's
 identity without authenticating them. An assertion never upgrades a `service` to a `member` (AZ-3).
 
-## 3. `given.step` and `given.prior[]` — the eight step kinds
+A step may override the turn — `turn: { utterance, messageId }`, both required — and the port's report — `inference`, the
+same shape as `given.gate.inference`, or `null` — so that a multi-turn fixture states each turn's own utterance, message id
+and inference report (GT-7). *(0.5.0)*
 
-The gate's whole surface is reachable from these eight, so a fixture about a decision and a fixture about a filing differ
+## 3. `given.step` and `given.prior[]` — the nine step kinds
+
+The gate's whole surface is reachable from these nine, so a fixture about a decision and a fixture about a filing differ
 in their **steps**, not in their format.
 
 Every step may carry: `kind` (required), `as` (a label later steps and expectations name this step's entry by), `at`
 (moves the clock before the step runs), `principal` (overrides the fixture's for this step; `null` is unresolved),
 `tenantId` (the tenant this step is performed from, when it is not the fixture's — AZ-2), `conversationId` (likewise,
 GT-2), `entry` (the entry this step acts on: a label from an earlier `as`, or, absent, **the last entry filed**), and
-`refusal` (the refusal code this step is expected to produce, or `null` for none).
+`refusal` (the refusal code this step is expected to produce, or `null` for none), and, from 0.5.0, `turn` and `inference` (§2.2).
 
 | `kind` | Own keys | What it does |
 |---|---|---|
 | `wrap-execute` | `tool`, `args` | A model calls a wrapped tool — Sequence A's way in (GT-6, CV-4). The fixture describes the tool; the driver supplies an `execute` that **fails if the gate ever calls it**, which makes GT-6 a tripwire on every such fixture. `args` is the field-name → value map the model passed. |
 | `file` | `toolName`, `operation`, `schema?`, `preparedFields?`, `args?`, `operationLabel?` | The host files a proposal it assembled — Sequence C's way in (GT-1). |
+| `draft` | `toolName`, `operation`, `schema?`, `preparedFields?`, `args?` | The host drafts a proposal: the context, the interceptors, the inference and the merge run and the graded fields are held in the draft under the step's tenant, conversation and tool; nothing files (GT-7). *(0.5.0)* |
 | `decide` | `decision` | Approve, amend or reject (DK-1, AZ-1, AZ-2). `decision` is `{ kind: "approve" \| "reject", amendments?, reason? }`. |
 | `resubmit` | — | File an expired entry again (DK-1). A resubmission is a **new** entry, never a reopened one. |
 | `withdraw` | `reason` | The host withdraws a pending entry whose subject is gone (DK-1). `reason` is required. Its result is the entry or an error, as `decide`. *(0.4.0)* |
@@ -151,6 +157,7 @@ about the rest, so an unrelated addition to a Docket row does not break thirty d
 | `expired` | What an `expireDue` step reported: `{ count?, more? }` (DK-3). |
 | `page` | What a `rehydrate` step returned: `{ count?, more?, statuses? }` (DK-5). |
 | `found` | Whether the row a `get` step read was found. |
+| `draft` | What the draft holds for the step's tenant, conversation and tool afterwards (GT-7): `null` for no draft held, else `{ fields: [ … ] }` with the field projection of §4.1 (a listed field is matched exactly as an Affidavit's field is; the list is asserted whole, in order). *(0.5.0)* |
 | `canonicalHash` | The row's canonical hash as 64 lowercase hex characters (SR-1). §4.3. |
 
 ### 4.1 `expect.entry` (and `expect.superseded`)
@@ -211,7 +218,9 @@ displaced, **newest first** — nothing is ever dropped from a chain.
 code units of `given.ctx.utterance`**, and `hash` the SHA-256 of the UTF-8 bytes of the **utterance's own substring** at
 that span, as 64 lowercase hexadecimal characters. A fixture states it to pin *which* occurrence the finder found and that
 the digest is taken over the utterance rather than over the value the port reported; stating nothing asserts nothing about
-the span.
+the span. From 0.5.0 it also takes `messageId`, the message whose utterance the span indexes (PV-2, GT-7): absent, it
+asserts nothing about the message — a span on the step's own turn carries none; stated, it is the id of the earlier turn's
+message a carried binding names.
 
 `amendedAffidavit: null` is itself a statement: "no amendment has been accepted" (AF-4).
 
