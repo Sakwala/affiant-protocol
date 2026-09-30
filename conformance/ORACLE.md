@@ -191,7 +191,7 @@ which is what the release does, and it passes.
 
 | Shipped defect | Rule | Fixtures that must fail on `1.0.0-beta.3.1` |
 |---|---|---|
-| The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId` | GT-7 | `gate/draft-carries-a-conversation-tag-across-turns`, `gate/draft-changed-value-does-not-carry`, `gate/draft-later-hit-replaces-the-earlier`, `gate/draft-inferred-does-not-carry`, `gate/draft-expired-does-not-carry`, `gate/draft-other-conversation-does-not-carry`, `gate/draft-consumed-on-file`, `gate/draft-left-by-a-refused-file`, `gate/draft-never-files`, `gate/draft-without-a-port-refused`, `gate/draft-merges-by-field-name`, `gate/draft-does-not-add-a-field`, `gate/draft-other-tool-does-not-carry`, `gate/draft-carries-across-entities` |
+| The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId` | GT-7 | `gate/draft-carries-a-conversation-tag-across-turns`, `gate/draft-changed-value-does-not-carry`, `gate/draft-later-hit-replaces-the-earlier`, `gate/draft-inferred-does-not-carry`, `gate/draft-expired-does-not-carry`, `gate/draft-other-conversation-does-not-carry`, `gate/draft-consumed-on-file`, `gate/draft-left-by-a-refused-file`, `gate/draft-never-files`, `gate/draft-without-a-port-refused`, `gate/draft-merges-by-field-name`, `gate/draft-does-not-add-a-field`, `gate/draft-other-tool-does-not-carry`, `gate/draft-carries-across-entities`, `gate/draft-from-a-question-turn` |
 
 This list has not yet been run.
 
