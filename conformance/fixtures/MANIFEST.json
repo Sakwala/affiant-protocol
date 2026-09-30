@@ -1528,6 +1528,37 @@
         }
       },
       {
+        "id": "gate/draft-inferred-does-not-carry",
+        "file": "gate/31-draft-inferred-does-not-carry.json",
+        "rules": [
+          "GT-7",
+          "PV-3"
+        ],
+        "set": "gate",
+        "oracle": null
+      },
+      {
+        "id": "gate/draft-expired-does-not-carry",
+        "file": "gate/32-draft-expired-does-not-carry.json",
+        "rules": [
+          "GT-7",
+          "PV-3"
+        ],
+        "set": "gate",
+        "oracle": null
+      },
+      {
+        "id": "gate/draft-other-conversation-does-not-carry",
+        "file": "gate/33-draft-other-conversation-does-not-carry.json",
+        "rules": [
+          "GT-7",
+          "PV-3",
+          "GT-2"
+        ],
+        "set": "gate",
+        "oracle": null
+      },
+      {
         "id": "gate/draft-carries-a-conversation-tag-across-turns",
         "file": "gate/28-draft-carries-a-conversation-tag-across-turns.json",
         "rules": [
