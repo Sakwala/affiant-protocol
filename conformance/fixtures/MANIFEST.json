@@ -1154,7 +1154,51 @@
       "schemas/0.5.0/telemetry-key.schema.json",
       "schemas/0.5.0/tool-result.schema.json"
     ],
-    "fixtures": []
+    "fixtures": [
+      {
+        "id": "v0.5/draft-record",
+        "file": "v0.5/draft-record.json",
+        "schema": "schemas/0.5.0/draft.schema.json",
+        "kind": "positive",
+        "notes": "A draft after turn 1 of a capture: the amount and the payee, each a Conversation tag with an utterance-span binding whose messageId names the message it was read from (GT-7). Same values and spans as gate/draft-never-files."
+      },
+      {
+        "id": "v0.5/draft-record-inferred-refused",
+        "file": "v0.5/draft-record-inferred-refused.json",
+        "schema": "schemas/0.5.0/draft.schema.json",
+        "kind": "negative",
+        "derivedFrom": "Mutation of v0.5/draft-record.json",
+        "notes": "One tag has source \"Inferred\" and no binding. The draft holds only Conversation tags bound to an utterance-span that names its message (GT-7), so the schema refuses it."
+      },
+      {
+        "id": "v0.5/affidavit-carried-binding",
+        "file": "v0.5/affidavit-carried-binding.json",
+        "schema": "schemas/0.5.0/affidavit.schema.json",
+        "kind": "positive",
+        "notes": "A create Affidavit filed on turn 3 whose amount and payee are Conversation fields carried from turn 1: the utterance-span binding names its message by messageId (PV-2, GT-7); the currency is Inferred and unbound. Same shape as the result of gate/draft-carries-a-conversation-tag-across-turns."
+      },
+      {
+        "id": "v0.4/docket-entry-withdrawn",
+        "file": "v0.4/docket-entry-withdrawn.json",
+        "schema": "schemas/0.5.0/docket-entry.schema.json",
+        "kind": "positive",
+        "notes": "unchanged at 0.5.0; listed so the section covers the schema"
+      },
+      {
+        "id": "v0.4/decision-result-withdrawn",
+        "file": "v0.4/decision-result-withdrawn.json",
+        "schema": "schemas/0.5.0/decision-result.schema.json",
+        "kind": "positive",
+        "notes": "unchanged at 0.5.0; listed so the section covers the schema"
+      },
+      {
+        "id": "v0.4/notification-transition-to-withdrawn",
+        "file": "v0.4/notification-transition-to-withdrawn.json",
+        "schema": "schemas/0.5.0/notification.schema.json",
+        "kind": "positive",
+        "notes": "unchanged at 0.5.0; listed so the section covers the schema"
+      }
+    ]
   },
   "conformance": {
     "protocolVersion": "0.4.0",
@@ -1449,6 +1493,57 @@
           "PV-3",
           "AF-1",
           "GT-3"
+        ],
+        "set": "gate",
+        "oracle": null
+      },
+      {
+        "id": "gate/draft-consumed-on-file",
+        "file": "34-draft-consumed-on-file.json",
+        "rules": [
+          "GT-7",
+          "PV-3"
+        ],
+        "set": "gate",
+        "oracle": null
+      },
+      {
+        "id": "gate/draft-left-by-a-refused-file",
+        "file": "35-draft-left-by-a-refused-file.json",
+        "rules": [
+          "GT-7",
+          "PV-3",
+          "PV-2"
+        ],
+        "set": "gate",
+        "oracle": null
+      },
+      {
+        "id": "gate/draft-never-files",
+        "file": "36-draft-never-files.json",
+        "rules": [
+          "GT-7",
+          "PV-3",
+          "PV-2"
+        ],
+        "set": "gate",
+        "oracle": null
+      },
+      {
+        "id": "gate/draft-without-a-port-refused",
+        "file": "37-draft-without-a-port-refused.json",
+        "rules": [
+          "GT-7"
+        ],
+        "set": "gate",
+        "oracle": null
+      },
+      {
+        "id": "gate/file-without-a-port-grades-this-turn",
+        "file": "38-file-without-a-port-grades-this-turn.json",
+        "rules": [
+          "GT-7",
+          "PV-3"
         ],
         "set": "gate",
         "oracle": null
