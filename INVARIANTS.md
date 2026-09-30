@@ -148,7 +148,7 @@ executors.
 error — carried on a single discriminator property (`$type` in the shipped .NET wire and the seed; spelled `kind` once the v0.1 schemas
 land, with the rename recorded in the schema changelog). A consumer switches on the discriminator, never on the presence of fields.
 A gated write tool's result is always the proposal kind (GT-6); a refusal the gate raises is the error kind with its refusal
-code. A refusal's `message` names the rule and the path it failed at and never a proposed value, an argument or the utterance: the message is on the wire and reaches the model's context and the person. *Checked by:* `suite: gate types (type-level: three arms and no fourth)`; `suite: coverage (a read tool passes
+code. A refusal's `message` names the rule and, where it has one, the path it failed at, and never a proposed value, an argument's value or the utterance: the message is on the wire and reaches the model's context and the person. *Checked by:* `suite: gate types (type-level: three arms and no fourth)`; `suite: coverage (a read tool passes
 through)`; the v0.1 `tool-result` schema once it lands. *Source:* `ToolEnvelope` in
 `Affiant.Abstractions`.
 
@@ -409,7 +409,7 @@ silently gets nothing has graded from a proxy in a new form.
 
 **Where a filing turn's values come from.** The values the gate grades are the host's inference port's report over the turn
 context (GT-1); a tool call's arguments are id-material (GT-4) and never a graded value (GT-6). A host's port MAY consult the
-conversation's earlier turns, or the draft it holds, when the host hands them to it explicitly at the call (GT-2) — the person's own words, never the
+conversation's earlier turns, or the draft the host holds, when the host hands them to it explicitly at the call (GT-2) — the person's own words, never the
 model's, the utterance itself unmodified. Nothing a port read raises a grade: its report is verified as PV-3 states, so a
 value stated on an earlier turn is `Conversation` only through the draft, and a port that misreads the window produces
 `Inferred`, never a wrong tag.
@@ -436,7 +436,7 @@ which reads one utterance, found neither value there — so the Evidence Card's 
 could not be shown of something that was. The tags to carry are tags only the pipeline can mint: a draft any code but the
 finder could fill would be a host asserting `Conversation`, the class PV-3 closed, so the draft is filled by `draft`
 running the same steps on the earlier turn. A draft is working state, not a record (RT-3).
-*Checked by:* `gate/draft-carries-a-conversation-tag-across-turns`, `gate/draft-changed-value-does-not-carry`,
+*Checked by:* `gate/draft-from-a-question-turn`, `gate/draft-carries-across-entities`, `gate/draft-carries-a-conversation-tag-across-turns`, `gate/draft-changed-value-does-not-carry`,
 `gate/draft-later-hit-replaces-the-earlier`, `gate/draft-inferred-does-not-carry`, `gate/draft-expired-does-not-carry`,
 `gate/draft-other-conversation-does-not-carry`, `gate/draft-consumed-on-file`, `gate/draft-left-by-a-refused-file`,
 `gate/draft-never-files`, `gate/draft-without-a-port-refused`, `gate/file-without-a-port-grades-this-turn`,

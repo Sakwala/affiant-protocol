@@ -5,7 +5,7 @@
     "PV-3",
     "PV-2"
   ],
-  "title": "A question's literal words draft and carry: the amount and the payee a person asked about on turn 1 (the question mark after 15000 is a boundary) are drafted there, and when the model files on turn 3 they are bound to turn 1 spans that name msg-1, while the currency stated on the filing turn is bound to this turn without a message id.",
+  "title": "A question's literal words draft and carry: the amount and the payee a person asked about on turn 1 (the question mark after 15000 is a boundary) are drafted there, and when the model files on turn 3 they are bound to turn 1 spans that name msg-q1, while the currency stated on the filing turn is bound to this turn's span.",
   "given": {
     "clock": "2026-09-30T09:00:00.000Z",
     "store": "memory",
