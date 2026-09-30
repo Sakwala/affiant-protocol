@@ -1178,22 +1178,22 @@
         "notes": "A create Affidavit filed on turn 3 whose amount and payee are Conversation fields carried from turn 1: the utterance-span binding names its message by messageId (PV-2, GT-7); the currency is Inferred and unbound. Same shape as the result of gate/draft-carries-a-conversation-tag-across-turns."
       },
       {
-        "id": "v0.4/docket-entry-withdrawn",
-        "file": "v0.4/docket-entry-withdrawn.json",
+        "id": "v0.5/docket-entry-withdrawn",
+        "file": "v0.5/docket-entry-withdrawn.json",
         "schema": "schemas/0.5.0/docket-entry.schema.json",
         "kind": "positive",
         "notes": "unchanged at 0.5.0; listed so the section covers the schema"
       },
       {
-        "id": "v0.4/decision-result-withdrawn",
-        "file": "v0.4/decision-result-withdrawn.json",
+        "id": "v0.5/decision-result-withdrawn",
+        "file": "v0.5/decision-result-withdrawn.json",
         "schema": "schemas/0.5.0/decision-result.schema.json",
         "kind": "positive",
         "notes": "unchanged at 0.5.0; listed so the section covers the schema"
       },
       {
-        "id": "v0.4/notification-transition-to-withdrawn",
-        "file": "v0.4/notification-transition-to-withdrawn.json",
+        "id": "v0.5/notification-transition-to-withdrawn",
+        "file": "v0.5/notification-transition-to-withdrawn.json",
         "schema": "schemas/0.5.0/notification.schema.json",
         "kind": "positive",
         "notes": "unchanged at 0.5.0; listed so the section covers the schema"
