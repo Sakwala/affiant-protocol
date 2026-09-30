@@ -5,7 +5,7 @@
     "PV-3",
     "PV-2"
   ],
-  "title": "A file refused before filing leaves the draft where it was: a hollow proposal on turn 2 is refused substance-refused, and the file on turn 3 still carries the amount and the payee from turn 1 with turn 1's message id.",
+  "title": "A filing with prepared fields, refused here as substance-refused, never reads or consumes the draft: the file on turn 3 still carries the amount and the payee from turn 1 with turn 1's message id.",
   "given": {
     "clock": "2026-09-30T09:00:00.000Z",
     "store": "memory",

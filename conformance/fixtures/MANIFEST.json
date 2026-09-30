@@ -1617,6 +1617,22 @@
         }
       },
       {
+        "id": "gate/draft-carries-across-entities",
+        "file": "gate/43-draft-carries-across-entities.json",
+        "rules": [
+          "GT-7",
+          "PV-3",
+          "PV-2"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+        }
+      },
+      {
         "id": "gate/multiparty-files-one-entry",
         "file": "gate/23-multiparty-files-one-entry.json",
         "rules": [
