@@ -30,6 +30,7 @@ Versions are git tags. Each implementation pins a tag and bumps it in its own pu
 | `v0.4.1` | DK-1 amended from the first host's run of the withdrawal transition (Orrery, 2026-09-29): a resubmit of a non-expired entry is refused `decision-not-pending`; `decision.by` is an identifier; the withdrawn-resubmit suite case is a refusal. Text only — no schema, vector or fixture change; 109 documents |
 | `v0.5.0-pre` | The `0.5.0` schemas: `messageId` on the utterance-span binding, the `draft` record; GT-7, the conversation draft; pre-release, no tag yet; `pre.2` is text only: where a filing turn's values come from, which turns draft |
 | `v0.5.0` | The `0.5.0` text finalised from the first host's run of the conversation draft: the id-material serializes `args` as given (GT-4), a refusal's message carries no proposed value (AF-5), a port may consult the draft it holds (GT-7); two fixtures added (`gate/draft-from-a-question-turn`, `gate/id-material-args-serialize-as-given`); no schema change; tag on the merge commit |
+| `v0.5.1` | The `0.5.1` text amends `v0.5.0` from the first host's next run: a read tool's throw is a `tool-error` with a message the implementation writes (AF-5), a failure after the filing leaves the entry filed and names it (GT-7), a `computation-ref`'s inputs are the Affidavit's own fields or `turn.utterance` and `turn.at`, any other name a caller error (PV-2); one fixture added (`gate/computed-inputs-turn-and-field`); no schema or vector change |
 
 ## Implementations
 
@@ -40,6 +41,7 @@ Versions are git tags. Each implementation pins a tag and bumps it in its own pu
 
 ## Status
 
+- 2026-10-01 — **`v0.5.1`: a read tool's throw, a failure after the filing, and what a rule may consume.** Text and one fixture: AF-5 (a read tool's throw is a `tool-error` with the implementation's own message), GT-7 (a failure after the filing leaves the entry filed and names it), PV-2 (a `computation-ref`'s inputs); no schema, vector or hash change; the tag goes on the merge commit.
 - 2026-09-30 — **`v0.5.0`: the conversation draft, finalised from the first host's run.** The text stays as the pre-release wrote it and gains three amendments: the id-material serializes `args` as given (GT-4), a refusal's message carries no proposed value (AF-5), a port may consult the draft it holds (GT-7); two fixtures added; no schema or hash change; the tag goes on the merge commit.
 - 2026-09-30 — **the v0.5 pre-release's two `canonicalHash` values re-derived at `0.5.0`.** `decide/amend-recompute` and
   `sequence-a/approve-round-trip` expect the hash of a document the implementation produces; the canonical form carries

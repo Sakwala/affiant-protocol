@@ -188,6 +188,7 @@ The shipped .NET packages at `1.0.0-beta.3.1` have no conversation draft: the dr
 no draft port, and the `utterance-span` binding has no `MessageId`. So every `draft` fixture must fail or error on it.
 `gate/file-without-a-port-grades-this-turn` is not on the list: a file with no port wired grades from this turn alone,
 which is what the release does, and it passes.
+`gate/computed-inputs-turn-and-field` is not on the list either; it carries `oracle: null` in the manifest.
 
 | Shipped defect | Rule | Fixtures that must fail on `1.0.0-beta.3.1` |
 |---|---|---|
