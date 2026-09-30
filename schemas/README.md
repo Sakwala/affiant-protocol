@@ -12,6 +12,7 @@ There are four schema sets here, side by side, and they describe different thing
 | [`schemas/0.1.0/`](0.1.0/) | `0.1.0` | **The designed protocol.** Twenty-one schemas written to [`../INVARIANTS.md`](../INVARIANTS.md), covering the Docket row, the attestation record, bindings, money, the refusal registry and the telemetry registry — none of which the seed had a schema for at all. Frozen. |
 | [`schemas/0.3.0/`](0.3.0/) | `0.3.0` | **The pre-release.** Written to the native `MultiParty` design; frozen at `v0.3.0`. A full copy of `0.1.0/` with the requirement recorded as an object, `MultiParty` approvals as records the entry's status folds from, a typed `executionDetail`, the new `multi-party` attestor, the card's `multiParty` roster, three refusal codes, and `compositeRef` withdrawn — see [`0.3.0/README.md`](0.3.0/README.md#what-changed-from-010). |
 | [`schemas/0.4.0/`](0.4.0/) | `0.4.0` | **The withdrawal transition.** A full copy of `0.3.0/` with `status` and the decision kind widened; pre-release — see [`0.4.0/README.md`](0.4.0/README.md#what-changed-from-030). |
+| [`schemas/0.5.0/`](0.5.0/) | `0.5.0` | **The conversation draft.** A full copy of `0.4.0/` with `messageId` on the utterance-span binding and a `draft` record; pre-release — see [`0.5.0/README.md`](0.5.0/README.md#what-changed-from-040). |
 
 The seed, v0.1 and 0.3.0 are **not compatible** with each other, on purpose, and all four stay: the seed is what an
 adopter of the shipped .NET packages is looking at right now, v0.1 is what both implementations were first brought to,

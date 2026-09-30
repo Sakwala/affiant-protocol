@@ -1,12 +1,11 @@
-# Schemas — v0.4.0
+# Schemas — v0.5.0
 
-JSON Schema (draft 2020-12) for the Affiant wire format, as `v0.4.0` defines it — `0.3.0` with the
-withdrawal transition (DK-1) written in: a host-initiated terminal state on a pending entry whose subject it has
-abandoned, https://github.com/Sakwala/affiant-protocol/issues/48. This is the second schema change since v0.1.0
-(`schemas/0.1.0/README.md`'s versioning policy: while the major is `0`, a schema-breaking change bumps the minor).
-`0.1.0/` and `0.3.0/` stay frozen; the seed one directory up (`../`, version `0.0.1-seed`) is a description of the
-wire the shipped .NET framework sends today. The seed and `0.1.0/` remain incompatible with this one; every `0.3.0/`
-document validates against this one unchanged.
+JSON Schema (draft 2020-12) for the Affiant wire format, as `v0.5.0` defines it — `0.4.0` with the conversation
+draft (GT-7) written in: `messageId` on the utterance-span binding, so a binding carried from an earlier turn of the
+conversation names the message it was read from, and a `draft` record for the fields an earlier turn established.
+This is pre-release. `0.1.0/`, `0.3.0/` and `0.4.0/` stay frozen; the seed one directory up (`../`, version
+`0.0.1-seed`) is a description of the wire the shipped .NET framework sends today. The seed and `0.1.0/` remain
+incompatible with this one; every `0.4.0/` document validates against this one unchanged.
 
 Read [`../../INVARIANTS.md`](../../INVARIANTS.md) alongside these files. Every rule this directory encodes is
 numbered there (`AF-n` Affidavit shape, `PV-n` provenance and bindings, `GT-n` the gate pipeline, `DK-n` the
@@ -19,7 +18,7 @@ a schema's description and `INVARIANTS.md` differ, **`INVARIANTS.md` wins and th
 schema-breaking change bumps the minor. Every envelope carries it (`INVARIANTS.md` SR-4) — the Affidavit, the
 Evidence Card request, the Docket entry, the decision result, every notification and the telemetry-key registry.
 A consumer **refuses** a payload whose major differs from the version it targets, and **MAY warn** on a newer
-minor it does not know. The string for this directory is `0.4.0`.
+minor it does not know. The string for this directory is `0.5.0`.
 
 The seed predates the field and carries the version only at fixture-set level, in
 [`../../conformance/fixtures/MANIFEST.json`](../../conformance/fixtures/MANIFEST.json).
@@ -114,6 +113,19 @@ not also offer a reviewer surface an approve button that cannot work.
 **The per-field constraints and the warnings moved onto the card envelope too.** Same reason, and it is the
 ruling that closes the two open questions v0.1 opened with:
 [Presentation lives on the card envelope](#presentation-lives-on-the-card-envelope).
+
+## What changed from 0.4.0
+
+Everything else in this directory is unchanged from [`schemas/0.4.0/`](../0.4.0/) other than the version strings.
+This is the conversation draft's whole diff:
+
+| Change | Where | Rule | Fixture |
+|---|---|---|---|
+| `messageId` (optional identifier) on the utterance-span binding's `ref`: the message whose utterance the span indexes; absent, the Affidavit's own turn | `binding.schema.json` `$defs.utteranceSpan.ref` | PV-2, GT-7 | `gate/draft-carries-a-conversation-tag-across-turns`, `v0.5/affidavit-carried-binding` |
+| The `draft` record: the fields whose `Conversation` tag and `utterance-span` binding an earlier turn established, keyed by tenant, conversation and tool | `draft.schema.json` (new) | GT-7 | `v0.5/draft-record`, `v0.5/draft-record-inferred-refused` |
+
+Every `0.4.0` document is a valid `0.5.0` document, and no canonical hash moves: `messageId` is optional, and an
+absent key is omitted from the canonical form (SR-1). `common.schema.json` changed its `$id` only.
 
 ## What changed from 0.3.0
 
