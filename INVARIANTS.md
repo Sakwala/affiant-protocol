@@ -1,6 +1,6 @@
 # INVARIANTS — the rules every Affiant implementation enforces
 
-**Status: v0.4.1 text** (the v0.4.0 text of 2026-09-28, amended 2026-09-29 from the first host's evidence
+**Status: `0.5.0` text, pre-release** (`v0.4.1` is frozen; this text amends it, 2026-09-30, for the conversation draft
 — see the changelog), written against a working
 implementation. Every rule has a permanent id, a full
 statement in RFC 2119 words, the reason where it is not obvious, and a *Checked by* line naming the fixtures, suites or lints
@@ -63,7 +63,7 @@ resource envelope · `CV` coverage, delegation and call sites · `TL` telemetry 
 **Terms used below.** *Proposed field* — a field the operation proposes to write; *Empty* — the provenance source that says
 "the value's origin is unknown"; *turn* — one user utterance and the model's response to it, the unit an inference reads;
 *turn context* — the object a host passes into every gate call (conversation id, tenant, channel, principal, the unmodified
-turn); *gate* — the in-process pipeline from a tool's proposal to a filed Docket entry; *executor* — the host code that
+turn); *gate* — the in-process pipeline from a tool's proposal to a filed Docket entry; *draft* — GT-7's record of the fields whose `Conversation` tag an earlier turn of the same conversation established *(v0.5.0)*; *executor* — the host code that
 performs the write after approval (the framework never writes); *tenant* — the host's isolation boundary (an organisation, a
 household, an account); *principal* — who is acting: a `member` (a human-verified session) or a `service` (a machine
 caller); *relay* — a trusted machine caller (for example an agent talking to the host over MCP) that asserts a person's
@@ -171,7 +171,8 @@ list and its merge rule (`docs/affiant-framework-specification.md:55-62`, `:100`
 ### PV-2 — A tag above `Conversation` SHOULD carry a binding; the binding kinds are fixed *(v0.1: SHOULD; v0.2: MUST)*
 **SHOULD (v0.1), MUST (v0.2).** `binding: { kind, ref }` with `kind ∈ { utterance-span, reviewer-act, form-input,
 external-ref, computation-ref }`: `utterance-span` — the offset, length and hash of the span of the unmodified utterance the
-value was read from; `reviewer-act` — the Docket decision (`entryId`, `decisionAt`) that amended or prefilled the field;
+value was read from and, for a span read on an earlier turn of the conversation, the `messageId` of that turn's message
+*(v0.5.0, GT-7)* — absent, the span indexes the Affidavit's own turn; `reviewer-act` — the Docket decision (`entryId`, `decisionAt`) that amended or prefilled the field;
 `form-input` — the form field a person typed into; `external-ref` — the source system and record an `External` value came
 from (`system`, `recordId`; for a value read from a published page with no API, the canonical URL, the fetch timestamp and
 a content hash; for a relayed capture, `relay: { principal, channelIdentity, messageId }`); `computation-ref` — the deterministic rule and the field ids a `Computed`
@@ -228,6 +229,19 @@ UTF-16 code unit is half of a pair is not a hit.
 and `hash` = SHA-256 as 64 lowercase hexadecimal characters over the UTF-8 bytes of the **utterance's own substring** at
 that span, which is what was there when the value was read. No hit, no binding.
 
+*Across turns (v0.5.0).* Where the gate holds a draft (GT-7), the finder gains one clause, and for each proposed field the
+order is: (i) the finder hits in this turn's utterance → `Conversation`, bound to this turn's span, as above, and the
+draft's field of that name is replaced by it — the newest statement wins; (ii) no hit, the draft holds the field, and the
+proposed value text equals the drafted value text under the finder's own comparison (ordinal, ASCII case folded, nothing
+else) → the drafted tag's source and binding carry unchanged, and the tag is minted this turn with this turn's port
+confidence (PV-1's clamp), because confidence is the port's opinion of the value now and the binding is the evidence of
+where it was said; (iii) otherwise → `Inferred`, unbound, as above. The finder still reads one utterance: a draft is read,
+never searched, so "earlier turns are not searched" stands, and a value the model changed is a different value text and
+carries nothing. The comparison is the finder's own because the earlier hit was found under it, so "the same text" means
+the same thing on both turns. The draft holds one tag per field: the carried tag is the inference tag of the filed field's
+chain as a hit on this turn would be, and the tags a later hit replaced are not in the chain, which is the history of tags
+on that Affidavit (PV-1).
+
 *No utterance in hand.* An implementation whose caller **supplies no utterance** — null, or whatever its language spells
 absence as — has nothing to establish presence from; there, and only there, the port's report stands as given. An empty or
 whitespace-only utterance **is** an utterance: nothing hits in it, a port's `literal` cannot verify against it, and every
@@ -246,7 +260,9 @@ fold table vendored here and pinned to a Unicode release is the `v0.2` option if
 beyond ASCII. *Checked by:* `gate/inference-conversation-and-inferred`,
 `gate/inference-presence-computed-from-the-utterance`, `gate/inference-port-literal-unconfirmed`,
 `gate/inference-port-span-fails-the-boundary`, `gate/inference-case-folds-and-the-digest-is-the-utterances`,
-`gate/inference-empty-value-is-nothing-reported`, `sequence-a/picker-external-binding`,
+`gate/inference-empty-value-is-nothing-reported`, `gate/draft-carries-a-conversation-tag-across-turns`,
+`gate/draft-changed-value-does-not-carry`, `gate/draft-later-hit-replaces-the-earlier`,
+`gate/draft-inferred-does-not-carry`, `sequence-a/picker-external-binding`,
 `sequence-a/late-amendments-preserved`; `suite: gate types (type-level:
 mintInference cannot name UserStated)`. *Source:*
 [`Sakwala/affiant#123`](https://github.com/Sakwala/affiant/issues/123); `Sakwala/affiant`
@@ -282,7 +298,8 @@ refusal (GT-3) → policy (the chain is walked in order and the first non-null v
 the policy result (GT-4) → filed (DK-1). The inference port is host-supplied — a function from turn plus field schema to a
 structured result — and a core package ships no model client and no provider credential handling, so which model runs, and
 where, is a host configuration change. A host may enter the pipeline after the merge with fields it has already tagged (a
-capture arriving from a relay, Sequence C); the steps from projection onward are the same.
+capture arriving from a relay, Sequence C); the steps from projection onward are the same. A host may also leave it after
+the merge — `draft`, GT-7 *(v0.5.0)* — holding the graded fields for a later turn's proposal.
 *Checked by:* `gate/inference-conversation-and-inferred`, `sequence-a/approve-round-trip`, `sequence-a/picker-external-binding`,
 `sequence-c/relay-auto-approve-bound-external`; `suite: gate/pipeline step order`.
 
@@ -362,6 +379,47 @@ result is a proposal, the gate never calls a write tool's own `execute`, and no 
 framework. A tool that opens its own connection and writes inside its body is **outside the guarantee** — no wire-up check
 can see it; this is the honest boundary, stated as such in every implementation's README, not a rule an implementation can
 enforce. *Checked by:* `sequence-a/approve-round-trip`; `suite: gate/wrap never calls execute` (a spy).
+
+### GT-7 — The conversation draft *(v0.5.0)*
+**MUST.** The gate has a second entry point, `draft(proposal, ctx)`. It runs GT-1's first four steps — the explicit turn
+context, the deterministic interceptors, the one structured inference against the unmodified turn, the merge — exactly as
+`file` does, and then, instead of projection, substance refusal, policy and filing, it writes the **graded fields** into
+**the draft** and returns them. The graded fields are exactly those whose tag in force after the merge is `Conversation`
+with an `utterance-span` binding; a field tagged anything else is not held (an `External` or `Computed` tag is minted
+afresh by its interceptor on every call, an `Inferred` or `Default` tag has no binding to carry, and a `UserStated` tag
+exists only after filing). `draft` never projects, never runs policy and never files. The draft is held by the host
+through a host-supplied **draft port** — `get`, `put` and `consume` — and its key is the tenant, the conversation id and
+the tool name, so that two conversations never observe each other's draft (GT-2). On a later turn's `file`, the finder
+reads the draft as PV-3's *Across turns* paragraph states.
+
+**No port wired.** `file` carries nothing from any earlier turn and grades every field from this turn's utterance alone —
+the reading of every rule before this one — and `draft` is refused `wireup-invalid` (CV-1): a host that calls `draft` and
+silently gets nothing has graded from a proxy in a new form.
+
+**Lifecycle.** A `file` that files an entry — created, or replayed under GT-4 — consumes the draft. A `file` refused
+before filing (`substance-refused`, `coverage-refused`, `wireup-invalid`) leaves it. The host bounds the draft by a
+time-to-live and by the conversation, and the port MAY answer "no draft" at any time; the cost is a downgrade to
+`Inferred`, never a wrong tag.
+
+**The record.** The draft's shape is `schemas/0.5.0/draft.schema.json`: `protocolVersion`, `tenantId`, `conversationId`,
+`toolName`, `fields` (each `name`, `value` and a `tag` whose `source` is `Conversation` and whose binding is an
+`utterance-span` carrying `messageId`, PV-2) and `updatedAt`. It is not an Affidavit and not a Docket entry: it has no
+`entryId`, no status, no decision and no attestation, and nothing in it is sworn to.
+
+**The wrapped tool.** The wrapped-tool path (GT-6) files. Whether it may draft is not defined at this version.
+
+*Why:* a running host's multi-turn capture graded `Inferred` on every field a person had stated in an earlier message —
+a person said "15000 to Serendib Growth Fund" in the first message, the model proposed it in the fourth, and the finder,
+which reads one utterance, found neither value in the fourth — so the Evidence Card's "it was said in the conversation"
+could not be shown of something that was. The tags to carry are tags only the pipeline can mint: a draft any code but the
+finder could fill would be a host asserting `Conversation`, the class PV-3 closed, so the draft is filled by `draft`
+running the same steps on the earlier turn. A draft is working state, not a record (RT-3).
+*Checked by:* `gate/draft-carries-a-conversation-tag-across-turns`, `gate/draft-changed-value-does-not-carry`,
+`gate/draft-later-hit-replaces-the-earlier`, `gate/draft-inferred-does-not-carry`, `gate/draft-expired-does-not-carry`,
+`gate/draft-other-conversation-does-not-carry`, `gate/draft-consumed-on-file`, `gate/draft-left-by-a-refused-file`,
+`gate/draft-never-files`, `gate/draft-without-a-port-refused`, `gate/file-without-a-port-grades-this-turn`; the schema
+documents `v0.5/draft-record`, `v0.5/draft-record-inferred-refused` and `v0.5/affidavit-carried-binding`.
+*Source:* a running host's multi-turn capture, 2026-09-30.
 
 ---
 
@@ -703,7 +761,8 @@ Node-only tripwire)`; the workerd job of the CI matrix.
 ### RT-3 — No Affidavit, Docket entry or attestation record lives in Durable Object storage *(v0.1)*
 **MUST NOT.** Durable Object state is working state (an alarm, a cursor, an `entryId`); the audit record lives in the
 production store (a store passing the DK fixtures). A host adopting an agents SDK whose default state store is DO-embedded
-must route the record elsewhere; a core package's sources never reach a Durable Object storage API. *Checked by:* `lint:
+must route the record elsewhere; a core package's sources never reach a Durable Object storage API. A draft (GT-7 *(v0.5.0)*) is working state of the kind
+this rule permits there. *Checked by:* `lint:
 no Durable Object storage reachable from core sources` (fails the build).
 
 ---
@@ -803,6 +862,7 @@ holding the fixtures back for work nobody has scheduled.
 
 ## Changelog
 
+- 2026-09-30 — **v0.5.0-pre (pre-release): the conversation draft.** A value a person stated in an earlier turn of the same conversation keeps its `Conversation` tag and binding when the model carries it into a later turn's proposal. Added: GT-7 — the gate's `draft(proposal, ctx)` entry point, which runs GT-1's first four steps and holds the graded fields (`Conversation` with an `utterance-span` binding, nothing else) in a draft kept through a host-supplied port keyed by tenant, conversation and tool; `file` consumes it when it files; no port wired, `file` grades from this turn alone and `draft` is refused `wireup-invalid`. PV-3 gains *Across turns*, the carry-over clause in the finder's own comparison, with "earlier turns are not searched" standing; PV-2's `utterance-span` gains an optional `messageId`, present on every carried binding; GT-1, RT-3 and the *Terms* paragraph gain one sentence each. `schemas/0.5.0/` adds `messageId` on the binding and `draft.schema.json`. No existing document or canonical hash changes: every `0.4.0` document is a valid `0.5.0` document. From a running host's multi-turn capture (2026-09-30), whose four-message write graded `Inferred` on every field stated in an earlier message.
 - 2026-09-29 — **v0.4.1: the first host ran the withdrawal transition.** Orrery's cancel route called `withdraw` inside its cancel transaction, naming the cancelling member, in its Workers test pool against a local Postgres (unit W-90, merged to its `bootstrap`; production evidence follows its deploy); the cases confirmed DK-1 as written — the withdrawal's instant, the approval records kept, every later decision and a second withdrawal refused `decision-not-pending` with the row unchanged, a cancel after the fold refused and the executor's outcome recorded on the approved row, a re-file replaying the withdrawn row, a blank reason a caller error; the relay case was not exercised (the host names a member principal). Three sentences added from what the text had not said: a resubmit of a non-expired entry is refused `decision-not-pending`; `decision.by` is an identifier; the suite case for a withdrawn entry's resubmit is a refusal, not a caller error. No schema, vector or fixture change.
 - 2026-09-28 — **v0.4.0: the withdrawal text finalised on the implementation's evidence.** No schema, vector or fixture change from `v0.4.0-pre.1` beyond the two `canonicalHash` values re-derived at `0.4.0` (#52); DK-1's withdrawal paragraph now says `by` names the withdrawing principal, or the member a relay asserted for it (AZ-3), and names the two suite cases as the core's own. The TypeScript packages that carry this text (`@affiant/core@0.1.0-alpha.8`, `@affiant/store-postgres@0.1.0-alpha.6`, `@affiant/contract@0.1.0-alpha.4`) pin #52's merge commit `52e1a3d` and read 109 of 109 on Node, Bun and workerd, and a fresh consumer of the published packages withdrew a pending entry through `gate.withdraw` (2026-09-28). **No host has run the transition at this version** — the first host's cancel route (the host whose cancelled subject opened [#48](https://github.com/Sakwala/affiant-protocol/issues/48)) is queued, and its evidence, when it arrives, is the next text amendment, not a claim made here. The .NET catch-up is `Sakwala/affiant#153`.
 - 2026-09-28 — **v0.4.0-pre (pre-release): the withdrawal transition.** A `pending` entry gains `withdrawn`:
