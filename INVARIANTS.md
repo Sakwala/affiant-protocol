@@ -363,6 +363,47 @@ framework. A tool that opens its own connection and writes inside its body is **
 can see it; this is the honest boundary, stated as such in every implementation's README, not a rule an implementation can
 enforce. *Checked by:* `sequence-a/approve-round-trip`; `suite: gate/wrap never calls execute` (a spy).
 
+### GT-7 — The conversation draft *(v0.5.0)*
+**MUST.** The gate has a second entry point, `draft(proposal, ctx)`. It runs GT-1's first four steps — the explicit turn
+context, the deterministic interceptors, the one structured inference against the unmodified turn, the merge — exactly as
+`file` does, and then, instead of projection, substance refusal, policy and filing, it writes the **graded fields** into
+**the draft** and returns them. The graded fields are exactly those whose tag in force after the merge is `Conversation`
+with an `utterance-span` binding; a field tagged anything else is not held (an `External` or `Computed` tag is minted
+afresh by its interceptor on every call, an `Inferred` or `Default` tag has no binding to carry, and a `UserStated` tag
+exists only after filing). `draft` never projects, never runs policy and never files. The draft is held by the host
+through a host-supplied **draft port** — `get`, `put` and `consume` — and its key is the tenant, the conversation id and
+the tool name, so that two conversations never observe each other's draft (GT-2). On a later turn's `file`, the finder
+reads the draft as PV-3's *Across turns* paragraph states.
+
+**No port wired.** `file` carries nothing from any earlier turn and grades every field from this turn's utterance alone —
+the reading of every rule before this one — and `draft` is refused `wireup-invalid` (CV-1): a host that calls `draft` and
+silently gets nothing has graded from a proxy in a new form.
+
+**Lifecycle.** A `file` that files an entry — created, or replayed under GT-4 — consumes the draft. A `file` refused
+before filing (`substance-refused`, `coverage-refused`, `wireup-invalid`) leaves it. The host bounds the draft by a
+time-to-live and by the conversation, and the port MAY answer "no draft" at any time; the cost is a downgrade to
+`Inferred`, never a wrong tag.
+
+**The record.** The draft's shape is `schemas/0.5.0/draft.schema.json`: `protocolVersion`, `tenantId`, `conversationId`,
+`toolName`, `fields` (each `name`, `value` and a `tag` whose `source` is `Conversation` and whose binding is an
+`utterance-span` carrying `messageId`, PV-2) and `updatedAt`. It is not an Affidavit and not a Docket entry: it has no
+`entryId`, no status, no decision and no attestation, and nothing in it is sworn to.
+
+**The wrapped tool.** The wrapped-tool path (GT-6) files. Whether it may draft is not defined at this version.
+
+*Why:* a running host's multi-turn capture graded `Inferred` on every field a person had stated in an earlier message —
+a person said "15000 to Serendib Growth Fund" in the first message, the model proposed it in the fourth, and the finder,
+which reads one utterance, found neither value in the fourth — so the Evidence Card's "it was said in the conversation"
+could not be shown of something that was. The tags to carry are tags only the pipeline can mint: a draft any code but the
+finder could fill would be a host asserting `Conversation`, the class PV-3 closed, so the draft is filled by `draft`
+running the same steps on the earlier turn. A draft is working state, not a record (RT-3).
+*Checked by:* `gate/draft-carries-a-conversation-tag-across-turns`, `gate/draft-changed-value-does-not-carry`,
+`gate/draft-later-hit-replaces-the-earlier`, `gate/draft-inferred-does-not-carry`, `gate/draft-expired-does-not-carry`,
+`gate/draft-other-conversation-does-not-carry`, `gate/draft-consumed-on-file`, `gate/draft-left-by-a-refused-file`,
+`gate/draft-never-files`, `gate/draft-without-a-port-refused`, `gate/file-without-a-port-grades-this-turn`; the schema
+documents `v0.5/draft-record`, `v0.5/draft-record-inferred-refused` and `v0.5/affidavit-carried-binding`.
+*Source:* a running host's multi-turn capture, 2026-09-30.
+
 ---
 
 ## DK — the Docket, states and expiry
