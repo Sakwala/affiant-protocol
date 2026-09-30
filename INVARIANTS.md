@@ -1,6 +1,6 @@
 # INVARIANTS — the rules every Affiant implementation enforces
 
-**Status: `0.5.0` text, pre-release** (`v0.4.1` is frozen; this text amends it, 2026-09-30, for the conversation draft
+**Status: `0.5.0` text, frozen at the tag `v0.5.0`** (`v0.4.1` is frozen; this text amends it, 2026-09-30, for the conversation draft
 — see the changelog), written against a working
 implementation. Every rule has a permanent id, a full
 statement in RFC 2119 words, the reason where it is not obvious, and a *Checked by* line naming the fixtures, suites or lints
@@ -148,7 +148,7 @@ executors.
 error — carried on a single discriminator property (`$type` in the shipped .NET wire and the seed; spelled `kind` once the v0.1 schemas
 land, with the rename recorded in the schema changelog). A consumer switches on the discriminator, never on the presence of fields.
 A gated write tool's result is always the proposal kind (GT-6); a refusal the gate raises is the error kind with its refusal
-code. *Checked by:* `suite: gate types (type-level: three arms and no fourth)`; `suite: coverage (a read tool passes
+code. A refusal's `message` names the rule and the path it failed at and never a proposed value, an argument or the utterance: the message is on the wire and reaches the model's context and the person. *Checked by:* `suite: gate types (type-level: three arms and no fourth)`; `suite: coverage (a read tool passes
 through)`; the v0.1 `tool-result` schema once it lands. *Source:* `ToolEnvelope` in
 `Affiant.Abstractions`.
 
@@ -340,7 +340,7 @@ proposal files.
 
 **Derivation.** The material is the canonical JSON (SR-1's rules: keys sorted by Unicode code point, no insignificant
 whitespace, numbers in shortest positional form, `null` written, absent omitted) of an object carrying `tenantId`,
-`conversationId`, `toolName`, `operation`, `args` (the proposal's arguments as given, or `null` when there are none) and
+`conversationId`, `toolName`, `operation`, `args` (the proposal's arguments as given, or `null` when there are none; serialized under SR-1's rules and nothing else — SR-2's money shape is a property of a field's value that is a Money object, never of the arguments, so a record that carries an `amount` beside a `currency` is not refused here) and
 `supersedes` — present only when the proposal supersedes an earlier entry, i.e. a resubmission, so a first filing's id is
 unaffected by whether a resubmission of it ever exists. The digest is SHA-256 over the UTF-8 bytes of that material. The id
 is the digest's first 128 bits laid out as a UUID: the version nibble (hex index 12) set to `8`, the variant nibble (hex
@@ -351,7 +351,7 @@ replays to and what a resubmission's `supersedes` points at. The Affidavit's own
 the material: it is produced after inference runs, inference is not deterministic, and the id must be fixed before
 inference runs, so a retry can be recognised before its Affidavit even exists.
 *Checked by:* `gate/ttl-from-verdict`, `gate/ttl-from-policy-default`, `gate/ttl-from-gate-default`,
-`sequence-a/replay-keeps-the-deadline`, `sequence-a/expiry-then-resubmit`, `decide/multiparty-refile-replays`; `suite: policy ttl validation`.
+`gate/id-material-args-serialize-as-given`, `sequence-a/replay-keeps-the-deadline`, `sequence-a/expiry-then-resubmit`, `decide/multiparty-refile-replays`; `suite: policy ttl validation`.
 *Source:* `src/Affiant.Core/Services/ReviewGate.cs` `FileForReviewCoreAsync` (time-to-live stamped before policy; fresh
 time-to-live on re-file).
 
@@ -409,7 +409,7 @@ silently gets nothing has graded from a proxy in a new form.
 
 **Where a filing turn's values come from.** The values the gate grades are the host's inference port's report over the turn
 context (GT-1); a tool call's arguments are id-material (GT-4) and never a graded value (GT-6). A host's port MAY consult the
-conversation's earlier turns when the host hands them to it explicitly at the call (GT-2) — the person's own words, never the
+conversation's earlier turns, or the draft it holds, when the host hands them to it explicitly at the call (GT-2) — the person's own words, never the
 model's, the utterance itself unmodified. Nothing a port read raises a grade: its report is verified as PV-3 states, so a
 value stated on an earlier turn is `Conversation` only through the draft, and a port that misreads the window produces
 `Inferred`, never a wrong tag.
