@@ -5,7 +5,7 @@
     "PV-3",
     "PV-2"
   ],
-  "title": "A value stated on turn 1 and drafted there keeps its Conversation tag and its binding when the model carries it into turn 3: the amount and the payee are bound to turn 1 spans that name msg-1, and the currency, said nowhere the finder can read, is Inferred.",
+  "title": "A value stated on turn 1 and drafted there keeps its Conversation tag and its binding when the model carries it into turn 3, under the finder's own comparison (ASCII case folded, so the lower-case payee still carries) and with this turn's port confidence (0.6 on the amount): the amount and the payee are bound to turn 1 spans that name msg-1, and the currency, said nowhere the finder can read, is Inferred.",
   "given": {
     "clock": "2026-09-30T09:00:00.000Z",
     "store": "memory",
@@ -111,10 +111,10 @@
       "inference": {
         "amount": {
           "value": 15000,
-          "confidence": 0.9
+          "confidence": 0.6
         },
         "payee": {
-          "value": "Serendib Growth Fund unit trust",
+          "value": "serendib growth fund unit trust",
           "confidence": 0.9
         },
         "currency": {
@@ -140,11 +140,12 @@
               "length": 5,
               "hash": "d4c999ae43633bd2036188d2bca68e1be8202b2cc1f3a1c42a728eaff7d2483d",
               "messageId": "msg-1"
-            }
+            },
+            "confidence": 0.6
           },
           {
             "name": "payee",
-            "value": "Serendib Growth Fund unit trust",
+            "value": "serendib growth fund unit trust",
             "source": "Conversation",
             "bound": true,
             "bindingKind": "utterance-span",

@@ -1,11 +1,12 @@
 {
-  "id": "gate/draft-later-hit-replaces-the-earlier",
+  "id": "gate/draft-does-not-add-a-field",
   "rules": [
     "GT-7",
     "PV-3",
-    "PV-2"
+    "PV-2",
+    "AF-1"
   ],
-  "title": "The newest statement wins: the payee is drafted on turn 1 and drafted again on turn 2, where the person restates it as Sampath Bank, so turn 3 carries the turn 2 span and msg-2b; the amount and currency, never drafted, are Inferred.",
+  "title": "The draft never adds a field to an Affidavit: the payee is drafted on turn 1, but the turn 3 proposal names only the amount and the currency, so the Affidavit lists exactly those two, the amount carried from msg-1 and the currency Inferred.",
   "given": {
     "clock": "2026-09-30T09:00:00.000Z",
     "store": "memory",
@@ -67,49 +68,12 @@
           "messageId": "msg-1"
         },
         "inference": {
+          "amount": {
+            "value": 15000,
+            "confidence": 0.9
+          },
           "payee": {
             "value": "Serendib Growth Fund unit trust",
-            "confidence": 0.9
-          }
-        }
-      },
-      {
-        "kind": "draft",
-        "toolName": "capture_entry",
-        "operation": {
-          "kind": "create",
-          "entityType": "Entry",
-          "entityId": null,
-          "fields": [
-            "amount",
-            "payee",
-            "currency"
-          ]
-        },
-        "schema": [
-          {
-            "name": "amount",
-            "kind": "number",
-            "description": "How much money moves"
-          },
-          {
-            "name": "payee",
-            "kind": "text",
-            "description": "Who the money goes to"
-          },
-          {
-            "name": "currency",
-            "kind": "text",
-            "description": "The currency of the amount"
-          }
-        ],
-        "turn": {
-          "utterance": "Actually, pay it to Sampath Bank",
-          "messageId": "msg-2b"
-        },
-        "inference": {
-          "payee": {
-            "value": "Sampath Bank",
             "confidence": 0.9
           }
         }
@@ -124,7 +88,6 @@
         "entityId": null,
         "fields": [
           "amount",
-          "payee",
           "currency"
         ]
       },
@@ -135,11 +98,6 @@
           "description": "How much money moves"
         },
         {
-          "name": "payee",
-          "kind": "text",
-          "description": "Who the money goes to"
-        },
-        {
           "name": "currency",
           "kind": "text",
           "description": "The currency of the amount"
@@ -148,10 +106,6 @@
       "inference": {
         "amount": {
           "value": 15000,
-          "confidence": 0.9
-        },
-        "payee": {
-          "value": "Sampath Bank",
           "confidence": 0.9
         },
         "currency": {
@@ -169,23 +123,15 @@
           {
             "name": "amount",
             "value": 15000,
-            "source": "Inferred",
-            "bound": false,
-            "bindingKind": null
-          },
-          {
-            "name": "payee",
-            "value": "Sampath Bank",
             "source": "Conversation",
             "bound": true,
             "bindingKind": "utterance-span",
             "utteranceSpan": {
-              "offset": 20,
-              "length": 12,
-              "hash": "4f7026e849c07f9b06d25900424c481c294d9d8dc382bf72d5f0fac0cf0c79fd",
-              "messageId": "msg-2b"
-            },
-            "priorSources": []
+              "offset": 14,
+              "length": 5,
+              "hash": "d4c999ae43633bd2036188d2bca68e1be8202b2cc1f3a1c42a728eaff7d2483d",
+              "messageId": "msg-1"
+            }
           },
           {
             "name": "currency",

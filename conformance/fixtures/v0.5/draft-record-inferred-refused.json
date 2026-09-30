@@ -10,10 +10,18 @@
       "tag": {
         "source": "Inferred",
         "confidence": 0.9,
-        "note": "Not in the turn: amount",
+        "note": "Literally present in the turn: amount",
         "at": "2026-09-30T09:00:00.000Z",
         "conversationTurn": null,
-        "binding": null
+        "binding": {
+          "kind": "utterance-span",
+          "ref": {
+            "offset": 14,
+            "length": 5,
+            "hash": "d4c999ae43633bd2036188d2bca68e1be8202b2cc1f3a1c42a728eaff7d2483d",
+            "messageId": "msg-1"
+          }
+        }
       }
     },
     {

@@ -1,11 +1,11 @@
 {
-  "id": "gate/draft-later-hit-replaces-the-earlier",
+  "id": "gate/draft-merges-by-field-name",
   "rules": [
     "GT-7",
     "PV-3",
     "PV-2"
   ],
-  "title": "The newest statement wins: the payee is drafted on turn 1 and drafted again on turn 2, where the person restates it as Sampath Bank, so turn 3 carries the turn 2 span and msg-2b; the amount and currency, never drafted, are Inferred.",
+  "title": "A second draft adds and replaces by field name and never removes: turn 1 drafts the amount and the payee, turn 2 drafts the currency and reports an amount the person did not say, so turn 3 carries the amount from turn 1 (msg-1), the currency from turn 2 (msg-2) and binds the payee to its own turn's span with no message id.",
   "given": {
     "clock": "2026-09-30T09:00:00.000Z",
     "store": "memory",
@@ -67,6 +67,10 @@
           "messageId": "msg-1"
         },
         "inference": {
+          "amount": {
+            "value": 15000,
+            "confidence": 0.9
+          },
           "payee": {
             "value": "Serendib Growth Fund unit trust",
             "confidence": 0.9
@@ -104,12 +108,16 @@
           }
         ],
         "turn": {
-          "utterance": "Actually, pay it to Sampath Bank",
-          "messageId": "msg-2b"
+          "utterance": "LKR, yesterday",
+          "messageId": "msg-2"
         },
         "inference": {
-          "payee": {
-            "value": "Sampath Bank",
+          "currency": {
+            "value": "LKR",
+            "confidence": 0.9
+          },
+          "amount": {
+            "value": 16000,
             "confidence": 0.9
           }
         }
@@ -151,13 +159,17 @@
           "confidence": 0.9
         },
         "payee": {
-          "value": "Sampath Bank",
+          "value": "Serendib Growth Fund unit trust",
           "confidence": 0.9
         },
         "currency": {
           "value": "LKR",
           "confidence": 0.9
         }
+      },
+      "turn": {
+        "utterance": "Money going out to Serendib Growth Fund unit trust",
+        "messageId": "msg-3"
       }
     }
   },
@@ -169,30 +181,40 @@
           {
             "name": "amount",
             "value": 15000,
-            "source": "Inferred",
-            "bound": false,
-            "bindingKind": null
-          },
-          {
-            "name": "payee",
-            "value": "Sampath Bank",
             "source": "Conversation",
             "bound": true,
             "bindingKind": "utterance-span",
             "utteranceSpan": {
-              "offset": 20,
-              "length": 12,
-              "hash": "4f7026e849c07f9b06d25900424c481c294d9d8dc382bf72d5f0fac0cf0c79fd",
-              "messageId": "msg-2b"
-            },
-            "priorSources": []
+              "offset": 14,
+              "length": 5,
+              "hash": "d4c999ae43633bd2036188d2bca68e1be8202b2cc1f3a1c42a728eaff7d2483d",
+              "messageId": "msg-1"
+            }
+          },
+          {
+            "name": "payee",
+            "value": "Serendib Growth Fund unit trust",
+            "source": "Conversation",
+            "bound": true,
+            "bindingKind": "utterance-span",
+            "utteranceSpan": {
+              "offset": 19,
+              "length": 31,
+              "hash": "e130c49438689da6f7a54959e0f8259aeaf2e6bede70a8168e9defedc2fd3cdb"
+            }
           },
           {
             "name": "currency",
             "value": "LKR",
-            "source": "Inferred",
-            "bound": false,
-            "bindingKind": null
+            "source": "Conversation",
+            "bound": true,
+            "bindingKind": "utterance-span",
+            "utteranceSpan": {
+              "offset": 0,
+              "length": 3,
+              "hash": "8c6a812f0224f53a28daf594d835111c52f76f5748d82082d0e85971680e9f29",
+              "messageId": "msg-2"
+            }
           }
         ]
       }
