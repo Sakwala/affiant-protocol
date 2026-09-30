@@ -1,6 +1,6 @@
 # INVARIANTS — the rules every Affiant implementation enforces
 
-**Status: `0.5.0` text, pre-release** (`v0.4.1` is frozen; this text amends it, 2026-09-30, for the conversation draft
+**Status: `0.5.0` text, frozen at the tag `v0.5.0`** (`v0.4.1` is frozen; this text amends it, 2026-09-30, for the conversation draft
 — see the changelog), written against a working
 implementation. Every rule has a permanent id, a full
 statement in RFC 2119 words, the reason where it is not obvious, and a *Checked by* line naming the fixtures, suites or lints
@@ -148,7 +148,7 @@ executors.
 error — carried on a single discriminator property (`$type` in the shipped .NET wire and the seed; spelled `kind` once the v0.1 schemas
 land, with the rename recorded in the schema changelog). A consumer switches on the discriminator, never on the presence of fields.
 A gated write tool's result is always the proposal kind (GT-6); a refusal the gate raises is the error kind with its refusal
-code. *Checked by:* `suite: gate types (type-level: three arms and no fourth)`; `suite: coverage (a read tool passes
+code. A refusal's `message` names the rule and, where it has one, the path it failed at, and never a proposed value, an argument's value or the utterance: the message is on the wire and reaches the model's context and the person. *Checked by:* `suite: gate types (type-level: three arms and no fourth)`; `suite: coverage (a read tool passes
 through)`; the v0.1 `tool-result` schema once it lands. *Source:* `ToolEnvelope` in
 `Affiant.Abstractions`.
 
@@ -340,7 +340,7 @@ proposal files.
 
 **Derivation.** The material is the canonical JSON (SR-1's rules: keys sorted by Unicode code point, no insignificant
 whitespace, numbers in shortest positional form, `null` written, absent omitted) of an object carrying `tenantId`,
-`conversationId`, `toolName`, `operation`, `args` (the proposal's arguments as given, or `null` when there are none) and
+`conversationId`, `toolName`, `operation`, `args` (the proposal's arguments as given, or `null` when there are none; serialized under SR-1's rules and nothing else — SR-2's money shape is a property of a field's value that is a Money object, never of the arguments, so a record that carries an `amount` beside a `currency` is not refused here) and
 `supersedes` — present only when the proposal supersedes an earlier entry, i.e. a resubmission, so a first filing's id is
 unaffected by whether a resubmission of it ever exists. The digest is SHA-256 over the UTF-8 bytes of that material. The id
 is the digest's first 128 bits laid out as a UUID: the version nibble (hex index 12) set to `8`, the variant nibble (hex
@@ -351,7 +351,7 @@ replays to and what a resubmission's `supersedes` points at. The Affidavit's own
 the material: it is produced after inference runs, inference is not deterministic, and the id must be fixed before
 inference runs, so a retry can be recognised before its Affidavit even exists.
 *Checked by:* `gate/ttl-from-verdict`, `gate/ttl-from-policy-default`, `gate/ttl-from-gate-default`,
-`sequence-a/replay-keeps-the-deadline`, `sequence-a/expiry-then-resubmit`, `decide/multiparty-refile-replays`; `suite: policy ttl validation`.
+`gate/id-material-args-serialize-as-given`, `sequence-a/replay-keeps-the-deadline`, `sequence-a/expiry-then-resubmit`, `decide/multiparty-refile-replays`; `suite: policy ttl validation`.
 *Source:* `src/Affiant.Core/Services/ReviewGate.cs` `FileForReviewCoreAsync` (time-to-live stamped before policy; fresh
 time-to-live on re-file).
 
@@ -409,7 +409,7 @@ silently gets nothing has graded from a proxy in a new form.
 
 **Where a filing turn's values come from.** The values the gate grades are the host's inference port's report over the turn
 context (GT-1); a tool call's arguments are id-material (GT-4) and never a graded value (GT-6). A host's port MAY consult the
-conversation's earlier turns when the host hands them to it explicitly at the call (GT-2) — the person's own words, never the
+conversation's earlier turns, or the draft the host holds, when the host hands them to it explicitly at the call (GT-2) — the person's own words, never the
 model's, the utterance itself unmodified. Nothing a port read raises a grade: its report is verified as PV-3 states, so a
 value stated on an earlier turn is `Conversation` only through the draft, and a port that misreads the window produces
 `Inferred`, never a wrong tag.
@@ -436,7 +436,7 @@ which reads one utterance, found neither value there — so the Evidence Card's 
 could not be shown of something that was. The tags to carry are tags only the pipeline can mint: a draft any code but the
 finder could fill would be a host asserting `Conversation`, the class PV-3 closed, so the draft is filled by `draft`
 running the same steps on the earlier turn. A draft is working state, not a record (RT-3).
-*Checked by:* `gate/draft-carries-a-conversation-tag-across-turns`, `gate/draft-changed-value-does-not-carry`,
+*Checked by:* `gate/draft-from-a-question-turn`, `gate/draft-carries-across-entities`, `gate/draft-carries-a-conversation-tag-across-turns`, `gate/draft-changed-value-does-not-carry`,
 `gate/draft-later-hit-replaces-the-earlier`, `gate/draft-inferred-does-not-carry`, `gate/draft-expired-does-not-carry`,
 `gate/draft-other-conversation-does-not-carry`, `gate/draft-consumed-on-file`, `gate/draft-left-by-a-refused-file`,
 `gate/draft-never-files`, `gate/draft-without-a-port-refused`, `gate/file-without-a-port-grades-this-turn`,
@@ -885,6 +885,7 @@ holding the fixtures back for work nobody has scheduled.
 
 ## Changelog
 
+- 2026-09-30 — **v0.5.0: the conversation draft, confirmed by the first host's run.** A real model ran the draft across two turns. On the first, the person's statement was drafted: the amount and the payee, each bound to that turn's span. On the second, the filing carried the amount and the payee as `Conversation` with bindings naming the first message (`messageId`, PV-2; absent on a binding, the span indexes the Affidavit's own turn, so a value stated on the live turn — the currency — was bound without a message id); a date the person gave in relative words was `Computed` by the host's resolver, and a direction the person never stated was `Inferred`. A correction after the filing was left to the Docket's amendment, not filed as a new capture. GT-7 did what its text says. Three amendments come from the run. The id-material serializes `args` as given (GT-4): a canonical-form money check had refused a number beside a currency at the arguments, before anything was graded, though SR-2's money shape belongs to a field's value that is a Money object and never to the arguments. A refusal's `message` carries no proposed value, argument or utterance (AF-5): it is on the wire and reaches the model's context and the person. A host's port may consult the draft it holds as well as the conversation's earlier turns (GT-7), because the model re-reports some fields and not others and the draft's own binding must still match. Two fixtures are added, `gate/draft-from-a-question-turn` and `gate/id-material-args-serialize-as-given`. No schema or hash change. The TypeScript packages that read this text are named when their pin moves to the tag.
 - 2026-09-30 — **v0.5.0-pre.2 (pre-release): the source of a filing turn's values; which turns draft.** Text only. GT-7 states that the graded values are the host's inference port's report, that a port may consult the conversation's earlier user turns handed to it explicitly at the call, that the model's tool arguments are never graded, and that any non-filing turn may draft. Its *Why* is corrected to say the port reported the value on the later turn, and PV-3's *Across turns* and the *Terms* paragraph follow. No schema, fixture or hash change. From the first host's refutation of its own wiring.
 - 2026-09-30 — **v0.5.0-pre (pre-release): the conversation draft.** A value a person stated in an earlier turn of the same conversation keeps its `Conversation` tag and binding when the model carries it into a later turn's proposal. Added: GT-7 — the gate's `draft(proposal, ctx)` entry point, which runs GT-1's first four steps and holds the graded fields (`Conversation` with an `utterance-span` binding, nothing else) in a draft kept through a host-supplied port keyed by tenant, conversation and tool; `file` consumes it when it files; no port wired, `file` grades from this turn alone and `draft` is refused `wireup-invalid`. PV-3 gains *Across turns*, the carry-over clause in the finder's own comparison, with "earlier turns are not searched" standing; PV-2's `utterance-span` gains an optional `messageId`, present on every carried binding; GT-1, RT-3 and the *Terms* paragraph gain one sentence each. `schemas/0.5.0/` adds `messageId` on the binding and `draft.schema.json`. No existing document or canonical hash changes: every `0.4.0` document is a valid `0.5.0` document. Only `draft` writes, the whole record the gate computed, merged by field name — a field the port reported without a hit removes nothing; `file` writes nothing and consumes the draft on filing or leaves it. A filing that enters after the merge with prepared fields, and a resubmission (GT-4), never read or consume it. `draft` takes no prepared fields (a call that supplies them is a caller error) and returns the record it wrote. The draft never adds a field to an Affidavit: AF-1's field list is the proposal's. The time-to-live counts from the write. From a running host's multi-turn capture (2026-09-30), whose four-message write graded `Inferred` on every field stated in an earlier message.
 - 2026-09-29 — **v0.4.1: the first host ran the withdrawal transition.** Orrery's cancel route called `withdraw` inside its cancel transaction, naming the cancelling member, in its Workers test pool against a local Postgres (unit W-90, merged to its `bootstrap`; production evidence follows its deploy); the cases confirmed DK-1 as written — the withdrawal's instant, the approval records kept, every later decision and a second withdrawal refused `decision-not-pending` with the row unchanged, a cancel after the fold refused and the executor's outcome recorded on the approved row, a re-file replaying the withdrawn row, a blank reason a caller error; the relay case was not exercised (the host names a member principal). Three sentences added from what the text had not said: a resubmit of a non-expired entry is refused `decision-not-pending`; `decision.by` is an identifier; the suite case for a withdrawn entry's resubmit is a refusal, not a caller error. No schema, vector or fixture change.

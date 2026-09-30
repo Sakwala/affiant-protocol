@@ -29,6 +29,7 @@ Versions are git tags. Each implementation pins a tag and bumps it in its own pu
 | `v0.4.0` | The `0.4.0` schemas: `withdrawn` on the entry's status and the `withdraw` decision kind, in `docket-entry.schema.json`, `decision-result.schema.json` and `notification.schema.json`; no new refusal code. Ten fixtures authored here for the withdrawal transition (the ten `decide/` ids containing `withdraw`), every one on the negative oracle's fourth table, plus three `v0.4/` wire documents; two `canonicalHash` values re-derived at `0.4.0` (#52). Fixtures read by the TypeScript driver at #52's merge commit `52e1a3d`, 109 of 109, published in `Sakwala/affiant-ts` as `typescript-v0.4.json` and moving here with the pin |
 | `v0.4.1` | DK-1 amended from the first host's run of the withdrawal transition (Orrery, 2026-09-29): a resubmit of a non-expired entry is refused `decision-not-pending`; `decision.by` is an identifier; the withdrawn-resubmit suite case is a refusal. Text only — no schema, vector or fixture change; 109 documents |
 | `v0.5.0-pre` | The `0.5.0` schemas: `messageId` on the utterance-span binding, the `draft` record; GT-7, the conversation draft; pre-release, no tag yet; `pre.2` is text only: where a filing turn's values come from, which turns draft |
+| `v0.5.0` | The `0.5.0` text finalised from the first host's run of the conversation draft: the id-material serializes `args` as given (GT-4), a refusal's message carries no proposed value (AF-5), a port may consult the draft it holds (GT-7); two fixtures added (`gate/draft-from-a-question-turn`, `gate/id-material-args-serialize-as-given`); no schema change; tag on the merge commit |
 
 ## Implementations
 
@@ -39,6 +40,7 @@ Versions are git tags. Each implementation pins a tag and bumps it in its own pu
 
 ## Status
 
+- 2026-09-30 — **`v0.5.0`: the conversation draft, finalised from the first host's run.** The text stays as the pre-release wrote it and gains three amendments: the id-material serializes `args` as given (GT-4), a refusal's message carries no proposed value (AF-5), a port may consult the draft it holds (GT-7); two fixtures added; no schema or hash change; the tag goes on the merge commit.
 - 2026-09-30 — **the v0.5 pre-release's two `canonicalHash` values re-derived at `0.5.0`.** `decide/amend-recompute` and
   `sequence-a/approve-round-trip` expect the hash of a document the implementation produces; the canonical form carries
   `protocolVersion` (SR-1, SR-4), so once the conformance section reads `0.5.0` the values derived at `0.4.0` cannot match.
