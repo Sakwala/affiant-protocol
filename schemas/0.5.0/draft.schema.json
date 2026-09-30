@@ -30,8 +30,9 @@
       "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
     },
     "fields": {
-      "description": "The drafted fields, one per name; a later statement of the same name replaces the earlier (GT-7).",
+      "description": "The drafted fields, one entry per field name; a later statement of the same name replaces the earlier (GT-7). A draft holds at least one field.",
       "type": "array",
+      "minItems": 1,
       "items": {
         "type": "object",
         "additionalProperties": false,

@@ -84,7 +84,7 @@ state that invalid verdict. *(0.3.0)* |
 | `entities` | no | What the host's entities hold **now**, keyed `"<entityType>/<entityId>"` (AF-3). The projection port reads this table, so a fixture states the world rather than the answer: an update names an entity, and the previous values are whatever the table says it holds. An entity not in the table **does not exist**, and the port answers "nothing to project" — which is not the same as "every field was empty". |
 | `uncovered` | no | Tools the host declared it cannot intercept (CV-4): `{ tool, category: "no-execute" \| "provider-executed" \| "hosted-mcp" }`. |
 | `sessions` | no | Whether a rehydration surface is wired (DK-5). Defaults to `true`. |
-| `draft` | no | `{ ttlMs }` — the reference in-memory draft port and the time-to-live of what it holds (GT-7). Absent, no port is wired: `file` carries nothing from an earlier turn and a `draft` step is refused `wireup-invalid`. *(0.5.0)* |
+| `draft` | no | `{ ttlMs }` — the reference in-memory draft port and the time-to-live of what it holds, counted from the write (GT-7). Absent, no port is wired: `file` carries nothing from an earlier turn and a `draft` step is refused `wireup-invalid`. *(0.5.0)* |
 
 ### 2.2 `given.ctx`
 
@@ -115,7 +115,9 @@ GT-2), `entry` (the entry this step acts on: a label from an earlier `as`, or, a
 |---|---|---|
 | `wrap-execute` | `tool`, `args` | A model calls a wrapped tool — Sequence A's way in (GT-6, CV-4). The fixture describes the tool; the driver supplies an `execute` that **fails if the gate ever calls it**, which makes GT-6 a tripwire on every such fixture. `args` is the field-name → value map the model passed. |
 | `file` | `toolName`, `operation`, `schema?`, `preparedFields?`, `args?`, `operationLabel?` | The host files a proposal it assembled — Sequence C's way in (GT-1). |
-| `draft` | `toolName`, `operation`, `schema?`, `preparedFields?`, `args?` | The host drafts a proposal: the context, the interceptors, the inference and the merge run and the graded fields are held in the draft under the step's tenant, conversation and tool; nothing files (GT-7). *(0.5.0)* |
+| `draft` | `toolName`, `operation`, `schema?`, `args?` | The host drafts a proposal: the context, the interceptors, the inference and the merge run and the graded fields are held in the draft under the step's tenant, conversation and tool; nothing files (GT-7). A `draft` takes no prepared fields and no card label; a `draft` supplying prepared fields is a caller error, not a refusal (GT-7). *(0.5.0)* |
+
+`args`, on a `file` or a `draft` step, is the proposal's arguments as given: it is part of GT-4's id-material (the tool, the operation and the arguments), so two `file` steps that differ only in `args` file two entries and two that agree replay one.
 | `decide` | `decision` | Approve, amend or reject (DK-1, AZ-1, AZ-2). `decision` is `{ kind: "approve" \| "reject", amendments?, reason? }`. |
 | `resubmit` | — | File an expired entry again (DK-1). A resubmission is a **new** entry, never a reopened one. |
 | `withdraw` | `reason` | The host withdraws a pending entry whose subject is gone (DK-1). `reason` is required. Its result is the entry or an error, as `decide`. *(0.4.0)* |
@@ -215,7 +217,7 @@ something checkable (PV-2, PV-4), `bindingKind` is which kind it points with, an
 displaced, **newest first** — nothing is ever dropped from a chain.
 
 `utteranceSpan` states the `utterance-span` binding itself, exactly (PV-3, `v0.1.3`): `offset` and `length` in **UTF-16
-code units of `given.ctx.utterance`**, and `hash` the SHA-256 of the UTF-8 bytes of the **utterance's own substring** at
+code units of the utterance of the turn the span indexes** — the step's own turn, or the message `messageId` names — and `hash` the SHA-256 of the UTF-8 bytes of the **utterance's own substring** at
 that span, as 64 lowercase hexadecimal characters. A fixture states it to pin *which* occurrence the finder found and that
 the digest is taken over the utterance rather than over the value the port reported; stating nothing asserts nothing about
 the span. From 0.5.0 it also takes `messageId`, the message whose utterance the span indexes (PV-2, GT-7): absent, it
