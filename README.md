@@ -1,6 +1,6 @@
 # affiant-protocol
 
-The rulebook for [Affiant](https://affiant.dev): the wire format, the numbered invariants and the conformance fixtures that every Affiant implementation — in any language — must satisfy.
+The rulebook for [Affiant](https://affiant.tech): the wire format, the numbered invariants and the conformance fixtures that every Affiant implementation — in any language — must satisfy.
 
 **[Implement Affiant in your language →](IMPLEMENTING.md)** — how a new implementation, in any language and under its own name, becomes a conforming one.
 
