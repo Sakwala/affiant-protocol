@@ -1,7 +1,7 @@
 # INVARIANTS — the rules every Affiant implementation enforces
 
-**Status: `0.5.1` text** (`v0.5.0` is frozen; this text amends it, 2026-10-01, for a read tool's throw, a failure after the filing,
-and what a `Computed` rule may consume — see the changelog), written against a working
+**Status: `0.6.0` text** (`v0.5.1` is frozen; this text amends it, 2026-11-11, for the digest key a host may supply to its
+gate — see the changelog), written against a working
 implementation. Every rule has a permanent id, a full
 statement in RFC 2119 words, the reason where it is not obvious, and a *Checked by* line naming the fixtures, suites or lints
 that fail when the rule is broken. The skeleton of 2026-09-04 carried the same ids as one-liners; nothing was renumbered.
@@ -225,7 +225,8 @@ discards the hint — and no hit ever begins or ends **inside a surrogate pair**
 UTF-16 code unit is half of a pair is not a hit.
 
 *The binding.* A hit mints an `utterance-span` binding (PV-2): `offset` and `length` in UTF-16 code units of the utterance,
-and `hash` = SHA-256 as 64 lowercase hexadecimal characters over the UTF-8 bytes of the **utterance's own substring** at
+and `hash` = SHA-256 — or, when the host supplies a digest key, HMAC-SHA-256 under that key (GT-4 defines it,
+*v0.6.0*) — as 64 lowercase hexadecimal characters over the UTF-8 bytes of the **utterance's own substring** at
 that span, which is what was there when the value was read. No hit, no binding.
 
 *Across turns (v0.5.0).* Where the gate holds a draft (GT-7), the finder gains one clause, and for each proposed field the
@@ -260,6 +261,7 @@ beyond ASCII. *Checked by:* `gate/inference-conversation-and-inferred`,
 `gate/inference-presence-computed-from-the-utterance`, `gate/inference-port-literal-unconfirmed`,
 `gate/inference-port-span-fails-the-boundary`, `gate/inference-case-folds-and-the-digest-is-the-utterances`,
 `gate/inference-empty-value-is-nothing-reported`, `gate/draft-carries-a-conversation-tag-across-turns`,
+`gate/digest-key-span-hash-is-hmac`, `gate/digest-key-draft-carries-the-keyed-hash`,
 `gate/draft-changed-value-does-not-carry`, `gate/draft-later-hit-replaces-the-earlier`,
 `gate/draft-merges-by-field-name`, `gate/draft-inferred-does-not-carry`, `sequence-a/picker-external-binding`,
 `sequence-a/late-amendments-preserved`; `suite: gate types (type-level:
@@ -341,16 +343,31 @@ proposal files.
 whitespace, numbers in shortest positional form, `null` written, absent omitted) of an object carrying `tenantId`,
 `conversationId`, `toolName`, `operation`, `args` (the proposal's arguments as given, or `null` when there are none; serialized under SR-1's rules and nothing else — SR-2's money shape is a property of a field's value that is a Money object, never of the arguments, so a record that carries an `amount` beside a `currency` is not refused here) and
 `supersedes` — present only when the proposal supersedes an earlier entry, i.e. a resubmission, so a first filing's id is
-unaffected by whether a resubmission of it ever exists. The digest is SHA-256 over the UTF-8 bytes of that material. The id
+unaffected by whether a resubmission of it ever exists. The digest is SHA-256 over the UTF-8 bytes of that material,
+unless the host supplies a digest key *(v0.6.0)*. The **digest key** is an optional secret a host supplies to its gate,
+one per gate, of at least 32 bytes. When it is present, the digest of this rule is HMAC-SHA-256 under that key over the same bytes, and the
+span hash of PV-3 is HMAC-SHA-256 under that key over the same bytes; when it is absent, both are SHA-256 as before. The id
 is the digest's first 128 bits laid out as a UUID: the version nibble (hex index 12) set to `8`, the variant nibble (hex
 index 16) set to one of `8`, `9`, `a`, `b` chosen by that nibble's original value modulo 4, formatted `8-4-4-4-12` lowercase
 (RFC 9562 UUIDv8) — the reference implementation's `deriveEntryId` (`Sakwala/affiant-ts` `packages/core/src/gate/pipeline.ts`).
-Two implementations must derive the same id for the same proposal, because a Docket row's identity is both what a retry
+Two implementations must derive the same id for the same proposal and the same key (or none), because a Docket row's identity is both what a retry
 replays to and what a resubmission's `supersedes` points at. The Affidavit's own canonical form (SR-1) is deliberately not
 the material: it is produced after inference runs, inference is not deterministic, and the id must be fixed before
 inference runs, so a retry can be recognised before its Affidavit even exists.
+
+**The digest key (v0.6.0).** The host MUST run a retry of a filing, and a repeat of a resubmission, under the key that
+filed the entry it repeats: under a different key a retry derives a different id and files a second entry rather than
+replaying the first, and a repeated resubmission files another entry rather than replaying the first resubmission. A
+resubmission itself always files a new entry, whose `supersedes` carries the original's id unchanged whatever the key.
+An implementation cannot tell which key filed an earlier entry, so the obligation is the host's. Changing the key
+changes every id and every span hash derived afterwards.
+The implementation never writes or sends the key anywhere. `canonicalHash` (SR-1) is never keyed.
+*Why:* both digests are taken over what a person typed — the span hash over a substring of the utterance, the id over
+material that carries the proposal's arguments — so an unsalted SHA-256 lets anyone holding a host's database test a
+guess at that text; under a key, a guess cannot be tested by anyone who does not hold the key.
 *Checked by:* `gate/ttl-from-verdict`, `gate/ttl-from-policy-default`, `gate/ttl-from-gate-default`,
-`gate/id-material-args-serialize-as-given`, `sequence-a/replay-keeps-the-deadline`, `sequence-a/expiry-then-resubmit`, `decide/multiparty-refile-replays`; `suite: policy ttl validation`.
+`gate/id-material-args-serialize-as-given`, `sequence-a/replay-keeps-the-deadline`, `sequence-a/expiry-then-resubmit`, `decide/multiparty-refile-replays`,
+`gate/digest-key-span-hash-is-hmac`, `gate/digest-key-refile-replays`, `sequence-a/digest-key-resubmit-replays`; `suite: policy ttl validation`.
 *Source:* `src/Affiant.Core/Services/ReviewGate.cs` `FileForReviewCoreAsync` (time-to-live stamped before policy; fresh
 time-to-live on re-file).
 
@@ -884,6 +901,20 @@ holding the fixtures back for work nobody has scheduled.
 
 ## Changelog
 
+- 2026-11-11 — **v0.6.0: the digest key.** Two digests this text prescribes are taken over what a person typed: the
+  span hash of an `utterance-span` binding (PV-3) and the Docket entry id (GT-4). Unsalted, each lets anyone holding a
+  host's database test a guess at that text. GT-4's *Derivation* now defines the **digest key**, an optional secret a
+  host supplies to its gate, one per gate: present, both digests are HMAC-SHA-256 under it over the same bytes;
+  absent, both are SHA-256 as before, so every existing fixture, vector and hash is unchanged. GT-4 also says that the
+  same id needs the same key (or none), that the host must run a retry, and a repeat of a resubmission,
+  under the key that filed the entry it repeats, that changing the key changes every id and span hash derived
+  afterwards, that the implementation never writes or sends the key anywhere, and that `canonicalHash` (SR-1) is never keyed; PV-3's binding cites it. The
+  fixture format gains `given.gate.digestKey`, the key's raw bytes as hexadecimal, which is why this is a minor version.
+  Four fixtures are authored here: `gate/digest-key-span-hash-is-hmac`, `gate/digest-key-refile-replays`,
+  `gate/digest-key-draft-carries-the-keyed-hash` and `sequence-a/digest-key-resubmit-replays`. An implementation that
+  has not built the keyed form lists these four in its parity manifest's `failing[]` (`conformance/PARITY.md`). The fixture
+  schema (`conformance/fixture.schema.json`) gains the property `given.gate.digestKey`; the wire schemas under
+  `schemas/` change in description only. From the owner's decision of 2026-11-11 for the first host.
 - 2026-10-01 — **v0.5.1: a read tool's throw, a failure after the filing, and what a rule may consume.** The first host's next run found three facts the text had not said. A read tool's own throw was answered with the thrown error's own text, which reached the model's next prompt. A failure after the store had filed the entry (the draft's `consume` rejecting) reached the host with the tool's name only, so the host could not tell that the row was committed. And an interceptor minted a `Computed` value at confidence 1 whose inputs named free text and an earlier turn: the core admitted both, the rule read ordinary sentences wrongly, and a `Computed` at confidence 1 meets a standing order's floor, so a wrong value would have been recorded with no reviewer. Two sentences added and one clause narrowed, with one *Why* sentence: AF-5 — a read tool's own throw is the error kind with the code `tool-error` and a message the implementation writes, never the thrown error's text and never a code the body chose, reported to the host off the wire (an implementation cannot vet a host's text for a value, so it does not relay it); GT-7 *Lifecycle* — a failure after the store has filed leaves the entry filed, is never answered as a refusal, and reaches the host naming the filed entry's id and status (a draft left unconsumed would carry a stale `Conversation` value into the next filing, and consuming before filing would lose the draft of a filing that fails); PV-2 — a `computation-ref`'s inputs are field ids of the same Affidavit (never the field the value is for) or `turn.utterance` and `turn.at`, and any other input name is a caller error, not a refusal on the wire, with its *Why* (a rule that reads free text into a value is an inference, and `Inferred`, unbound, is the grade that sends it to a person). One fixture added: `gate/computed-inputs-turn-and-field`. No schema or vector change.
 - 2026-09-30 — **v0.5.0: the conversation draft, confirmed by the first host's run.** A real model ran the draft across two turns. On the first, the person's statement was drafted: the amount and the payee, each bound to that turn's span. On the second, the filing carried the amount and the payee as `Conversation` with bindings naming the first message (`messageId`, PV-2; absent on a binding, the span indexes the Affidavit's own turn, so a value stated on the live turn — the currency — was bound without a message id); a date the person gave in relative words was `Computed` by the host's resolver, and a direction the person never stated was `Inferred`. A correction after the filing was left to the Docket's amendment, not filed as a new capture. GT-7 did what its text says. Three amendments come from the run. The id-material serializes `args` as given (GT-4): a canonical-form money check had refused a number beside a currency at the arguments, before anything was graded, though SR-2's money shape belongs to a field's value that is a Money object and never to the arguments. A refusal's `message` carries no proposed value, argument or utterance (AF-5): it is on the wire and reaches the model's context and the person. A host's port may consult the draft it holds as well as the conversation's earlier turns (GT-7), because the model re-reports some fields and not others and the draft's own binding must still match. Two fixtures are added, `gate/draft-from-a-question-turn` and `gate/id-material-args-serialize-as-given`. No schema or hash change. The TypeScript packages that read this text are named when their pin moves to the tag.
 - 2026-09-30 — **v0.5.0-pre.2 (pre-release): the source of a filing turn's values; which turns draft.** Text only. GT-7 states that the graded values are the host's inference port's report, that a port may consult the conversation's earlier user turns handed to it explicitly at the call, that the model's tool arguments are never graded, and that any non-filing turn may draft. Its *Why* is corrected to say the port reported the value on the later turn, and PV-3's *Across turns* and the *Terms* paragraph follow. No schema, fixture or hash change. From the first host's refutation of its own wiring.

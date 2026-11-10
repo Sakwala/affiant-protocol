@@ -85,6 +85,7 @@ state that invalid verdict. *(0.3.0)* |
 | `uncovered` | no | Tools the host declared it cannot intercept (CV-4): `{ tool, category: "no-execute" \| "provider-executed" \| "hosted-mcp" }`. |
 | `sessions` | no | Whether a rehydration surface is wired (DK-5). Defaults to `true`. |
 | `draft` | no | `{ ttlMs }` — the reference in-memory draft port and the time-to-live of what it holds, counted from the write (GT-7). Absent, no port is wired: `file` carries nothing from an earlier turn and a `draft` step is refused `wireup-invalid`. *(0.5.0)* |
+| `digestKey` | no | The digest key the host supplies to its gate, as the raw key bytes in lowercase hexadecimal, at least 64 characters (GT-4). Stated, the entry id's digest and every utterance-span hash are HMAC-SHA-256 under it; absent, both are SHA-256. A fixture's key is a fixed synthetic value. *(0.6.0)* |
 
 ### 2.2 `given.ctx`
 
