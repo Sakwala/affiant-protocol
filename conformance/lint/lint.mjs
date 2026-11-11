@@ -36,7 +36,7 @@
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createHash } from 'node:crypto';
+import { createHash, createHmac } from 'node:crypto';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 
@@ -158,6 +158,18 @@ if (process.argv.includes('--self-test')) {
     pairProblems({ results: [{ id: 'gate/ttl-from-verdict', outcome: 'skipped' }] }, { failing: [] }, 'results/x', 'y.json'),
     ['results/x: skipped gate/ttl-from-verdict; a skip is legitimate only where the manifest declares one'],
   );
+
+  // The span hash is keyed where the fixture states a digest key and plain where it does
+  // not (GT-4, PV-3). A lint that hashed one way for both would pass a keyed fixture pinning
+  // the plain SHA-256, or an unkeyed one pinning an HMAC.
+  const lunch = { offset: 0, length: 12 };
+  const keyed = { gate: { digestKey: '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f' } };
+  const plainHash = '8cdd8a7d75d31e666ffe202ee1bca3fd5673d943783de1c22bfa27cb51848a9c';
+  const keyedHash = 'be079760bc6446633cf17b9e3fcc12fa3b687d0142309d32c5e47b7d9207675c';
+  check('a keyed fixture pinning the HMAC passes', spanDigest('client lunch', lunch, keyed) === keyedHash, true);
+  check('a keyed fixture pinning the plain SHA-256 is flagged', spanDigest('client lunch', lunch, keyed) === plainHash, false);
+  check('an unkeyed fixture pinning the SHA-256 passes', spanDigest('client lunch', lunch, {}) === plainHash, true);
+  check('an unkeyed fixture pinning an HMAC is flagged', spanDigest('client lunch', lunch, {}) === keyedHash, false);
 
   console.log('');
   if (problems.length > 0) {
@@ -1552,9 +1564,16 @@ function finderVerdict(utterance, field) {
   return { reported: true, valueText, hit, grade: hit === null ? 'Inferred' : 'Conversation' };
 }
 
-/** The digest an `utterance-span` binding carries: SHA-256 over the utterance's own substring. */
-function spanDigest(utterance, hit) {
-  return createHash('sha256').update(Buffer.from(utterance.slice(hit.offset, hit.offset + hit.length), 'utf8')).digest('hex');
+/**
+ * The digest an `utterance-span` binding carries, over the utterance's own substring: SHA-256,
+ * or HMAC-SHA-256 under the key where the fixture states `given.gate.digestKey` (GT-4, PV-3).
+ */
+function spanDigest(utterance, hit, given) {
+  const bytes = Buffer.from(utterance.slice(hit.offset, hit.offset + hit.length), 'utf8');
+  const key = given?.gate?.digestKey;
+  return typeof key === 'string'
+    ? createHmac('sha256', Buffer.from(key, 'hex')).update(bytes).digest('hex')
+    : createHash('sha256').update(bytes).digest('hex');
 }
 
 /**
@@ -1813,7 +1832,7 @@ function checkInferencePresence(section) {
             fail(`${entry.id}: field ${name} pins an utteranceSpan where PV-3's finder finds no hit at all`);
             continue;
           }
-          const digest = spanDigest(utterance, hit);
+          const digest = spanDigest(utterance, hit, document.given);
           const pinned = matcher.utteranceSpan;
           if (pinned.offset !== hit.offset || pinned.length !== hit.length) {
             fail(
@@ -1822,8 +1841,9 @@ function checkInferencePresence(section) {
             );
           } else if (pinned.hash !== digest) {
             fail(
-              `${entry.id}: field ${name} pins an utteranceSpan hash that is not the SHA-256 of the utterance's own ` +
-                `substring ${JSON.stringify(utterance.slice(hit.offset, hit.offset + hit.length))} (expected ${digest})`,
+              `${entry.id}: field ${name} pins an utteranceSpan hash that is not the ` +
+                `${typeof document.given?.gate?.digestKey === 'string' ? 'HMAC-SHA-256 under given.gate.digestKey' : 'SHA-256'} ` +
+                `(SHA-256 with no digest key, HMAC-SHA-256 under one) of the utterance's own substring ${JSON.stringify(utterance.slice(hit.offset, hit.offset + hit.length))} (expected ${digest})`,
             );
           }
         }
